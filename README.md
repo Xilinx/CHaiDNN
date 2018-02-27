@@ -11,7 +11,7 @@ To get a local copy of the CHaiDNN repository, clone this repository to the loca
 ``` sh
 git clone https://github.com/Xilinx/CHaiDNN.git CHaiDNN
 ```
-Where `CHaiDNN` is the name of the directory where the repository will be stored on the local system. This command needs to be executed only once to retrieve the latest version of the CHaiDNN library. The required software is a local installation of [**Git LFS**](https://git-lfs.github.com/).
+Where `CHaiDNN` is the name of the directory where the repository will be stored on the local system. This command needs to be executed only once to retrieve the latest version of the CHaiDNN library.
 
 ## **Hardware and Software Requirements**
 
