@@ -103,11 +103,11 @@ Follow the below steps to run inference on example networks.
 
 **Note:** Failing to run `sync` might corrupt the file system and cause crash on subsequent runs.
 
-**Note:** For running inference on a new network, please follow the instructions in [Run new Network using CHaiDNN](./Run_New_Network.md).
+**Note:** For running inference on a new network, please follow the instructions in [Run new Network using CHaiDNN](./RUN_NEW_NETWORK.md).
 
 ## **Build from Source**
 
-CHaiDNN can be built using Makefiles OR using SDx IDE. The below steps describe how to build CHaiDNN using Makefiles. For steps to build using SDx IDE, check the instructions in [Build using SDx IDE](./Build_using_SDx_GUI.md). 
+CHaiDNN can be built using Makefiles OR using SDx IDE. The below steps describe how to build CHaiDNN using Makefiles. For steps to build using SDx IDE, check the instructions in [Build using SDx IDE](./BUILD_USING_SDX_GUI.md). 
 
 ## 1. Build CHaiDNN Hardware from source
 Please follow the steps to build the design for zcu102
@@ -227,13 +227,13 @@ FF | 548160 | 176146 | 32.13
 
 ## **Other Information**
 
-For CHaiDNN API Document click [CHaiDNN API document](./API_document.md)
+For CHaiDNN API Document click [CHaiDNN API document](./API_DOCUMENT.md)
 
-For Running Inference on other Networks [Running Inference for new networks](./Run_New_Network.md).
+For Running Inference on other Networks [Running Inference for new networks](./RUN_NEW_NETWORK.md).
 
-For information on CHaiDNN quantization parameters check [Quantization Parameters User Guide](./Quantization_Parameters_UG.md)
+For information on CHaiDNN quantization parameters check [Quantization Parameters User Guide](./QUANTIZATION_PARAMETERS_UG.md)
 
-For insturctions on creating the SDx GUI Project for CHaiDNN click [Build using SDx IDE](./Build_using_SDx_GUI.md)
+For insturctions on creating the SDx GUI Project for CHaiDNN click [Build using SDx IDE](./BUILD_USING_SDX_GUI.md)
 
 For SDSoC User Guide click [SDSoC User Guides](https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_4/ug1027-sdsoc-user-guide.pdf)
 
@@ -245,7 +245,7 @@ For SDSoC User Guide click [SDSoC User Guides](https://www.xilinx.com/support/do
 For questions and to get help on this project or your own projects, visit the [SDSoC Forums](https://forums.xilinx.com/t5/SDSoC-Development-Environment/bd-p/sdsoc).
 
 ## **Licence and Contributing to the Repository**
-The source for this project is licensed under the [Apache License 2.0](./LICENSE.md)
+The source for this project is licensed under the [Apache License 2.0](./LICENSE)
 
 To contribute to this project, follow the guidelines in the [Repository Contribution README](./CONTRIBUTING.md)
 
