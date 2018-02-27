@@ -1,0 +1,12 @@
+## General
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+software/scripts/*.so
+
+# Compiled executables
+software/scripts/*.elf
