@@ -41,6 +41,8 @@
 
 13. All the source files needed to build `CHaiDNN`, can be seen under `src` directory. 
 
+**IMPORTANT :** The `software/example` folder contains 6 example files. Using SDx GUI, only 1 of them can be built at once. Exclude other example files from the project except the one you wish to build.  
+
 14. Right click on project and select `C/C++ Build Settings`
 
 15. In `SDS++ Compiler` add the following in the `command`
@@ -56,6 +58,8 @@ sds++ -xp param:compiler.skipTimingCheckAndFrequencyScaling=1 -hls-tcl <path to 
 <path to libraries>/opencv_arm64/include
 <path to libraries>/protobuf_arm64/include
 ```
+> **Note :** `<path to libraries>` is the path to `SD_Card` directory in local `CHaiDNN` repository.
+
 18. In `SDS++ Linker` add the following in the `command`
 ```
 sds++ -xp param:compiler.skipTimingCheckAndFrequencyScaling=1
@@ -80,13 +84,13 @@ opencv_core;lzma;tiff;png16;z;jpeg;opencv_imgproc;opencv_imgcodecs;dl;rt;webp;pr
 23. Apply changes and close the window.
  
 24.	Select the HW functions.
-    > Navigate to `src/design/conv/example/xi_convolution.cpp` file using SDx explorer, right click on `XiConvolutionTop` and select Toggle HW/SW.
+    > Navigate to `src/design/src/conv/example/xi_convolution.cpp` file using SDx explorer, right click on `XiConvolutionTop` and select Toggle HW/SW.
 	
-    > Navigate to `src/design/gemv/example/au_sgemv_top.cpp` file using SDx explorer, right click on `auSgemvTop` and select Toggle HW/SW.
+    > Navigate to `src/design/src/gemv/example/au_sgemv_top.cpp` file using SDx explorer, right click on `auSgemvTop` and select Toggle HW/SW.
 	
-    > Navigate to `src/design/pool/example/pooling_layer_dp_2xio_top.cpp` file using SDx explorer, right click on `PoolTop` and select Toggle HW/SW.
+    > Navigate to `src/design/src/pool/example/pooling_layer_dp_2xio_top.cpp` file using SDx explorer, right click on `PoolTop` and select Toggle HW/SW.
     
-    > Navigate to `src/design/deconv/example/xi_deconv_top.cpp` file using SDx explorer, right click on `XiDeconvTop` and select Toggle HW/SW.
+    > Navigate to `src/design/src/deconv/example/xi_deconv_top.cpp` file using SDx explorer, right click on `XiDeconvTop` and select Toggle HW/SW.
 	
 25. Open `project.sdx` file, change the `Data motion network clock frequency (MHz)` to 200.00 and change the `Hardware Functions clock frequency (MHz)` to 200.00
 	
