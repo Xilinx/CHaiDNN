@@ -1,0 +1,11 @@
+libdir=build/armv8C/lib
+includedir=build/armv8C/include
+version=0.2.20
+extralib=-lm -lpthread -lgfortran -lm -lpthread -lgfortran
+Name: openblas
+Description: OpenBLAS is an optimized BLAS library based on GotoBLAS2 1.13 BSD version
+Version: ${version}
+URL: https://github.com/xianyi/OpenBLAS
+Libs: -L${libdir} -lopenblas
+Libs.private: ${extralib}
+Cflags: -I${includedir}
