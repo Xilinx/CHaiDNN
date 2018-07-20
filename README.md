@@ -1,11 +1,143 @@
-# **CHaiDNN**
+<table style="width:100%">
+<tr>
+<th width="100%" colspan="6"><img src="https://www.xilinx.com/content/dam/xilinx/imgs/press/media-kits/corporate/xilinx-logo.png" width="30%"/><h1>CHaiDNN-v2</h2>
+</th>
+</tr>
+  <tr>
+    <th rowspan="6" width="17%">Analysis and Eval</th>
+   </tr>
+<tr>
+	<td align="center" colspan="2"><a href="../docs/SUPPORTED_LAYERS.md">Supported Layers</a></td>
+	<td align="center" colspan="2"><a href="../docs/PERFORMANCE_SNAPSHOT.md">Performance/Resource Utilization</a></td>
+</tr>
+  <tr></tr>
+<tr>
+	<td align="center" colspan="4"><a href="../docs/PERFORMANCE_EVAL.md">Performance Eval</a></td>	
+</tr>
+<tr></tr>
+    <tr></tr>
+  <tr><th colspan="6"></th></tr>
 
-The CHaiDNN is Xilinx Deep Neural Network library for acceleration of deep neural networks on Xilinx Ultrascale MPSoCs. It is designed for maximum compute efficiency at 16-bit integer data type.
+  <tr></tr>
+  <tr>
+     <th rowspan="7" width="17%">Design and Development</th>
+   </tr>
 
-The design goal of CHaiDNN is to achieve best accuracy with maximum performance. The inference on CHaiDNN works in fixed point domain for better performance. All the feature maps and trained parameters are converted from single precision to fixed point based on the precison parameters specified by the user. The precision parameters can vary a lot depending upon the network, datasets, or even across layers in the same network. Accuracy of a network depends on the precision parameters used to represent the feature maps and trained parameters. Well-crafted precision parameters are expected to give accuracy similar to accuracy obtained
-from a single precision model. 
+<tr>
+	<td  align="center"><a href="../docs/API.md">API Reference</a></td>
+	<td  align="center"><a href="../docs/QUANTIZATION.md">Quantization User Guide for CHaiDNN</a></td>
+	<td  align="center"><a href="../docs/MODELZOO.md">Model Zoo</a></td>
+	<td  align="center"><a href="../docs/RUN_NEW_NETWORK.md">Running Interface on new Network</a></td>
+</tr>
+  <tr></tr>
+<tr>
+	<td  align="center"><a href="../docs/BUILD_USING_SDX_GUI.md">Creating SDx GUI Project</a></td>
+	<td  align="center"><a href="../docs/CONFIGURABLE_PARAMS.md">Configurable Parameters</a></td>
+	<td  align="center"><a href="../docs/CUSTOM_PLATFORM_GEN.md">Custom Platform Generation</a></td>
+	<td  align="center"><a href="../docs/SOFTWARE_LAYER_PLUGIN.md">Software Layer Plugin</a></td>
+</tr>
+  <tr></tr>
+<tr>
+	<td  align="center" colspan="2"><a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_4/ug1027-sdsoc-user-guide.pdf">SDSoC Environment User Guide</a></td>	
+	<td align="center" colspan="2"><a href="../docs/HW_SW_PARTITIONING.md">Hardware-Software Partioning for Performance</a></td>
 
-## **How to Download the Repository**
+</tr>  
+</table>
+
+## Introduction
+
+CHaiDNN is a Xilinx Deep Neural Network library for acceleration of deep neural networks on Xilinx UltraScale MPSoCs. It is designed for maximum compute efficiency at 6-bit integer data type. It also supports 8-bit integer data type.
+
+The design goal of CHaiDNN is to achieve best accuracy with maximum performance. The inference on CHaiDNN works in fixed point domain for better performance. All the feature maps and trained parameters are converted from single precision to fixed point based on the precision parameters specified by the user. The precision parameters can vary a lot depending upon the network, datasets, or even across layers in the same network. Accuracy of a network depends on the precision parameters used to represent the feature maps and trained parameters. Well-crafted precision parameters are expected to give accuracy similar to accuracy obtained from a single precision model.
+
+## What's new in CHaiDNN-v2
+
+
+- 4x GOPS compared to CHaiDNN-v1 (2017.4) [(Performance numbers)](./docs/PERFORMANCE_SNAPSHOT.md)
+
+- 2x MAC on DSPs at int6
+
+- Double-Pumped DSPs allowing the DSPs to be clocked at twice the core clock (Some configs can go upto 350/700Mhz)
+
+- **Introducing DietChai** - A miniature version of CHai for smaller MPSoC/ Zynq devices
+
+- 128, 256, 512, 1024 DSP design configs verified for [ZU9](https://www.xilinx.com/products/boards-and-kits/zcu102.html)
+
+- Support for URAM
+
+- 128, 256, 512 DSP configs verified for [ZU7](https://www.xilinx.com/products/boards-and-kits/zcu104.html)
+
+- [ModelZoo](./docs/MODELZOO.md) of 6 networks at int8 and int6 precision
+
+- Support for two quantization modes - [Dynamic fixed point and Xilinx Quantizer](./docs/QUANTIZATION.md)
+
+- Enhanced API to enable better [hardware- software partitioning](./docs/HW_SW_PARTITIONING.md) for users
+
+- Support for [software custom layer](./docs/SOFTWARE_LAYER_PLUGIN.md) plug-ins
+
+- Fully Connected layers on CPU
+- More documentation
+
+## Performance Benchmarks(fps)
+
+<table>
+  <tr>
+    <th>Network</th>
+    <th>Xilinx CHai w/ 1024DSP @ 250/500MHz (Measured on <a href="https://www.xilinx.com/products/boards-and-kits/zcu104.html">ZU9</a>)</th>
+    <th>Nvidia Jetson TX2 @ 1.3GHz*</th>
+  </tr>
+  <tr>
+    <td>GoogleNet-6bit w/o FC</td>
+    <td width="40%" align="center">220</td>
+    <td rowspan="4" align="center">Googlenet-16FP: 201</td>
+  </tr>
+  <tr>
+    <td>GoogleNet-6bit w/ FC</td>
+    <td width="40%" align="center">207</td>
+
+  </tr>
+  <tr>
+    <td>GoogleNet-8bit w/o FC </td>
+    <td width="40%" align="center">151</td>
+
+  </tr>
+  <tr>
+    <td>GoogleNet-8bit w/ FC</td>
+    <td width="40%" align="center">145</td>
+
+  </tr>
+
+
+  <tr>
+    <td>Alexnet-6bit w/o FC</td>
+    <td width="40%" align="center">606</td>
+    <td rowspan="4" align="center">Alexnet-16FP: 250</td>
+  </tr>
+  <tr>
+    <td>Alexnet-6bit w/ FC</td>
+    <td width="40%" align="center">10</td>
+
+  </tr>
+  <tr>
+    <td>Alexnet-8bit w/o FC</td>
+    <td width="40%" align="center">390</td>
+
+  </tr>
+  <tr>
+    <td>Alexnet-8bit w/ FC</td>
+    <td width="40%" align="center">10</td>
+
+  </tr>
+</table>
+
+<sup>* Source: https://devblogs.nvidia.com/jetson-tx2-delivers-twice-intelligence-edge/</sup>
+
+## Hardware and Software Requirements
+
+The CHaiDNN library is designed to work with Zynq UltraScale+ MPSoCs. The library has been verified on [zcu102](https://www.xilinx.com/products/boards-and-kits/zcu102.html) and [zcu104](https://www.xilinx.com/products/boards-and-kits/zcu104.html) boards. Xilinx [SDSoC 2018.2 Development Environment](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/sdx-development-environments.html) is required to work with the library.
+
+
+## How to Download the Repository
 
 To get a local copy of the CHaiDNN repository, clone this repository to the local system with the following command:
 ``` sh
@@ -13,37 +145,87 @@ git clone https://github.com/Xilinx/CHaiDNN.git CHaiDNN
 ```
 Where `CHaiDNN` is the name of the directory where the repository will be stored on the local system. This command needs to be executed only once to retrieve the latest version of the CHaiDNN library.
 
-## **Hardware and Software Requirements**
+>**:pushpin: NOTE:** This repository uses [git-lfs](https://github.com/git-lfs/git-lfs/wiki/Installation). Configuration details can be found [here](https://help.github.com/articles/configuring-git-large-file-storage).
 
-The CHaiDNN library is designed to work with Zynq Ultrascale+ MPSoCs. The library has been verified on zcu102 board. Xilinx [SDSoC 2017.4 Development Environment](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/sdx-development-environments.html) is required to work with the library.
 
-## **Run Inference Using Pre-built binaries**
+<details>
+<summary><big><strong>GitHub Repository Structure</strong></big></summary>
 
-Follow the below steps to run inference on example networks.
+```sh
+CHaiDNN/
+|
+|-- CONTRIBUTING.md
+|-- LICENSE
+|-- README.md
+|-- SD_Card
+|   |-- lib
+|   |-- cblas
+|   |-- images
+|   |-- opencv
+|   |-- protobuf
+|   |-- zcu102
+|   `-- zcu104
+|-- design
+|   |-- build
+|   |-- conv
+|   |-- deconv
+|   |-- pool
+|   `-- wrapper
+|-- docs
+|   |-- API.md
+|   |-- BUILD_USING_SDX_GUI.md
+|   |-- CONFIGURABLE_PARAMS.md
+|   |-- CUSTOM_PLATFORM_GEN.md
+|   |-- HW_SW_PARTITIONING.md
+|   |-- MODELZOO.md
+|   |-- PERFORMANCE_SNAPSHOT.md
+|   |-- QUANTIZATION.md
+|   |-- RUN_NEW_NETWORK.md
+|   |-- SOFTWARE_LAYER_PLUGIN.md
+|   |-- SUPPORTED_LAYERS.md
+|   `-- images
+|-- software
+|   |-- bufmgmt
+|   |-- checkers
+|   |-- common
+|   |-- custom
+|   |-- example
+|   |-- imageread
+|   |-- include
+|   |-- init
+|   |-- interface
+|   |-- scheduler
+|   |-- scripts
+|   |-- swkernels
+|   `-- xtract
+`-- tools
+    |-- SETUP_TOOLS.md
+    `-- tools.zip
 
-1. Download the example networks that need to to be benchmarked and place the unzipped contents at `SD_Card/models` directory.
-	* [AlexNet](https://www.xilinx.com/content/dam/xilinx/open-source/AlexNet.zip)
-	* [GoogleNet](https://www.xilinx.com/content/dam/xilinx/open-source/GoogleNet.zip)
-	* [AlexNetFCN](https://www.xilinx.com/content/dam/xilinx/open-source/AlexNetFCN.zip)
-	* [SSD](https://www.xilinx.com/content/dam/xilinx/open-source/SSD.zip)
-	* [VGG-16](https://www.xilinx.com/content/dam/xilinx/open-source/vgg16.zip)
-	* [Advanced ResNet50](https://www.xilinx.com/content/dam/xilinx/open-source/AdvResnet50.zip)
-2. Verify the contents of `SD_Card` with the below checklist.
-	* `_sds` folder
-	* `models` folder
-	* `lib` folder
-	* `opencv_arm64` folder
-	* `protobuf_arm64` folder
-	* `BOOT.BIN` file
-	* `image.ub` file
-	* `.elf` file(s)
+```
+</details>
 
-3. Copy the contents of `SD_Card` folder into a SD-Card.
-4. Insert the SD-Card and power on the board.
+## Run Inference
 
-> **Note:** A serial port emulator (Teraterm/Minicom) is required to interface the user commands to the board
+<details>
+<summary><strong>Using Pre-built binaries</strong></summary>
+<a name="Pre-built"></a>
 
-5. Attach a USB-UART cable from the ZCU102 board to the host PC. Set the UART serial port to
+To run inference on example networks, follow these steps:
+1. Download the example network [6-bit GoogleNet with Xilinx Quantization scheme](). More networks are available as part of the [ModelZoo](./MODELZOO.md).
+1. Place the downloaded and unzipped contents at "`SD_Card/models`" directory. Create `SD_Card/models` directory if not present already.
+
+1. Copy the required contents of "`SD_Card`" folder into a SD-Card.
+	- opencv
+	- protobuf
+	- cblas
+	- images
+	- bit-stream, boot loader, lib & executables (either from `SD_Card/zcu102` or `SD_Card/zcu104`)
+1. Insert the SD-Card and power ON the board.
+
+	>**:pushpin: NOTE:**  A serial port emulator (Teraterm/Minicom) is required to interface the user commands to the board
+
+1. Attach a USB-UART cable from the board to the host PC. Set the UART serial port to
 	```
 	Baud rate: 115200
 	Data: 8 bit
@@ -51,219 +233,166 @@ Follow the below steps to run inference on example networks.
 	Stop: 1 bit
 	Flow control: none
 	```
+1. After boot sequence, set LD_LIBRARY_PATH env variable.
+    ``` sh
+    export OPENBLAS_NUM_THREADS=2
+    export LD_LIBRARY_PATH=lib/:opencv/arm64/lib/:protobuf/arm64/lib:cblas/arm64/lib
+    ```
+1. Create a folder "`out`" inside the network directory to save the outputs
+    	``` sh
+       cd /mnt
+       mkdir models/<network>/out
+       ```
+1. Execute "`*.elf`" file to run inference
 
-6. After boot, go to `/mnt` directory.
-
-	``` sh
-	cd /mnt
-	```
-
-7. Export library paths.
-	```	sh
-	export LD_LIBRARY_PATH=lib/:opencv_arm64/lib/:protobuf_arm64/lib
-	```
-
-8. Execute the commands to run inference for the networks 
-
--  AlexNet	
-	```
-	./alexnet.elf
-	```
-- GoogleNet
-	```
-	./googlenet.elf
-	```
-
-- VGG16
-	```   
-	./vgg.elf
-	```
-- AlexNetFCN
-	```
-	./alexnetfcn.elf
-	```
-- SSD
-	```
-	./ssd.elf
-	```	
-- Advanced ResNet50
-	```
-	./adv_resnet50.elf
-	```	
-9. Sync after execution
+    - The format for running these example networks is described below:
+      ```sh
+      ./<example network>.elf <quantization scheme> <bit width> <img1_path> <img2_path>
+      ```
+    - For GoogleNet 6-bit inference with Xilinx quantization scheme execute the following
+      ```sh
+      ./googlenet.elf Xilinx 6 images/camel.jpg images/goldfish.JPEG
+      ```	  
+1. Sync after execution		
 	``` sh
 	cd /
 	sync
 	umount /mnt
-	```	
-10.	Output will be written into text file inside respective output folders.
-	```	
+	```
+1. Output will be written into text file inside respective output folders.
+	```
 	Ex : models/<network>/out
 	```
+>**:pushpin: NOTE:**  Failing to run `sync` might corrupt the file system and cause crash on subsequent runs.
 
-**Note:** Failing to run `sync` might corrupt the file system and cause crash on subsequent runs.
+>**:pushpin: NOTE:**  For running inference on a new network, please follow the instructions in [Run new Network using CHaiDNN](./RUN_NEW_NETWORK.md).
 
-**Note:** For running inference on a new network, please follow the instructions in [Run new Network using CHaiDNN](./RUN_NEW_NETWORK.md).
+</details>
 
-## **Build from Source**
+<details>
+<summary><strong>Build from Source</strong></summary>
 
-CHaiDNN can be built using Makefiles OR using SDx IDE. The below steps describe how to build CHaiDNN using Makefiles. For steps to build using SDx IDE, check the instructions in [Build using SDx IDE](./BUILD_USING_SDX_GUI.md). 
+CHaiDNN can be built using Makefiles OR using SDx IDE. The below steps describe how to build CHaiDNN using Makefiles. For steps to build using SDx IDE, see the instructions in [Build using SDx IDE](./BUILD_USING_SDX_GUI.md).
 
-## 1. Build CHaiDNN Hardware from source
-Please follow the steps to build the design for zcu102
+<details>
+<summary><strong>Build CHaiDNN Hardware</strong></summary>
 
-1. 	Go to the local `CHaiDNN` folder.
+Please follow the steps to build the design for zcu102 (ZU9 device based board)
 
-2. 	Go to `design` directory. This contains all the design files required to build the design.
+1. Go to `CHaiDNN/design/build` folder.
 
-3. 	Go to `scripts/kernel` directory. This contains the Makefile to compile the design.
 
-4. 	Source the SDx-2017.4 path. Please check the example command below.
+1. Set SDx tool environment
+   - For BASH:
+	 ```sh
+	 source <SDx Installation Dir>/installs/lin64/SDx/2018.2/settings64.sh
+	 ```
+   - For CSH
+	 ```sh
+	 source <SDx Installation Dir>/installs/lin64/SDx/2018.2/settings64.csh
+	 ```
+1. To build the design, run Makefile
+	 ```sh
+	 make ultraclean
+	 make
+	 ```
 
-- For BASH:
-	```sh
-	source <SDx Installation Dir>/installs/lin64/SDx/2017.4/settings64.sh
-	```
-- For CSH
-	```sh
-	source <SDx Installation Dir>/installs/lin64/SDx/2017.4/settings64.csh
-	```
-	
-5.	Run Makefile. This will build the design.
-	```sh
-	make ultraclean
-	make
-	```	
-6.	After the build is completed, copy the `libxlnxdnn.so` file and other build files (`BOOT.BIN`, `image.ub` and `_sds` directory) inside `scripts/kernel/sd_card` to `SD_Card` directory.
-	```sh
-	make copy
-	```
-8. The hardware setup is now ready. 
+   >**:pushpin: NOTE:**  
+   > - To build `DietChai`, run `make DIET_CHAI_Z=1`. This builds a design with 128 compute DSPs and 64-bit AXI interface. Run `make DIET_CHAI_ZUPLUS=1` to build a design with 128 compute DSPs and 128-bit AXI interface.
+   > - To exclude deconv Kernel, set `DECONV_ENABLE=0` in Makefile. Default is `DECONV_ENABLE=1`.
+   > - To exclude Pool Kernel, set `POOL_ENABLE=0` in Makefile. With this setting, Pooling functionality embedded in Convolution accelerator is used. Default is `POOL_ENABLE=1`.
+   > - When building `DietChai`, do not change `POOL_ENABLE`, `DECONV_ENABLE` values in Makefile.
 
-## 2. Build CHaiDNN Software from source
+1. After the build is completed, copy the `libxlnxdnn.so` file and other build files (`BOOT.BIN`, `image.ub` and `_sds` directory) inside `build/sd_card` to `SD_Card` directory.
+	 ```sh
+	 make copy
+	 ```
+1. The hardware setup is now ready.
+</details>
+
+<details>
+<summary><strong>Build CHaiDNN Software</strong></summary>
 
 Follow the steps to compile the software stack.
 
-1. Copy `libxlnxdnn.so` to `SD_Card/lib` directory. This will be present inside `design/scripts/kernel/sd_card` directory once the HW build is finished.
+1. Copy `libxlnxdnn.so` to `SD_Card/lib` directory. The `libxlnxdnn.so` file can be found in the `design/build/sd_card` directory once the HW build is finished. You can skip this step if have already copied the `libxlnxdnn.so` file to the suggested directory.
 
-	> Skip this step if already copied.
+1. Set the SDx tool environment.
+   - CSH
+	 ```sh
+	 source <SDx Installation Dir>/installs/lin64/SDx/2018.2/settings64.csh
+	 ```     
+   - BASH
+	 ```sh
+	 source <SDx Installation Dir>/installs/lin64/SDx/2018.2/settings64.sh
+	 ```
 
-2. Source SDx path.   
-* CSH
-	```sh
-	source <SDx Installation Dir>/installs/lin64/SDx/2017.4/settings64.csh
-	```     
-* BASH
-	```sh
-	source <SDx Installation Dir>/installs/lin64/SDx/2017.4/settings64.sh
-	```
+1. Go to the `software` directory. This contains all the files to generate software libraries (.so).    
+	 ```sh
+	 cd <path to CHaiDNN>/software
+	 ```
 
-3. Go to the `software` directory. This contains all the files to generate software libraries (.so).    
-	```sh
-	cd <path to CHaiDNN>/software
-	```
+1. Go to `scripts` directory, open `Makefile` and update the `SDx_BUILD_PATH` variable. See example below.
+	 ```
+	 SDx_BUILD_PATH = <SDx Installation Dir>/installs/lin64/SDx/2018.2
+	 ```
 
-4. Go to `scripts` directory, open `Makefile` and update the `SDx_BUILD_PATH` variable. Check example below.
-	```
-	SDx_BUILD_PATH = <SDx Installation Dir>/installs/lin64/SDx/2017.4
-	``` 
+1. Now run the following commands.
 
-5. Now run the following commands.
+	 ```sh
+	 make ultraclean
+	 make
+	 ```
 
-	```sh
-	cd scripts
-	make ultraclean
-	make
-	```
+   >**:pushpin: NOTE:**  
+   > - To build `DietChai`, run `make DIET_CHAI_Z=1`. This builds a design with 128 compute DSPs and 64-bit AXI interface. Run `make DIET_CHAI_ZUPLUS=1` to build a design with 128 compute DSPs and 128-bit AXI interface.
+   > - To exclude deconv Kernel, set `DECONV_ENABLE=0` in Makefile. Default is `DECONV_ENABLE=1`.
+   > - To exclude Pool Kernel, set `POOL_ENABLE=0` in Makefile. With this setting, Pooling functionality embedded in Convolution accelerator is used. Default is `POOL_ENABLE=1`.
+   > - When building `DietChai`, do not change `POOL_ENABLE`, `DECONV_ENABLE` values in Makefile.
 
-6. Make will copy all executables to `SD_Card` directory and all `.so` files to `SD_Card/lib` directory.
+   >**:pushpin: NOTE:**  Ensure that the software and the hardware are build with the same settings.
 
-7. Now all the files are available to run inference on zcu102. 
+1. Make will copy all executables to `SD_Card` directory and all `.so` files to `SD_Card/lib` directory.
 
-- Download the example models and copy the unzipped contents to `SD_Card/models` folder.
-- Copy the contents of `SD_Card` directory to SD-Card
+1. Now, we are set to run inference. Follow the steps mentioned in "[run inference using pre-build binaries](./README.md#Pre-built)"
+</details>
+</details>
 
-8. Insert the SD-Card in the board card slot and switch it ON.
 
-9. Upon successful boot, execute the following commands.    
-	```sh
-	cd /mnt
-	export LD_LIBRARY_PATH=opencv_arm64/lib/:lib/:protobuf_arm64/lib/ 
-	./<name>.elf 
-	```
+## Additional Resources and Support
 
-10. Make sure to sync before removing SD-Card from the board OR power off the board. 
-	```sh
-	cd /
-	sync
-	umount /mnt
-	```
+For questions and to get help on this project or your own projects, visit the [CHaiDNN Github Issues](https://github.com/Xilinx/CHaiDNN/issues).
+
+<details>
+<summary><strong>License and Contributing to the Repository</strong></summary>
 	
-## **CHaiDNN-2017.4 Performance**
-
-Network | Images/ Second @ 200 MHz (Batch Size =1 on zcu102)
---------|-----------------------------------------
-GoogleNet| 72.97
-AlexNet(with FC)| 55.11
-AlexNet(without FC)| 160.03
-VGG-16| 9.68
-AlexNet-FCN| 7.59
-SSD | 4.64
-[AdvResNet](https://arxiv.org/abs/1603.05027)| 21.18
-[ResNet50](https://arxiv.org/abs/1512.03385)| 24.59
-[ResNet34](https://arxiv.org/abs/1512.03385)| 37.68
-
-
-**IMP : Only Performance Projections for Legacy *ResNet34* and *ResNet50*.** 
-
-## **CHaiDNN-2017.4 Resource Utilization**
-
-Parameter | Available on zcu102 | Used | % Utilization
-----------|---------------------|------|--------------
-DSP | 2520 | 1939 | 76.94
-BRAM | 912 | 828.5 | 90.84
-LUT | 274080 | 135033 | 49.27
-FF | 548160 | 176146 | 32.13
-
-## **Other Information**
-
-For CHaiDNN API Document click [CHaiDNN API document](./API_DOCUMENT.md)
-
-For Running Inference on other Networks [Running Inference for new networks](./RUN_NEW_NETWORK.md).
-
-For information on CHaiDNN quantization parameters check [Quantization Parameters User Guide](./QUANTIZATION_PARAMETERS_UG.md)
-
-For insturctions on creating the SDx GUI Project for CHaiDNN click [Build using SDx IDE](./BUILD_USING_SDX_GUI.md)
-
-For SDSoC User Guide click [SDSoC User Guides](https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_4/ug1027-sdsoc-user-guide.pdf)
-
-## **Important Notes**
-* none
-
-## **Support**
-
-For questions and to get help on this project or your own projects, visit the [SDSoC Forums](https://forums.xilinx.com/t5/SDSoC-Development-Environment/bd-p/sdsoc).
-
-## **Licence and Contributing to the Repository**
 The source for this project is licensed under the [Apache License 2.0](./LICENSE)
 
 To contribute to this project, follow the guidelines in the [Repository Contribution README](./CONTRIBUTING.md)
-
-## **Acknowledgements**
+</details>
+<details>
+<summary><strong>Acknowledgements</strong></summary>
 
 - [Xilinx Inc.](http://www.xilinx.com)
 - [Caffe | Berkeley Vision and Learning Center](http://caffe.berkeleyvision.org/)
 - [Protocol Buffers | Google](https://developers.google.com/protocol-buffers/)
+- [CBLAS](http://www.openblas.net/)
+- [OpenCV](https://opencv.org/)
 
-## **Revision History**
+</details>
+<details>
+<summary><strong>Revision History</strong></summary>
 
 Date      | Readme Version | Release Notes			| Tool Version
 ----------|----------------|------------------------|-------------
 Feb, 2018 | 1.0            | Initial Xilinx release | SDx-2017.4
+June, 2018 | 2.0            | CHaiDNN-v2 | SDx-2018.2
+</details>
+<details>
+<summary><strong>Deprecated Features</strong></summary>
 
-## **Change Log**
+- 16-bit activations
+</details>
 
-1. First Release
-
-## **Known Issues**
-* none
+<hr/>
+<p align="center"><sup>Copyright&copy; 2018 Xilinx</sup></p>
