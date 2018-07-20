@@ -15,11 +15,9 @@ limitations under the License.
 ----------------------------------------------------*/
 
 #include <string.h>
-
+#include "../include/hw_settings.h"
 #include "checkers.hpp"
 #include "checkers_utils.hpp"
-#include "../include/hw_settings.h"
-
 
 
 //# Checks funtionality
@@ -35,15 +33,17 @@ int errorCheck(
 	const char *ref_path = inLayer.ref_path;
 	const char *out_path = inLayer.out_path;
 
-	//char csv_path[500];
-	//char *path = inLayer.base_path;
-	//sprintf(csv_path, "%s/histogram.csv", path);
-	//std :: cout << "csv_path : " << csv_path << std :: endl;
+	//char *network_name = (char *)malloc(100*sizeof(char));
 	char network_name[100];
+	for(int i=0;i<100;i++)
+	{
+		network_name[i]=0;
+	}
 	{
 		char *path = inLayer.out_path;
 		char *ssc;
 		ssc = strstr(path, "models");
+		//ssc = strstr(path, "2017.4");
 		int l = strlen(ssc) + 1;
 		path = &path[strlen(path)-l+8];
 		ssc = strstr(path, "/");
@@ -53,46 +53,63 @@ int errorCheck(
 		{
 			network_name[i]=path[i];
 		}
-		fprintf(stderr,"%s\n",network_name);
+		//fprintf(stderr,"%s\n",network_name);
 	}
 
 	FILE *csv_fp;
 
 #if EN_HISTOGRAM
-	char csv_path[100];
-	//char *csv_path = "histogram.csv";
-	sprintf(csv_path, "%s_histogram.csv",network_name);
+	char csv_path[500];
+	//char *csv_path = (char *)malloc(500*sizeof(char));
+#ifdef __SDSOC
+	sprintf(csv_path, "logs/%s_histogram.csv", network_name);
+#else
+	sprintf(csv_path, "%s/out/%s_histogram.csv", inLayer.base_path, network_name);
+#endif
+
 	csv_fp = fopen(csv_path, "a+");
 	if(csv_fp == NULL)
 	{
-		fprintf(stderr, "can't create csv file - %s\n", "histogram.csv");//csv_path);
+		fprintf(stderr, "can't create csv file - %s\n", csv_path);
+		return -1;
 	}
-	
+
 	int previous = inLayer.previous[0].seqidx;
 	if(previous == -1)
 	{
-		fprintf(csv_fp, "err_0_10, err_10_90, err_90_100");
+		fprintf(csv_fp, "layer name, straddle, slk, err_0_10, err_10_90, err_90_100, Batch Status\n");
 	}
-	
+
 	std :: cout << "[PATH] csv_path : " << csv_path << std :: endl;
 #endif
 
-//#if EN_HISTOGRAM
-	char csv_path[100];
-	//char *csv_path = "histogram.csv";
-	sprintf(csv_path, "error.txt");
-	FILE *error_fp = fopen(csv_path, "a+");
+	FILE *error_fp;
+
+#if EN_FILE_WRITE
+	char error_path[500];
+#ifdef __SDSOC
+	sprintf(error_path, "logs/%s_error.txt", network_name);
+#else
+	sprintf(error_path, "%s/out/%s_error.txt", inLayer.base_path, network_name);
+#endif
+
+	error_fp = fopen(error_path, "a+");
 	if(error_fp == NULL)
 	{
-		fprintf(stderr, "can't create csv file - %s\n", csv_path);//csv_path);
+		fprintf(stderr, "can't create error log file - %s\n", error_path);
+		return -1;
 	}
-//#endif
+
+	fprintf(error_fp, "\n\n[PATH] ref_path : %s\n", ref_path);
+	fprintf(error_fp, "[PATH] out_path : %s\n", out_path);
+
+	for(uint8_t idx = 0; idx < MAX_PARAM_SIZE; ++idx)
+		fprintf(error_fp, "%d ", ((int*)inLayer.params)[idx]);
+	fprintf(error_fp, "\n");
+#endif  //#if EN_FILE_WRITE
 
 	std :: cout << "[PATH] ref_path : " << ref_path << std :: endl;
 	std :: cout << "[PATH] out_path : " << out_path << std :: endl;
-
-	fprintf(error_fp, "[PATH] ref_path : %s\n", ref_path);
-	fprintf(error_fp, "[PATH] out_path : %s\n", out_path);
 
 	if(ref_path == NULL)
 	{
@@ -103,54 +120,73 @@ int errorCheck(
 	if(inLayer.kernType == CONV)
 	{
 #if PACKED_INOUT
-		status = cpCheck_packed(inLayer, ref_path, out_path);
+		status = cpCheck_packed(inLayer);
 #else
-		status = cpCheck(inLayer, ref_path, out_path, csv_fp);//, error_fp);
+		int *params = (int*)inLayer.params;
+		//if(((int*)inLayer.params)[34] == OPCODE_FC2CONV)
+		if(params[34] == OPCODE_FC2CONV)
+		{
+			status = fcCheck(inLayer, csv_fp, error_fp);
+		}
+		else
+			status = cpCheck(inLayer, csv_fp, error_fp);
 #endif
 	}
 	else if(inLayer.kernType == POOL)
 	{
 #if PACKED_INOUT
-		status = cpCheck_packed(inLayer, ref_path, out_path);
+		status = cpCheck_packed(inLayer);
 #else
-		status = cpCheck(inLayer, ref_path, out_path, csv_fp);//, error_fp);
+		status = cpCheck(inLayer, csv_fp, error_fp);
 #endif
 	}
 	else if(inLayer.kernType == FC_LAYER)
 	{
-		status = fcCheck(inLayer, ref_path, out_path, csv_fp);
+		//status = fcCheck(inLayer, csv_fp, error_fp);
+		status = swfcCheck(inLayer, csv_fp, error_fp);
 	}
 	else if(inLayer.kernType == SOFTMAX)
 	{
-		//softmaxCheck(inLayer, ref_path, out_path);
-		status = swSoftmaxCheck(inLayer, ref_path, out_path, csv_fp);
+		status = swSoftmaxCheck(inLayer, csv_fp, error_fp);
 	}
 	else if(inLayer.kernType == CROP)
 	{
-		status = cropCheck(inLayer, ref_path, out_path);
+		status = cropCheck(inLayer, error_fp);
+	}
+	else if(inLayer.kernType == DECONV)
+	{
+		status = deconvCheck(inLayer, error_fp);
 	}
 	else if(inLayer.kernType == NORM)
 	{
 #if PACKED_INOUT
-		status = cpCheck_packed(inLayer, ref_path, out_path);
+		status = cpCheck_packed(inLayer);
 #else
-		status = normCheck(inLayer, ref_path, out_path, csv_fp);
+		//status = normCheck(inLayer, csv_fp, error_fp);
+		status = cpCheck(inLayer, csv_fp, error_fp);
 #endif
 	}
 	else if(inLayer.kernType == PERMUTE)
 	{
-		status = permuteCheck(inLayer, ref_path, out_path, csv_fp);
+		status = permuteCheck(inLayer, csv_fp, error_fp);
 	}
 	else if(inLayer.kernType == NMS)
 	{
-		status = nmsCheck(inLayer, ref_path, out_path, csv_fp);
+		status = nmsCheck(inLayer, csv_fp, error_fp);
 	}
-
+	else if(inLayer.kernType == XCUSTOM)
+	{
+		status = xcustCheck(inLayer, error_fp);
+	}
 #if EN_HISTOGRAM
 	fclose(csv_fp);
 #endif
 
+#if EN_FILE_WRITE
 	fclose(error_fp);
+#endif
+	//free(network_name);
+	//free(csv_path);
 
 	std :: cout << "[CHECKS] *****************************	End : errorCheck()" << std :: endl;
 
@@ -170,7 +206,7 @@ int outFileWrite(
 {
 	//# Fetch image name
 	const char *n_path = img_path;
-	
+
 	for(short i = strlen(img_path)-1; i; i--)
 	{
 		if (img_path[i] == '/')

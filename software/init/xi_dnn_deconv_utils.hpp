@@ -18,69 +18,131 @@ limitations under the License.
 #define _XCHANGE_DECONV_UTILS_HPP_
 
 #define DECONV_FLOAT 0
-
 #if DECONV_FLOAT
-int loadDeconvData(const char* path, int nElems, float* ptrRetArray, int wt_bw, int wt_fl)
+#define DECONV_WT_TYPE float
 #else
-int loadDeconvData(const char* path, int nElems, short* ptrRetArray, int wt_bw, int wt_fl)
-#endif
-{
-#if DATA_IN_BINARY
-	FILE* fp = fopen(path, "rb");
-#else
-	FILE* fp = fopen(path, "r");
+#define DECONV_WT_TYPE short
 #endif
 
+
+int loadDeconvData(const float *wts_buf, int out_depth, int in_depth, int filter_h, int filter_w, DECONV_WT_TYPE* ptrRetArray, const float* wt_th_vec, int wt_bw, int quant_scheme)
+{
 	float val;
 	short cast;
 
-	nElems = AlignSize(nElems, 4);
+	int n_ofm = AlignSize(out_depth, 4);
 
-	if(fp == NULL)
-	{
-		fprintf(stderr, "\n** Error : Cannot open the file : %s **\n", path);
-		//exit(-1);
-	}
-
-#if 0
-	for(int i = 0; i < nElems; i++)
-	{
-		fscanf(fp, "%f ", &val);
-		cast = (T)val;
-		ptrRetArray[i] = cast;
-
-	}
+#if FILE_WRITE
+	FILE *fpW = fopen("weights.txt", "w");
 #endif
 
-#if DATA_IN_BINARY
-	float *wts_buf = (float *)malloc(nElems*sizeof(float));
-	fread(wts_buf, sizeof(float)*nElems, 1, fp);
-#endif
+	int n_elems = in_depth*filter_h*filter_w;
 
+	float th_param;
 	float f_val;
-	for(int i = 0; i < nElems; i++)
+	short fxval;
+
+	int idx = 0;
+
+	for(int i = 0; i < n_ofm; i++)
 	{
-#if DATA_IN_BINARY
-		f_val = wts_buf[i];
-#else
-		fscanf(fp, "%f ", &f_val);
-#endif
-		//Trim2FixedPoint(&f_val, wt_bw, wt_fl, ROUND_NEAREST, 1);
+		if((i < out_depth) && (quant_scheme == 1))
+		{
+			th_param = wt_th_vec[i];
+		}
+
+		for(int j = 0; j < n_elems; j++)
+		{
+			if(i < out_depth)
+			{
+				f_val = wts_buf[(i*n_elems)+j];
+			}
+			else
+				f_val = 0;
+
+			if(quant_scheme == 1)
+			{
+				Trim2FixedPoint_Offline(&f_val, wt_bw, th_param);
+				fxval = (short)f_val;
+			}
+			else
+			{
 
 #if DECONV_FLOAT
-		ptrRetArray[i] = f_val;
+				ptrRetArray[i] = f_val;
 #else
-		short ival = (short)f_val;
-		short fxval = ConvertToFP(f_val, ival, 15);
-		ptrRetArray[i] = fxval;
+				short ival = (short)f_val;
+				fxval = ConvertToFP(f_val, ival, 15);
+#endif
+			}
+
+			ptrRetArray[idx++] = fxval;
+
+		}
+
+#if FILE_WRITE
+		fprintf(fpW, "%f\n", f_val);
 #endif
 	}
 
-#if DATA_IN_BINARY
-	free(wts_buf);
+#if FILE_WRITE
+	fclose(fpW);
 #endif
 
-	fclose(fp);
+	return 0;
+}
+
+int loadDeconvBiasData(const float *bias_buf, int out_depth, DECONV_WT_TYPE* ptrRetArray, const float th_out, int bias_bw, int quant_scheme)
+{
+	float val;
+	short cast;
+
+	int n_ofm = AlignSize(out_depth, 4);
+
+#if FILE_WRITE
+	FILE *fpW = fopen("weights.txt", "w");
+#endif
+
+	float th_param;
+	float f_val;
+	short fxval;
+
+	for(int i = 0; i < n_ofm; i++)
+	{
+		if(i < out_depth)
+		{
+			f_val = bias_buf[i];
+		}
+		else
+			f_val = 0;
+
+		if(quant_scheme == 1)
+		{
+			Trim2FixedPoint_Offline(&f_val, bias_bw, th_out);
+			fxval = (short)f_val;
+		}
+		else
+		{
+
+#if DECONV_FLOAT
+			ptrRetArray[i] = f_val;
+#else
+			short ival = (short)f_val;
+			fxval = ConvertToFP(f_val, ival, 15);
+#endif
+		}
+
+		ptrRetArray[i] = fxval;
+	}
+
+#if FILE_WRITE
+	fprintf(fpW, "%f\n", f_val);
+#endif
+
+#if FILE_WRITE
+	fclose(fpW);
+#endif
+
 	return 0;
 }
 

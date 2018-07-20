@@ -14,213 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----------------------------------------------------*/
 
-
-#include "xgraph_opt.hpp"
-#include "xi_funcs.hpp"
 #include <math.h>
-
-
-void xi_mem_type_print(map<string, string> &mem_type_table)
-{
-	for(map<string, string>::iterator it = mem_type_table.begin(); it != mem_type_table.end(); it++)
-	{
-		cout <<"blob name: " << it->first<< "blob mem type"<< it->second <<endl;
-		// cout << stringVectorToString(it->second->producers) << " >>> " << it->second->name << " >>> " << stringVectorToString(it->second->consumers) << endl;
-	}
-}
-void xlayer_print(vector<XlayerData> & xlayer_seq){
-
-	int seq_len = xlayer_seq.size();
-	//	int it1=0;
-	cout<<"xlayer_print: xlayer_seq[iter_c].resize_height"<<xlayer_seq[0].resize_height<<endl;
-	cout<<"xlayer_print: xlayer_seq[iter_c].resize_width"<<xlayer_seq[0].resize_width<<endl;
-	for(int iter_c=0;iter_c<seq_len;iter_c++){
-
-		cout<<"xlayer_print layer id : "<< xlayer_seq[iter_c].cur_seq_id<<endl;
-
-		cout<<"xlayer_print layer opcode : "<< xlayer_seq[iter_c].opcode<<endl;
-
-		cout<<"xlayer_print layer type : "<< xlayer_seq[iter_c].layer_type<<endl;
-		cout<<"xlayer_print layer names : "<< xlayer_seq[iter_c].hw_ops->name<<endl;
-
-		cout<<" xlayer_seq[iter_c] current layer ip_bw & ip_fl: "<< xlayer_seq[iter_c].hw_ops->ip_bw<<xlayer_seq[iter_c].hw_ops->ip_fl<<endl;
-		cout<<" xlayer_seq[iter_c].prev_layers op_bw & op_fl: "<< xlayer_seq[iter_c].hw_ops->op_bw<<xlayer_seq[iter_c].hw_ops->op_fl<<endl;
-
-		//cout<< xlayer_seq[iter_c].hw_ops->str(true) <<endl;
-#if 1
-		if(!xlayer_seq[iter_c].prev_layers_ID.empty()){
-
-			int p_size = xlayer_seq[iter_c].prev_layers_ID.size();
-			for(int it=0;it<p_size;it++){
-
-				cout<<" xlayer_seq[iter_c].prev_layers_ID: "<< xlayer_seq[iter_c].prev_layers_ID[it].layerindex<<endl;
-				cout<<" xlayer_seq[iter_c].prev_layers pos: "<< xlayer_seq[iter_c].prev_layers_ID[it].pos<<endl;
-			}
-		}
-		if(!xlayer_seq[iter_c].next_layer_ID.empty()){
-
-			int p_size = xlayer_seq[iter_c].next_layer_ID.size();
-
-			for(int it=0;it<p_size;it++){
-
-				cout<<" xlayer_seq[iter_c].next_layer_ID: "<< xlayer_seq[iter_c].next_layer_ID[it].layerindex<<endl;
-				cout<<" xlayer_seq[iter_c].next_layer pos: "<< xlayer_seq[iter_c].next_layer_ID[it].pos<<endl;
-
-			}
-		}
-		if(!xlayer_seq[iter_c].ip_peers_shapes.empty()){
-
-			for(int it0=0;it0 < xlayer_seq[iter_c].ip_peers_shapes.size(); it0++){
-
-				for(int it1=0;it1 < xlayer_seq[iter_c].ip_peers_shapes[it0].shape.size(); it1++){
-
-					cout<<" xlayer_seq[iter_c].peer.pos: "<< xlayer_seq[iter_c].ip_peers_shapes[it0].pos<<"xlayer_seq[iter_c].ip_peers_shapes :"<<xlayer_seq[iter_c].ip_peers_shapes[it0].shape[it1]<<endl;
-				}
-			}
-		}
-		if(!xlayer_seq[iter_c].op_peers_shapes.empty()){
-
-			for(int it0=0;it0 < xlayer_seq[iter_c].op_peers_shapes.size(); it0++){
-
-
-				for(int it1=0; it1 < xlayer_seq[iter_c].op_peers_shapes[it0].shape.size(); it1++){
-
-					cout<<" xlayer_seq[iter_c].op_peers_pos: "<< xlayer_seq[iter_c].op_peers_shapes[it0].pos<<"<<xlayer_seq[iter_c].op_peers_shapes[it0].shape[it1]"<<xlayer_seq[iter_c].op_peers_shapes[it0].shape[it1]<<endl;
-
-				}
-			}
-		}
-#endif
-		if(!xlayer_seq[iter_c].ip_blob.empty()){
-
-			for(int it0=0;it0 < xlayer_seq[iter_c].ip_blob.size(); it0++){
-
-				//cout<<" xlayer_seq[iter_c].ip_blob[it0]: "<< it0 <<endl;
-
-				cout<<" xlayer_seq[iter_c].ip_blob[it0].handle name: "<< xlayer_seq[iter_c].ip_blob[it0].handle<<endl;
-				cout<<" xlayer_seq[iter_c].ip_blob[it0].pos name: "<< xlayer_seq[iter_c].ip_blob[it0].pos<<endl;
-				cout<<" xlayer_seq[iter_c].ip_blob[it0].mem_type name: "<< xlayer_seq[iter_c].ip_blob[it0].mem_type<<endl;
-				if(!xlayer_seq[iter_c].ip_blob[it0].handle_shape.empty()){
+#include "xi_funcs.hpp"
+#include "xgraph_opt.hpp"
+#include "xtract_utility.hpp"
 
 
 
-					cout<<" xlayer_seq[iter_c].ip_blob[it0].handle_shape : "<< xlayer_seq[iter_c].ip_blob[it0].handle_shape[0]<<endl;
-					cout<<" xlayer_seq[iter_c].ip_blob[it0].handle_shape : "<< xlayer_seq[iter_c].ip_blob[it0].handle_shape[1]<<endl;
-					cout<<" xlayer_seq[iter_c].ip_blob[it0].handle_shape : "<< xlayer_seq[iter_c].ip_blob[it0].handle_shape[2]<<endl;
-					cout<<" xlayer_seq[iter_c].ip_blob[it0].handle_shape : "<< xlayer_seq[iter_c].ip_blob[it0].handle_shape[3]<<endl;
-				}
-			}
-		}
-		if(!xlayer_seq[iter_c].op_blob.empty()){
-
-			for(int it0=0;it0 < xlayer_seq[iter_c].op_blob.size(); it0++){
-
-				//cout<<" xlayer_seq[iter_c].op_blob[it0]: "<< it0 <<endl;
-
-				cout<<" xlayer_seq[iter_c].op_blob[it0].handle name: "<< xlayer_seq[iter_c].op_blob[it0].handle<<endl;
-				cout<<" xlayer_seq[iter_c].op_blob[it0].pos name: "<< xlayer_seq[iter_c].op_blob[it0].pos<<endl;
-				cout<<" xlayer_seq[iter_c].op_blob[it0].mem_type name: "<< xlayer_seq[iter_c].op_blob[it0].mem_type<<endl;
-
-				if(!xlayer_seq[iter_c].ip_blob[it0].handle_shape.empty()){
-
-
-					//	for(auto i=0;  i<xlayer_seq[iter_c].op_blob[it0].handle_shape.size(); i++);{
-
-					cout<<" xlayer_seq[iter_c].op_blob[it0].handle_shape : "<< xlayer_seq[iter_c].op_blob[it0].handle_shape[0]<<endl;
-					cout<<" xlayer_seq[iter_c].op_blob[it0].handle_shape : "<< xlayer_seq[iter_c].op_blob[it0].handle_shape[1]<<endl;
-					cout<<" xlayer_seq[iter_c].op_blob[it0].handle_shape : "<< xlayer_seq[iter_c].op_blob[it0].handle_shape[2]<<endl;
-					cout<<" xlayer_seq[iter_c].op_blob[it0].handle_shape : "<< xlayer_seq[iter_c].op_blob[it0].handle_shape[3]<<endl;
-					//	}
-				}
-			}
-		}
-		if(!xlayer_seq[iter_c].meanShape.empty()){
-
-			for(int it0=0;it0 < xlayer_seq[iter_c].meanShape.size(); it0++){
-				cout<<" xlayer_seq[iter_c].meanShape[it0] : "<< xlayer_seq[iter_c].meanShape[it0]<<endl;
-
-			}
-			cout<<" xlayer_seq[iter_c].meanFile : "<< xlayer_seq[iter_c].meanFile<<endl;
-		}
-
-	}
-}
-
-void XGraphOpt::xi_opt_find_max_q_factor(XGraph* xgraph_opt){
-
- 	for(map < string, XBlob*>::iterator it = xgraph_opt->blobs.begin();it !=xgraph_opt->blobs.end();it++){
-
-		int Qfactor_consumer =  0;
-		int Ffactor_consumer =  0;
-		int Qfactor_producer =  0;
-		int Ffactor_producer =  0;
-		int Qfactor_max =  0;
-		int Ffactor_max =  0;
-
-		if(it->second->consumers.size()!=0){
-
-			for(int iter_con_c=0;iter_con_c<it->second->consumers.size();iter_con_c++){
-
-				string consumer_name = it->second->consumers[iter_con_c];
-				map < string, XLayer*>::iterator layer_it = xgraph_opt->layers.find(consumer_name);
-				int Qfactor_tmp =0;
-				Qfactor_tmp = layer_it->second->ip_bw;
-
-				if(Qfactor_tmp>Qfactor_consumer){
-
-					Ffactor_consumer = layer_it->second->ip_fl;
-					Qfactor_consumer=(Qfactor_tmp-layer_it->second->ip_fl);
-
-				}
-			}
-			for(int iter_pro_c=0;iter_pro_c<it->second->producers.size();iter_pro_c++){
-
-				string producer_name = it->second->producers[iter_pro_c];
-
-				map < string, XLayer*>::iterator layer_it = xgraph_opt->layers.find(producer_name);
-				int Qfactor_tmp =0;
-				Qfactor_tmp = layer_it->second->op_bw;
-
-				if(Qfactor_tmp>Qfactor_producer){
-
-					Ffactor_producer = layer_it->second->op_fl;
-					Qfactor_producer=(Qfactor_tmp-layer_it->second->op_fl);
-
-				}
-
-			}
-			if(Qfactor_producer<Qfactor_consumer){
-				Qfactor_max=Qfactor_consumer;
-				Ffactor_max=Ffactor_consumer;
-			}else{
-				Qfactor_max=Qfactor_producer;
-				Ffactor_max=Ffactor_producer;
-
-			}
-
-			for(int iter_con_c=0;iter_con_c<it->second->consumers.size();iter_con_c++){
-
-				string consumer_name = it->second->consumers[iter_con_c];
-				map < string, XLayer*>::iterator layer_it = xgraph_opt->layers.find(consumer_name);
-
-				layer_it->second->ip_bw=Qfactor_max+Ffactor_max;
-				layer_it->second->ip_fl=Ffactor_max;
-
-
-			}
-			for(int iter_pro_c=0;iter_pro_c<it->second->producers.size();iter_pro_c++){
-
-				string producer_name = it->second->producers[iter_pro_c];
-				map < string, XLayer*>::iterator layer_it = xgraph_opt->layers.find(producer_name);
-				layer_it->second->op_bw=Qfactor_max+Ffactor_max;
-				layer_it->second->op_fl=Ffactor_max;
-			}
-		}
-	}
-
-}
-
-void XGraphOpt::xi_opt_lrn(XGraph* xgraph_opt){
+void XGraphOpt::opt_lrn(XGraph* xgraph_opt){
 
 	string *lrn_layer_type = new string("LRN");
 	int lrn_cnt=0;
@@ -243,9 +44,9 @@ void XGraphOpt::xi_opt_lrn(XGraph* xgraph_opt){
 			XLayer* dst1 = new XLayer(lrn2_name, "Convolution");
 			xgraph_opt->layers[lrn2_name] = dst1;
 
-			string uniqname = xgraph_opt->getUniqueBlobName();
+			//string uniqname = xgraph_opt->getUniqueBlobName();
 			string username = lrn1_name;
-			XBlob* tmp_blob = new XBlob(username, uniqname);
+			XBlob* tmp_blob = new XBlob(username);
 			xgraph_opt->blobs[username] = tmp_blob;
 
 			tmp_blob->shape=it->second->top[0].blob->shape;
@@ -337,7 +138,7 @@ void XGraphOpt::xi_opt_lrn(XGraph* xgraph_opt){
 	delete lrn_layer_type;
 }
 
-void XGraphOpt::xi_opt_reshape(XGraph* xgraph_opt){
+void XGraphOpt::opt_reshape(XGraph* xgraph_opt){
 
 	string *reshape_layer_type = new string("Reshape");
 
@@ -345,48 +146,24 @@ void XGraphOpt::xi_opt_reshape(XGraph* xgraph_opt){
 
 		int cont=0;
 		if (it->second->type.compare(*reshape_layer_type)==0){
-
-#if O_DEBUG
-			cout<<"find the Reshape layer: "<<it->second->name<<"Reshape layer bottom name "<<it->second->bottom[0].blob->name<<"Reshape layer top name "<<it->second->top[0].blob->name<<endl;
-#endif
-
-			string layer_bottom_name =  it->second->bottom[0].blob->name;
-
-			mapStrXBlob::iterator bottom_it  =  xgraph_opt->blobs.find(layer_bottom_name);
-
-			XBlob* bottom_blob = bottom_it->second;
-			XBlob* top_blob = it->second->top[0].blob;
-
-			top_blob->producers.erase(top_blob->producers.begin()+0);
-
-			for(int iter_b_p=0;iter_b_p<bottom_blob->producers.size();iter_b_p++)
-			{
-				mapStrXLayer::iterator p_layer = xgraph_opt->layers.find(bottom_blob->producers[iter_b_p]);
-				p_layer->second->top[0] = it->second->top[0];
-				top_blob->producers.push_back(bottom_blob->producers[iter_b_p]);
-			}
-
-
-			if(bottom_it!=xgraph_opt->blobs.end()){
-				xgraph_opt->blobs.erase(bottom_it);
-			}
 			mapStrXLayer::iterator cur_it = it;
+			it++;
+			xgrap_layer_delete(xgraph_opt,cur_it->second->name);
+			cont=1;
 
-			if(cur_it!=xgraph_opt->layers.end()){
-				cont=1;
-				it++;
-				xgraph_opt->layers.erase(cur_it);
-			}
 		}
 		if(cont==0)
 			it++;
+		else{
+			cont=0;
+		}
 	}
 	delete reshape_layer_type;
 }
 
 
 
-void XGraphOpt::xi_opt_flatten(XGraph* xgraph_opt){
+void XGraphOpt::opt_flatten(XGraph* xgraph_opt){
 
 	string *flatten_layer_type = new string("Flatten");
 
@@ -395,1066 +172,22 @@ void XGraphOpt::xi_opt_flatten(XGraph* xgraph_opt){
 		int cont=0;
 		if (it->second->type.compare(*flatten_layer_type)==0){
 
-#if O_DEBUG
-			cout<<"find the Reshape layer: "<<it->second->name<<"flatten layer bottom name "<<it->second->bottom[0].blob->name<<"Reshape layer top name "<<it->second->top[0].blob->name<<endl;
-#endif
-
-			string layer_bottom_name =  it->second->bottom[0].blob->name;
-
-			mapStrXBlob::iterator bottom_it  =  xgraph_opt->blobs.find(layer_bottom_name);
-
-			XBlob* bottom_blob = bottom_it->second;
-			XBlob* top_blob = it->second->top[0].blob;
-
-			top_blob->producers.erase(top_blob->producers.begin()+0);
-
-			for(int iter_b_p=0;iter_b_p<bottom_blob->producers.size();iter_b_p++)
-			{
-				mapStrXLayer::iterator p_layer = xgraph_opt->layers.find(bottom_blob->producers[iter_b_p]);
-				p_layer->second->top[0] = it->second->top[0];
-				top_blob->producers.push_back(bottom_blob->producers[iter_b_p]);
-			}
-
-
-			if(bottom_it!=xgraph_opt->blobs.end()){
-				xgraph_opt->blobs.erase(bottom_it);
-			}
 			mapStrXLayer::iterator cur_it = it;
+			it++;
+			xgrap_layer_delete(xgraph_opt,cur_it->second->name);
+			cont=1;
 
-			if(cur_it!=xgraph_opt->layers.end()){
-				cont=1;
-				it++;
-				xgraph_opt->layers.erase(cur_it);
-			}
 		}
 		if(cont==0)
 			it++;
+		else{
+			cont=0;
+		}
 	}
 	delete flatten_layer_type;
 }
 
-int xi_vectDim (vector<int>& src)
-{
-	int finalDim = 1;
-
-	for(int i=0; i<src.size(); i++)
-	{
-		finalDim *= src.at(i);
-	}
-
-	return finalDim;
-}
-
-void xi_maxsize_blob(XGraph *xgraph_opt,vector <int> &max_shape){
-
-	int Dim0,Dim1;
-
-	max_shape.push_back(1);
-	max_shape.push_back(1);
-	max_shape.push_back(1);
-	max_shape.push_back(1);
-	Dim0 = xi_vectDim(max_shape);
-
-	for(map < string, XBlob*>::iterator it=xgraph_opt->blobs.begin();it!=xgraph_opt->blobs.end();it++){
-
-		Dim1 = xi_vectDim(it->second->shape);
-
-		if(Dim1>Dim0){
-
-			max_shape=it->second->shape;
-			Dim0 = Dim1;
-
-		}
-
-	}
-}
-
-void xi_find_blobs_degree(XGraph *xgraph,vector<BDegree> &Bdepth){
-
-
-	BDegree tmp_bdegree1;// = new BDegree();
-
-	int degree_flag=0;
-
-#if O_DEBUG
-	cout<< "[O_DEBUG] xi_find_blobs_degree: xi_find_blobs_degree start" << endl;
-#endif
-
-	map < string, XBlob*>::iterator d_blob = xgraph->blobs.find("data");
-
-	if(d_blob==xgraph->blobs.end()){
-
-		cerr << "[Error:] data blob is not exists, this kind of prototxt format won't support" << endl;
-		exit(-1);
-	}
-
-	tmp_bdegree1.blobs_degree = degree_flag;
-	tmp_bdegree1.blobs_name.push_back(d_blob->second->name);
-	Bdepth.push_back(tmp_bdegree1);
-	int top_blob_exist =0;
-	XBlob *tmp_blob = new XBlob();
-
-	int blob_str_flag =0;
-
-#if O_DEBUG
-	cout<<"Bdepth.size() :"<<Bdepth.size()<<endl;
-#endif
-
-	for(int iter_d=0; iter_d < Bdepth.size();iter_d++)
-	{
-
-#if O_DEBUG
-		cout<< "[O_DEBUG] xi_find_blobs_degree: Bdepth.size() loop" << endl;
-#endif
-		BDegree tmp_bdegree;// = new BDegree();
-
-		for(int iter_db=0;iter_db<Bdepth[iter_d].blobs_name.size();iter_db++)
-		{
-
-#if O_DEBUG
-			cout<< "[O_DEBUG] xi_find_blobs_degree: Bdepth[iter_d].blobs_name.size() loop" << endl;
-#endif
-			map < string, XBlob*>::iterator blob_ptr = xgraph->blobs.find(Bdepth[iter_d].blobs_name[iter_db]);
-
-			if(blob_ptr!=xgraph->blobs.end())
-				tmp_blob = blob_ptr->second;
-			else
-				return;
-
-			for(int iter_c=0;iter_c<tmp_blob->consumers.size();iter_c++)
-			{
-
-#if O_DEBUG
-				cout<< "[O_DEBUG] xi_find_blobs_degree: tmp_blob->consumers.size() loop" << endl;
-#endif
-				map < string, XLayer* >::iterator tmp_c_layer = xgraph->layers.find(tmp_blob->consumers[iter_c]);
-
-				//string tmp_top_name = tmp_c_layer->second->top[0].blob->name;
-				//map < string, XBlob*>::iterator tmp_top_it = xgraph->blobs.find(tmp_top_name);
-
-				if(tmp_c_layer->second->top.size()==0) // consumer does not have top blobs then continue for next consumer
-					continue;
-
-				XBlob * tmp_top = tmp_c_layer->second->top[0].blob; // we are assuming only one top blob is exist for each layer.
-
-				for(int iter_p=0;iter_p<tmp_top->producers.size();iter_p++)
-				{
-
-#if O_DEBUG
-					cout<< "[O_DEBUG] xi_find_blobs_degree: tmp_top->producers.size() loop" << endl;
-#endif
-					string name_producer = tmp_top->producers[iter_p];
-
-					if(name_producer.compare(tmp_blob->consumers[iter_c])==0) // checking the self producer or multiple producers form this tmp_blob
-					{
-
-						if(tmp_c_layer->second->bottom.size()==1)
-						{
-							blob_str_flag=0;
-							continue;
-						}
-						else
-						{
-
-							for(int iter_b_b_c=0;iter_b_b_c<tmp_c_layer->second->bottom.size();iter_b_b_c++)
-							{
-
-								string tmp_bottom = tmp_c_layer->second->bottom[iter_b_b_c].blob->name;
-
-								for(int iter_bs=0;iter_bs<Bdepth.size();iter_bs++)
-								{
-#if O_DEBUG
-									cout<< "[O_DEBUG] xi_find_blobs_degree: Bdepth.size() element find loop" << endl;
-#endif
-									std::vector<string>::iterator it=std::find(Bdepth[iter_bs].blobs_name.begin(),Bdepth[iter_bs].blobs_name.end(),tmp_bottom);
-
-									if(it==Bdepth[iter_bs].blobs_name.end())
-									{
-#if O_DEBUG
-										cout<< "[O_DEBUG] xi_find_blobs_degree: std::find element not find in bdepth queue" << endl;
-#endif
-										blob_str_flag=1;
-									}
-									else
-									{
-
-										blob_str_flag=0;
-										break;
-									}
-
-
-								}
-								if(blob_str_flag==1)
-									break;
-							}
-							if(blob_str_flag==0)
-								continue;
-						}
-					}
-					else
-					{
-
-						map < string, XLayer* >::iterator tmp_p_layer = xgraph->layers.find(name_producer);
-						string tmp_bottom = tmp_p_layer->second->bottom[0].blob->name;
-
-						for(int iter_bs=0;iter_bs<Bdepth.size();iter_bs++)
-						{
-#if O_DEBUG
-							cout<< "[O_DEBUG] xi_find_blobs_degree: Bdepth.size() element find loop" << endl;
-#endif
-							std::vector<string>::iterator it=std::find(Bdepth[iter_bs].blobs_name.begin(),Bdepth[iter_bs].blobs_name.end(),tmp_bottom);
-							if(it==Bdepth[iter_bs].blobs_name.end())
-							{
-#if O_DEBUG
-								cout<< "[O_DEBUG] xi_find_blobs_degree: std::find element not find in bdepth queue" << endl;
-#endif
-								blob_str_flag=1;
-							}
-							else
-							{
-
-								blob_str_flag=0;
-								break;
-							}
-						}
-					}
-				}
-				if(blob_str_flag==0)
-				{
-
-					std::vector<string>::iterator it = std::find(tmp_bdegree.blobs_name.begin(),tmp_bdegree.blobs_name.end(),tmp_top->name);
-
-					if(it==tmp_bdegree.blobs_name.end())
-					{
-
-						tmp_bdegree.blobs_name.push_back(tmp_top->name);
-						tmp_bdegree.blobs_degree=iter_d+1;
-						blob_str_flag=1;
-						top_blob_exist=1;
-					}
-				}
-			}
-		}
-
-		if(top_blob_exist)
-		{
-			Bdepth.push_back(tmp_bdegree);
-			top_blob_exist=0;
-		}
-
-	}
-
-}
-
-void xi_print_blobs_degre(vector < BDegree > &Bdepth){
-
-	for(int iter_bd=0;iter_bd<Bdepth.size();iter_bd++){
-
-		for(int iter_b=0;iter_b<Bdepth[iter_bd].blobs_name.size();iter_b++){
-
-			cout<<" Bdepth[iter_bd].blobs_degree:" <<Bdepth[iter_bd].blobs_degree<<"Bdepth[iter_bd].blobs_name: "<<Bdepth[iter_bd].blobs_name[iter_b]<<endl;
-		}
-	}
-}
-void xi_create_seq_num_table(vector < XlayerData > &xlayer_seq,map<string, int> &layer_seq_table,map<string, string> &layer_type_table,vector < BDegree >&Bdepth,XGraph *xgraph){
-
-	int cur_seq_id=0;
-
-	for(int iter_d=0;iter_d<Bdepth.size();iter_d++){
-
-		for(int iter_b=0;iter_b<Bdepth[iter_d].blobs_name.size();iter_b++){
-
-			string bdepth_current_blob = Bdepth[iter_d].blobs_name[iter_b];
-			map < string, XBlob*>::iterator blob_ptr = xgraph->blobs.find(bdepth_current_blob);
-			XBlob *tmp_blob = blob_ptr->second;
-
-			for(int iter_c=0;iter_c< tmp_blob->consumers.size();iter_c++){
-
-				XlayerData tmp_xlayerdata;
-
-				map < string, XLayer* >::iterator tmp_c_layer = xgraph->layers.find(tmp_blob->consumers[iter_c]);
-
-				if(tmp_c_layer->second->bottom.size()<2){
-
-					tmp_xlayerdata.hw_ops=tmp_c_layer->second;
-					tmp_xlayerdata.cur_seq_id = cur_seq_id++;//iter_d*Bdepth[iter_d].blobs_name.size()+iter_b;
-					//int_ptr->layer_num=tmp_xlayerdata.cur_seq_id;
-					layer_seq_table[tmp_blob->consumers[iter_c]]=tmp_xlayerdata.cur_seq_id;
-					layer_type_table[tmp_c_layer->second->name] = tmp_c_layer->second->type;
-
-					xlayer_seq.push_back(tmp_xlayerdata);
-
-				}else{
-
-					for(int iter_b_c=0;iter_b_c<tmp_c_layer->second->bottom.size();iter_b_c++){
-
-						string tmp_bottom = tmp_c_layer->second->bottom[iter_b_c].blob->name;
-						int tmp_bottom_inx=0;
-
-						for(int iter_bs=0;iter_bs<Bdepth.size();iter_bs++){
-#if O_DEBUG
-							cout<< "[O_DEBUG] xi_create_seq_num_table: Bdepth.size() element find loop" << endl;
-#endif
-							std::vector<string>::iterator it=std::find(Bdepth[iter_bs].blobs_name.begin(),Bdepth[iter_bs].blobs_name.end(),tmp_bottom);
-
-							if(it==Bdepth[iter_bs].blobs_name.end()){
-#if O_DEBUG
-								cout<< "[O_DEBUG] xi_create_seq_num_table: std::find element not find in bdepth queue" << endl;
-#endif
-								tmp_bottom_inx=-1;
-
-							}else{
-
-								tmp_bottom_inx=iter_bs;
-								break;
-							}
-						}
-						if(Bdepth[iter_d].blobs_degree>tmp_bottom_inx){
-
-							string curr_layer_name = tmp_c_layer->second->name;
-
-							map<string, int>::iterator layer_id_it= layer_seq_table.find(curr_layer_name);
-							if(layer_id_it!=layer_seq_table.end())
-							{
-								break;
-
-							}else{
-								tmp_xlayerdata.hw_ops=tmp_c_layer->second;
-								tmp_xlayerdata.cur_seq_id = cur_seq_id++;//iter_d*Bdepth[iter_d].blobs_name.size()+iter_b;
-								layer_seq_table[tmp_blob->consumers[iter_c]]=tmp_xlayerdata.cur_seq_id;
-								layer_type_table[tmp_c_layer->second->name] = tmp_c_layer->second->type;
-								xlayer_seq.push_back(tmp_xlayerdata);
-							}
-						}else if((Bdepth[iter_d].blobs_degree==tmp_bottom_inx) &&(tmp_bottom.compare(bdepth_current_blob)!=0)){
-							string curr_layer_name = tmp_c_layer->second->name;
-
-							map<string, int>::iterator layer_id_it= layer_seq_table.find(curr_layer_name);
-							if(layer_id_it!=layer_seq_table.end())
-							{
-								break;
-
-							}else{
-								tmp_xlayerdata.hw_ops=tmp_c_layer->second;
-								tmp_xlayerdata.cur_seq_id = cur_seq_id++;//iter_d*Bdepth[iter_d].blobs_name.size()+iter_b;
-								layer_seq_table[tmp_blob->consumers[iter_c]]=tmp_xlayerdata.cur_seq_id;
-								layer_type_table[tmp_c_layer->second->name] = tmp_c_layer->second->type;
-								xlayer_seq.push_back(tmp_xlayerdata);
-							}
-						}
-					}
-				}
-
-			}
-		}
-	}
-}
-void xi_update_prev_next_layer_info(vector < XlayerData > &xlayer_seq, map<string, int> &layer_seq_table,XGraph *xgraph){
-
-
-	io_buffer_pos tmp_pt;
-
-	for(map < string, XLayer* >::iterator it = xgraph->layers.begin();it !=xgraph->layers.end();it++){
-
-
-		vector < vector<int> > ip_peer;
-		vector < vector<int> > out_peer;
-
-		XLayer* curr_layer = it->second;
-		string curr_layer_name = curr_layer->name;
-
-		map<string, int>::iterator layer_id_it= layer_seq_table.find(curr_layer_name);
-
-		for(int iter_l_b=0;iter_l_b<curr_layer->bottom.size();iter_l_b++){
-
-			for(int iter_pre_c=0;iter_pre_c<curr_layer->bottom[iter_l_b].blob->producers.size();iter_pre_c++){
-
-				string name_prevlayer =curr_layer->bottom[iter_l_b].blob->producers[iter_pre_c];
-				map < string, XLayer* >::iterator prev_it = xgraph->layers.find(name_prevlayer);
-				XLayer* prev_layer = prev_it->second;
-				map<string, int>::iterator it_table = layer_seq_table.find(name_prevlayer);
-				tmp_pt.layerindex = it_table->second;
-				tmp_pt.pos =curr_layer->bottom[iter_l_b].id; // I need to check with Abid like no layer writing to multiple top blobs
-				xlayer_seq[layer_id_it->second].prev_layers_ID.push_back(tmp_pt);
-
-			}
-
-		}
-		for(int iter_l_t=0;iter_l_t<curr_layer->top.size();iter_l_t++){
-
-			for(int iter_next_c=0;iter_next_c<curr_layer->top[iter_l_t].blob->consumers.size();iter_next_c++){
-
-				string name_nextlayer =curr_layer->top[iter_l_t].blob->consumers[iter_next_c];
-				map < string, XLayer* >::iterator next_it = xgraph->layers.find(name_nextlayer);
-				XLayer* next_layer = next_it->second;
-				map<string, int>::iterator it_table = layer_seq_table.find(name_nextlayer);
-				tmp_pt.layerindex = it_table->second;
-				tmp_pt.pos = curr_layer->top[iter_l_t].id;
-				xlayer_seq[layer_id_it->second].next_layer_ID.push_back(tmp_pt);
-
-
-			}
-		}
-		// filling input peer shapes and its partitions
-
-		for(int iter_b_s=0;iter_b_s<curr_layer->bottom.size();iter_b_s++){
-
-			for(int iter_b_c=0;iter_b_c<curr_layer->bottom[iter_b_s].id;iter_b_c++){
-
-				string name_bottom_c =curr_layer->bottom[iter_b_s].blob->consumers[iter_b_c];
-
-				if(name_bottom_c.compare(curr_layer_name)==0)
-					continue;
-
-				map < string, XLayer* >::iterator bottom_c_it = xgraph->layers.find(name_bottom_c);
-				io_peers  in_peer_ojb;// = new io_peers();
-
-				XLayer* bottom_c_layer = bottom_c_it->second;
-				in_peer_ojb.pos = bottom_c_layer->bottom[iter_b_s].id;
-				//in_peer_ojb->shape = bottom_c_layer->bottom[0].blob->shape;
-
-				//for(int s_it=0;s_it<bottom_c_layer->bottom[0].blob->shape.size();s_it++){
-				for(int s_it=0;s_it<bottom_c_layer->bottomShape[iter_b_s].size();s_it++){
-
-					in_peer_ojb.shape.push_back(bottom_c_layer->bottomShape[iter_b_s][s_it]);
-#if O_DEBUG
-					cout<<"in_peer_ojb.pos:"<<in_peer_ojb.pos<<" in_peer_ojb.shape[s_it]: " << in_peer_ojb.shape[s_it]<<endl;
-					cout<<"bottom_c_layer->bottom[0].id:"<<bottom_c_layer->bottom[iter_b_s].id<<" bottom_c_layer->bottom[0].blob->shape[s_it]:" << bottom_c_layer->bottom[iter_b_s].blob->shape[s_it]<<endl;
-#endif
-				}
-
-				xlayer_seq[layer_id_it->second].ip_peers_shapes.push_back(in_peer_ojb);
-
-			}
-		}
-
-		// filling output peer shapes and its partitions
-		for(int iter_t_s=0;iter_t_s<curr_layer->top.size();iter_t_s++){
-
-			for(int iter_b_c=0;iter_b_c<curr_layer->top[iter_t_s].id;iter_b_c++){
-
-				string name_top_p =curr_layer->top[iter_t_s].blob->producers[iter_b_c];
-
-				if(name_top_p.compare(curr_layer_name)==0)
-					continue;
-
-				map < string, XLayer* >::iterator top_c_it = xgraph->layers.find(name_top_p);
-				io_peers  on_peer_ojb;// = new io_peers();
-
-				XLayer* top_p_layer = top_c_it->second;
-				on_peer_ojb.pos = top_p_layer->top[iter_t_s].id;
-				//on_peer_ojb->shape = top_p_layer->top[0].blob->shape;
-
-				//for(int s_it=0;s_it<top_p_layer->top[0].blob->shape.size();s_it++){
-				for(int s_it=0;s_it<top_p_layer->topShape[iter_t_s].size();s_it++){
-
-					on_peer_ojb.shape.push_back(top_p_layer->topShape[iter_t_s][s_it]);
-#if O_DEBUG
-					cout<<"on_peer_ojb.pos:"<<on_peer_ojb.pos<<" on_peer_ojb.shape[s_it]: " << on_peer_ojb.shape[s_it]<<endl;
-					cout<<"top_p_layer->top[0].id:"<<top_p_layer->top[0].id<<" top_p_layer->top[0].blob->shape[s_it]: " << top_p_layer->top[0].blob->shape[s_it]<<endl;
-#endif
-				}
-
-				xlayer_seq[layer_id_it->second].op_peers_shapes.push_back(on_peer_ojb);
-
-			}
-		}
-	}
-}
-
-void xi_find_hw_and_sw_layer_type(vector <struct xtract_layer_type> &xtract_layer_type_e,string &layer_type,int &hs_ops_type){
-
-	int flag_layer_type_find=0;
-	int iter_lt=0;
-	for(iter_lt=0;iter_lt< xtract_layer_type_e.size();iter_lt++){
-
-		if(xtract_layer_type_e[iter_lt].layer_name.compare(layer_type)==0){
-			hs_ops_type=xtract_layer_type_e[iter_lt].layer_type;
-			flag_layer_type_find=1;
-			break;
-		}else{
-			flag_layer_type_find=0;
-		}
-	}
-	if(flag_layer_type_find==1)
-	{
-#if O_DEBUG
-		cout<<"xi_find_hw_and_sw_layer_type:Layer is find "<<"layer type:"<<layer_type<<endl;
-#endif
-	}
-	else{
-		iter_lt=iter_lt-1;
-		ELOG(!(xtract_layer_type_e[iter_lt].layer_name.compare(layer_type)==0),"EO005", " layer type: Layer is not support : "<< layer_type);
-	}
-}
-
-void xi_find_mem_type_io_buffers(XGraph *xgraph,vector < BDegree > &Bdepth,map<string, string> &layer_type_table,map<string, string> &mem_type_table){
-
-	vector <struct xtract_layer_type> xtract_layer_type_e;
-	xi_get_hw_and_sw_layer(xtract_layer_type_e);
-
-	mem_type_table[Bdepth[0].blobs_name[0]]="non_cacheable";
-
-	for(int iter_d=1;iter_d<Bdepth.size();iter_d++){
-
-		int hs_ops_type=-1;
-
-		int p_hw_type=0;
-		int p_sw_type=0;
-		int c_hw_type=0;
-		int c_sw_type=0;
-
-		for(int iter_db=0;iter_db<Bdepth[iter_d].blobs_name.size();iter_db++){ // data is input buffer,so we are starting from 1 index
-
-			map < string, XBlob* >::iterator blob_it = xgraph->blobs.find(Bdepth[iter_d].blobs_name[iter_db]);
-
-			if(blob_it==xgraph->blobs.end()){
-				cerr<<"invalid blob name"<<endl;
-				exit(-1);
-			}
-
-			p_hw_type=0;
-			p_sw_type=0;
-
-			c_hw_type=0;
-			c_sw_type=0;
-
-			for(int iter_b_p_c=0;iter_b_p_c<blob_it->second->producers.size();iter_b_p_c++){
-
-				string cur_blob_p_name = blob_it->second->producers[iter_b_p_c];
-				map<string, string>::iterator p_it = layer_type_table.find(cur_blob_p_name);
-				string curr_blob_p_type = p_it->second;
-				xi_find_hw_and_sw_layer_type(xtract_layer_type_e,curr_blob_p_type,hs_ops_type);
-				if(hs_ops_type==EXE_ON_HW)// ops layer type is hardware
-					p_hw_type=1;
-				else
-					p_sw_type=1;
-			}
-
-			for(int iter_b_c_c=0;iter_b_c_c<blob_it->second->consumers.size();iter_b_c_c++){
-
-				string cur_blob_c_name = blob_it->second->consumers[iter_b_c_c];
-				map<string, string>::iterator c_it = layer_type_table.find(cur_blob_c_name);
-				string curr_blob_c_type = c_it->second;
-				xi_find_hw_and_sw_layer_type(xtract_layer_type_e,curr_blob_c_type,hs_ops_type);
-
-				if(hs_ops_type==EXE_ON_HW)// ops layer type is hardware
-					c_hw_type=1;
-				else
-					c_sw_type=1;
-			}
-
-			if(p_hw_type==1 && p_sw_type==1){
-
-				if(c_hw_type==1 && c_sw_type==1){
-
-					mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="non_cacheable";
-
-				}
-				else if(c_hw_type==0 && c_sw_type==1)
-				{
-					mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="cacheable";
-				}else
-				{
-					if(c_hw_type==1 && c_sw_type==0)
-						mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="non_cacheable";
-				}
-			}
-			else if(p_hw_type==0 && p_sw_type==1)
-			{
-				if(c_hw_type==1 && c_sw_type==1)
-				{
-					mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="non_cacheable";
-				}
-				else if(c_hw_type==0 && c_sw_type==1){
-					mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="malloc";
-				}
-				else
-				{
-					if(c_hw_type==1 && c_sw_type==0)
-						mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="non_cacheable";
-
-					else{
-						if(blob_it->second->consumers.size()==0)
-						{
-							mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="malloc";
-
-						}else{
-
-							cerr<<" xi_find_mem_type_io_buffers invalid consumers type"<<endl;
-							return;
-
-						}
-					}
-				}
-
-			}
-			else
-			{
-				if(p_hw_type==1 && p_sw_type==0){
-
-					if(c_hw_type==1 && c_sw_type==1)
-					{
-						mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="non_cacheable";
-					}
-					else if(c_hw_type==0 && c_sw_type==1){
-
-						mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="cacheable";
-					}
-					else
-					{
-						mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="non_cacheable";
-					}
-				}
-				else{
-					cerr<<"xi_find_mem_type_io_buffers invalid producers type p_sw_type = p_hw_type= "<<p_sw_type<<p_hw_type<<endl;
-					return;
-				}
-
-			}
-		}
-	}
-}
-
-void xi_update_io_mem_type(vector < XlayerData > & xlayer_seq,XGraph *xgraph,vector < BDegree > &Bdepth,map<string, string> &layer_type_table,map<string, string> &mem_type_table){
-
-
-	vector <int> max_shape;
-
-	xi_maxsize_blob(xgraph,max_shape);
-
-	vector <struct xtract_layer_type> xtract_layer_type_e;
-	xi_get_hw_and_sw_layer(xtract_layer_type_e);
-
-	xi_find_mem_type_io_buffers(xgraph,Bdepth,layer_type_table,mem_type_table);
-
-	for(int iter_l=0;iter_l<xlayer_seq.size();iter_l++){
-
-		if(iter_l==0){
-
-			if(!xgraph->meanShape.empty()){
-				xlayer_seq[iter_l].meanShape = xgraph->meanShape;
-				xlayer_seq[iter_l].meanFile = xgraph->meanFile;
-			}
-			xlayer_seq[iter_l].resize_height = xgraph->transform_params.resize_height;
-			xlayer_seq[iter_l].resize_width = xgraph->transform_params.resize_width;
-
-		}
-
-		string curr_layer_type =xlayer_seq[iter_l].hw_ops->type;
-		int hs_ops_type=-1;
-
-		xi_find_hw_and_sw_layer_type(xtract_layer_type_e,curr_layer_type,hs_ops_type);
-
-		if(hs_ops_type==EXE_ON_HW)// ops layer type is hardware
-			xlayer_seq[iter_l].layer_type="hardware";
-		else
-			xlayer_seq[iter_l].layer_type="software";
-
-		xlayer_seq[iter_l].opcode = xlayer_seq[iter_l].hw_ops->opcode;
-		for(int iter_l_b_c=0;iter_l_b_c<xlayer_seq[iter_l].hw_ops->bottom.size();iter_l_b_c++){
-
-			HBlob tmp_hblob_ip;
-			map<string, string>::iterator mem_it = mem_type_table.find(xlayer_seq[iter_l].hw_ops->bottom[iter_l_b_c].blob->name);
-			tmp_hblob_ip.handle = mem_it->first;
-			tmp_hblob_ip.pos = xlayer_seq[iter_l].hw_ops->bottom[iter_l_b_c].id;
-			tmp_hblob_ip.handle_shape=max_shape;
-			tmp_hblob_ip.mem_type = mem_it->second;
-			xlayer_seq[iter_l].ip_blob.push_back(tmp_hblob_ip);
-		}
-		for(int iter_l_t_c=0;iter_l_t_c<xlayer_seq[iter_l].hw_ops->top.size();iter_l_t_c++){
-
-			HBlob tmp_hblob_op;
-			map<string, string>::iterator mem_it = mem_type_table.find(xlayer_seq[iter_l].hw_ops->top[iter_l_t_c].blob->name);
-			tmp_hblob_op.handle = mem_it->first;
-			tmp_hblob_op.pos = xlayer_seq[iter_l].hw_ops->top[iter_l_t_c].id;
-			tmp_hblob_op.handle_shape=max_shape;
-			tmp_hblob_op.mem_type = mem_it->second;
-			xlayer_seq[iter_l].op_blob.push_back(tmp_hblob_op);
-		}
-	}
-}
-
-void xi_cmp_freehandle_layers_indx_and_curr_blob_layers_indx(vector < BDegree > &Bdepth,vector < XlayerData > & xlayer_seq,XGraph *xgraph,map<string, int> &layer_seq_table,int free_handle_degree_num,int free_handle_blob_num,int curr_degree_num,int curr_blob_num,int *res){
-
-
-	map < string, XBlob*>::iterator free_handles_org_blob_it = xgraph->blobs.find(Bdepth[free_handle_degree_num].blobs_name[free_handle_blob_num]);
-	map < string, XBlob*>::iterator curr_blob_it = xgraph->blobs.find(Bdepth[curr_degree_num].blobs_name[curr_blob_num]);
-
-	int tmp_free_pro_indx=0;
-	int tmp_free_cons_indx=0;
-	int tmp_free_max_indx=0;
-
-	int tmp_curr_pro_indx=0;
-	int tmp_curr_cons_indx=0;
-	int tmp_curr_max_indx=0;
-
-	for(int iter_cur_b_p=0;iter_cur_b_p<free_handles_org_blob_it->second->producers.size();iter_cur_b_p++){
-
-		map<string, int>::iterator table_it_l = layer_seq_table.find(free_handles_org_blob_it->second->producers[iter_cur_b_p]);
-
-		int ind_l = table_it_l->second;
-
-		if(ind_l>tmp_free_pro_indx)
-			tmp_free_pro_indx=ind_l;
-	}
-
-	for(int iter_cur_b_c=0;iter_cur_b_c<free_handles_org_blob_it->second->consumers.size();iter_cur_b_c++){
-
-		map<string, int>::iterator table_it_l = layer_seq_table.find(free_handles_org_blob_it->second->consumers[iter_cur_b_c]);
-
-		int ind_l = table_it_l->second;
-
-		if(ind_l>tmp_free_cons_indx)
-			tmp_free_cons_indx=ind_l;
-
-
-	}
-
-	for(int iter_cur_b_p=0;iter_cur_b_p<curr_blob_it->second->producers.size();iter_cur_b_p++){
-
-		map<string, int>::iterator table_it_l = layer_seq_table.find(curr_blob_it->second->producers[iter_cur_b_p]);
-
-		int ind_l = table_it_l->second;
-
-		if(ind_l>tmp_curr_pro_indx)
-			tmp_curr_pro_indx=ind_l;
-
-
-	}
-
-	for(int iter_cur_b_c=0;iter_cur_b_c<curr_blob_it->second->consumers.size();iter_cur_b_c++){
-
-		map<string, int>::iterator table_it_l = layer_seq_table.find(curr_blob_it->second->consumers[iter_cur_b_c]);
-
-		int ind_l = table_it_l->second;
-
-		if(ind_l>tmp_curr_cons_indx)
-			tmp_curr_cons_indx=ind_l;
-	}
-	/// find max  xlayer indx from free handle consumers vs free handle produces
-	if(tmp_free_pro_indx<tmp_free_cons_indx){
-
-		tmp_free_max_indx=tmp_free_cons_indx;
-	}
-	else
-	{
-		tmp_free_max_indx=tmp_free_pro_indx;
-	}
-
-	/// find max  xlayer indx from curr handle consumers vs curr handle produces
-
-	if(tmp_curr_pro_indx<tmp_curr_cons_indx){
-
-		tmp_curr_max_indx=tmp_curr_cons_indx;
-	}
-	else
-	{
-		tmp_curr_max_indx=tmp_curr_pro_indx;
-	}
-
-	/// update res value based on the max of free handle cons & pros indx's vs  curr handle cons & pros indx's
-
-	if(tmp_free_max_indx<tmp_curr_max_indx){
-
-		*res=0;
-
-	}else{
-
-		*res=1;
-	}
-
-}
-
-void xi_update_buffer_reuse_xlayer_seq(vector < XlayerData > & xlayer_seq,vector < BDegree > &Bdepth,map<string, int> &layer_seq_table,map<string, string> &mem_type_table,XGraph *xgraph,vector < BDegree > &reUseBdepth){
-
-
-	vector< Handle_depth_info > free_handles;
-	BDegree tmp_Bdepth;
-	int sw=1;
-	map<string,int> reuse_buff_table;
-	Handle_depth_info *tmp_handle_info =   new Handle_depth_info();
-
-	// copy the Bdepth structure into another tmp structure(reUseBdepth) and also find the layer type whether sw/hw and create reuse_buff_table map structure.
-	for(int iter_bg=0;iter_bg<Bdepth.size();iter_bg++){
-
-		int layer_sw=0;
-
-		for(int iter_bb_c=0;iter_bb_c<Bdepth[iter_bg].blobs_name.size();iter_bb_c++){
-
-			tmp_Bdepth.blobs_name.push_back(Bdepth[iter_bg].blobs_name[iter_bb_c]);
-			tmp_Bdepth.blobs_degree = iter_bg;
-			map < string, XBlob*>::iterator blob_it = xgraph->blobs.find(Bdepth[iter_bg].blobs_name[iter_bb_c]);
-			XBlob* cur_blob = blob_it->second;
-
-			for(int iter_cur_b_p=0;iter_cur_b_p<cur_blob->producers.size();iter_cur_b_p++){
-
-				map<string, int>::iterator table_it_l = layer_seq_table.find(cur_blob->producers[iter_cur_b_p]);
-				int ind_l = table_it_l->second;
-
-				if(xlayer_seq[ind_l].layer_type.compare("software")==0)
-				{
-					layer_sw=1;
-				}
-			}
-
-			for(int iter_cur_b_c=0;iter_cur_b_c<cur_blob->consumers.size();iter_cur_b_c++){
-
-				map<string, int>::iterator table_it_l = layer_seq_table.find(cur_blob->consumers[iter_cur_b_c]);
-
-				int ind_l = table_it_l->second;
-
-				if(xlayer_seq[ind_l].layer_type.compare("software")==0){
-
-					layer_sw=1;
-				}
-			}
-
-			reuse_buff_table[Bdepth[iter_bg].blobs_name[iter_bb_c]]=layer_sw;
-		}
-		reUseBdepth.push_back(Bdepth[iter_bg]);
-
-	}
-	// interate over blobs depth
-
-	//
-	for(int iter_bg=0;iter_bg<Bdepth.size();iter_bg++){
-
-		if(iter_bg>1){
-
-			// iterate over blobs in each depth and fill blobs name to temp queue
-
-			for(int iter_b=0;iter_b<reUseBdepth[iter_bg-2].blobs_name.size();iter_b++){
-
-				//Handle_depth_info *tmp_handle_info =   new Handle_depth_info();
-
-				if(reUseBdepth[iter_bg-2].blobs_name[iter_b].compare("data")!=0){
-
-					int reuse_buff_type=0;
-					map<string, int>::iterator it_reuse_buff = reuse_buff_table.find(reUseBdepth[iter_bg-2].blobs_name[iter_b]);
-
-					if(it_reuse_buff==reuse_buff_table.end()){
-
-						tmp_handle_info->free_handle = reUseBdepth[iter_bg-2].blobs_name[iter_b];
-						tmp_handle_info->degree_num=iter_bg-2;
-						tmp_handle_info->degree_blob_num=iter_b;
-						free_handles.push_back(*tmp_handle_info);
-
-					}
-					else{
-						reuse_buff_type = it_reuse_buff->second;
-
-						if(reuse_buff_type!=sw){
-
-							tmp_handle_info->free_handle = reUseBdepth[iter_bg-2].blobs_name[iter_b];
-							tmp_handle_info->degree_num=iter_bg-2;
-							tmp_handle_info->degree_blob_num=iter_b;
-							free_handles.push_back(*tmp_handle_info);
-
-						}
-					}
-
-				}
-
-			}
-#if O_DEBUG
-			cout << " filled the blobs name to temp vector done" << endl;
-#endif
-		}
-		// iterate over blobs in each depth
-		for(int iter_b=0;iter_b<Bdepth[iter_bg].blobs_name.size();iter_b++){
-
-			int io_blob_flag=0;// ip_op_blobs are same
-
-			string blob_name = Bdepth[iter_bg].blobs_name[iter_b];
-
-			map < string, XBlob*>::iterator blob_it = xgraph->blobs.find(blob_name);
-			XBlob* cur_blob = blob_it->second;
-
-			// check the free handles to reuse
-			if(!free_handles.empty()){
-
-#if O_DEBUG
-				cout << " enter the free_handles loop " << endl;
-#endif
-				for(int iter_handle=0;iter_handle<free_handles.size();iter_handle++){
-
-					string handle_name  = free_handles[iter_handle].free_handle;
-
-					int handle_degree_num = free_handles[iter_handle].degree_num;
-					int handle_blob_num = free_handles[iter_handle].degree_blob_num;
-					int res=0;
-
-					xi_cmp_freehandle_layers_indx_and_curr_blob_layers_indx(Bdepth,xlayer_seq,xgraph,layer_seq_table,handle_degree_num,handle_blob_num,iter_bg,iter_b,&res);
-
-					if(res==1)
-						continue;
-
-					int flag_handle_not_use=0;
-					vector<int> curr_con_layer_ind;
-					vector <int> consumers_handle_list;
-					map<string, string>::iterator mem_type_it = mem_type_table.find(handle_name);
-
-					string free_handle_mem_type_name = mem_type_it->second;
-
-					map<string, string>::iterator tmp_mem_type_it = mem_type_table.find(blob_name);
-
-					if(free_handle_mem_type_name.compare(tmp_mem_type_it->second)==0){
-
-#if O_DEBUG
-						cout << " free_handle and current handle are same mem type " << endl;
-#endif
-						for(int iter_l_p=0;iter_l_p<cur_blob->producers.size();iter_l_p++){
-
-							map<string, int>::iterator table_it = layer_seq_table.find(cur_blob->producers[iter_l_p]);
-
-							int ind_l = table_it->second;
-
-							for(int iter_ip_b_c=0;iter_ip_b_c<xlayer_seq[ind_l].ip_blob.size();iter_ip_b_c++){
-
-								if(xlayer_seq[ind_l].ip_blob[iter_ip_b_c].handle.compare(handle_name)==0){
-
-#if O_DEBUG
-									cout<<"free_handle is same as it current input handle, don't use this handle and look for next handle if handle vector has"<<endl;
-#endif
-									flag_handle_not_use=1;
-									break;
-								}
-
-							}
-
-							if(flag_handle_not_use){
-#if O_DEBUG
-								cout<<"free_handle is same as it current input handle, don't use this handle and break for loop and look for  next handle if handle vector has"<<endl;
-#endif
-
-								break;
-							}
-						}
-						if(flag_handle_not_use){
-#if O_DEBUG
-							cout<<"free_handle is same as it current input handle, don't use this handle and continue for loop and look for next handle if handle vector has"<<endl;
-#endif
-
-							continue;
-
-						}else{
-#if O_DEBUG
-							cout<<"free_handle and it current input handles are not same, so we can use remaining conditions met"<<endl;
-#endif
-							map < string, XBlob*>::iterator free_handles_org_blob_it = xgraph->blobs.find(Bdepth[handle_degree_num].blobs_name[handle_blob_num]);
-
-							if(free_handles_org_blob_it->second->consumers.size()>0){
-
-#if O_DEBUG
-								cout<<"free_handle and it current input handles are not same,enter checking the consumers types condition"<<endl;
-#endif
-
-								map<string, int>::iterator table_it = layer_seq_table.find(free_handles_org_blob_it->second->consumers[0]);
-								int ind0 = table_it->second;
-
-								for(int iter_l_c=1;iter_l_c<free_handles_org_blob_it->second->consumers.size();iter_l_c++){
-
-									table_it = layer_seq_table.find(free_handles_org_blob_it->second->consumers[iter_l_c]);
-									int ind_l = table_it->second;
-
-									//consumers_handle_list.push_back(ind_l);
-									if(xlayer_seq[ind0].hw_ops->type.compare(xlayer_seq[ind_l].hw_ops->type)==0)
-									{
-										curr_con_layer_ind.push_back(ind_l);
-									}
-
-								}
-								if((curr_con_layer_ind.size()+1)==free_handles_org_blob_it->second->consumers.size())
-								{
-
-#if O_DEBUG
-									cout<<"all the layers of the free handle consumers types are same"<<endl;
-#endif
-									for(int iter_cur_b_p=0;iter_cur_b_p<cur_blob->producers.size();iter_cur_b_p++){
-										map<string, int>::iterator table_it_l = layer_seq_table.find(cur_blob->producers[iter_cur_b_p]);
-										int ind_l = table_it_l->second;
-
-										for(int iter_cur_l_o_c=0;iter_cur_l_o_c<xlayer_seq[ind_l].op_blob.size();iter_cur_l_o_c++){
-											if(xlayer_seq[ind_l].op_blob[iter_cur_l_o_c].handle.compare(blob_name)==0)
-												xlayer_seq[ind_l].op_blob[iter_cur_l_o_c].handle=handle_name;
-										}
-
-									}
-
-									for(int iter_cur_b_c=0;iter_cur_b_c<cur_blob->consumers.size();iter_cur_b_c++){
-
-										map<string, int>::iterator table_it_l = layer_seq_table.find(cur_blob->consumers[iter_cur_b_c]);
-										int ind_l = table_it_l->second;
-
-
-										for(int iter_cur_l_i_c=0;iter_cur_l_i_c<xlayer_seq[ind_l].ip_blob.size();iter_cur_l_i_c++){
-											if(xlayer_seq[ind_l].ip_blob[iter_cur_l_i_c].handle.compare(blob_name)==0)
-												xlayer_seq[ind_l].ip_blob[iter_cur_l_i_c].handle=handle_name;
-										}
-
-									}
-#if O_DEBUG
-									cout<<" update the free handle in the reUseBdepth vector"<<endl;
-#endif
-
-									reUseBdepth[iter_bg].blobs_name[iter_b]=handle_name;
-#if O_DEBUG
-									cout<<" delete free handles from free_handles vector"<<endl;
-#endif
-									free_handles.erase(free_handles.begin()+iter_handle);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	delete tmp_handle_info;
-}
-
-void xi_find_xlayer_opcode(vector < struct xtract_opcode_num> xlayers_opcode_e,string &layer_type,int &hs_ops_type){
-
-	int flag_layer_type_find=0;
-	int iter_lt=0;
-
-	for(iter_lt=0;iter_lt< xlayers_opcode_e.size();iter_lt++){
-
-		if(xlayers_opcode_e[iter_lt].layer_name.compare(layer_type)==0){
-			hs_ops_type=xlayers_opcode_e[iter_lt].opcode;
-			flag_layer_type_find=1;
-			break;
-		}else{
-
-			flag_layer_type_find=0;
-		}
-	}
-	if(flag_layer_type_find==1)
-	{
-#if O_DEBUG
-		cout<<"xi_find_xlayer_opcode:Layer is find "<<"layer type:"<<layer_type<<endl;
-#endif
-	}
-	else{
-		iter_lt=iter_lt-1;
-		ELOG(!(xlayers_opcode_e[iter_lt].layer_name.compare(layer_type)==0),"EO005", "Layer opcode: Layer is not support : "<< layer_type);
-	}
-}
-
-void xi_update_xlayer_opcode(XGraph *xgraph)
-{
-	vector < struct xtract_opcode_num> xlayers_opcode;
-	xi_get_opcode_xlayer(xlayers_opcode);
-	int hs_ops_type=0;
-	for(map < string, XLayer*>::iterator it = xgraph->layers.begin();it !=xgraph->layers.end();it++){
-
-		xi_find_xlayer_opcode(xlayers_opcode,it->second->type,hs_ops_type);
-		it->second->opcode = hs_ops_type;
-	}
-
-}
-
-void XGraphOpt::xi_opt_fuse_bn_conv(XGraph* xgraph_opt,vector <string> &bn_opt_table){
+void XGraphOpt::opt_fuse_bn_conv(XGraph* xgraph_opt,vector <string> &bn_opt_table){
 
 	int fuse_conv_cnt=0;
 	for(int iter_bn_v=0;iter_bn_v<bn_opt_table.size();iter_bn_v++){
@@ -1501,10 +234,12 @@ void XGraphOpt::xi_opt_fuse_bn_conv(XGraph* xgraph_opt,vector <string> &bn_opt_t
 					it_layer->second->conv_params->dilation=it_conv_layer->second->conv_params->dilation;
 					it_layer->second->conv_params->group =it_conv_layer->second->conv_params->group;
 					it_layer->second->conv_params->has_bias = it_conv_layer->second->conv_params->has_bias;
-					it_layer->second->conv_params->biasPath = it_conv_layer->second->conv_params->biasPath;
+					//it_layer->second->conv_params->biasPath = it_conv_layer->second->conv_params->biasPath;
+					it_layer->second->conv_params->bias = it_conv_layer->second->conv_params->bias;
 					it_layer->second->conv_params->biasDim = it_conv_layer->second->conv_params->biasDim;
 					it_layer->second->conv_params->weightsDim = it_conv_layer->second->conv_params->weightsDim;
-					it_layer->second->conv_params->weightsPath = it_conv_layer->second->conv_params->weightsPath;
+					//	it_layer->second->conv_params->weightsPath = it_conv_layer->second->conv_params->weightsPath;
+					it_layer->second->conv_params->weights = it_conv_layer->second->conv_params->weights;
 					it_layer->second->wt_bw = it_conv_layer->second->wt_bw;
 					it_layer->second->wt_fl = it_conv_layer->second->wt_fl;
 
@@ -1518,6 +253,12 @@ void XGraphOpt::xi_opt_fuse_bn_conv(XGraph* xgraph_opt,vector <string> &bn_opt_t
 					it_layer->second->op_bw = it_conv_layer->second->op_bw;
 					it_layer->second->op_fl = it_conv_layer->second->op_fl;
 
+					it_layer->second->th_layer_in = it_conv_layer->second->th_layer_in;
+					it_layer->second->th_layer_out = it_conv_layer->second->th_layer_out;
+					it_layer->second->th_params = it_conv_layer->second->th_params;
+					// it_layer->second->user_op_bw = it_conv_layer->second->user_op_bw;
+					// it_layer->second->user_op_fl = it_conv_layer->second->user_op_fl;
+
 					it_layer->second->top[0]=it_conv_layer->second->top[conv_top_indx]; // TODO assuming only one top blob for each layer
 					it_layer->second->top[0].blob->producers[conv_top_prod_indx]=it_layer->second->name; // TODO assuming only one top blob for each layer
 					it_layer->second->opcode = OPCODE_FUSE_BN_CONV;
@@ -1530,188 +271,188 @@ void XGraphOpt::xi_opt_fuse_bn_conv(XGraph* xgraph_opt,vector <string> &bn_opt_t
 		}else{
 			if(it_layer->second->top.size()>0){
 
-				ELOG((it_layer->second->top.size()==1),"xi_opt_fuse_bn_conv", "bn Layer has more than one top blobs,its not support right now : "<< it_layer->second->top.size());
+				ELOG((it_layer->second->top.size()==1),"opt_fuse_bn_conv", "bn Layer has more than one top blobs,its not support right now : "<< it_layer->second->top.size());
 			}
 		}
 	}
 }
-/*void Abid_software_fuse(XLayer* bn_layer,XLayer* scale_layer,XLayer* Conv_layer){
 
-	cout<<"Abid_software_fuse for conv + bn+scale+relu"<<endl;
-
-}*/
-
-// Function to compare absolute values. 
+// Function to compare absolute values.
 // Used to find absolute max_value in an array using std::max_element
-// TODO : It is a generic function. It should go to some other file, probably xi_funcs.cpp
-inline bool xi_compareAbsValues(float a, float b)
+// TODO : It is a generic function. It should go to some other file, probably xdnnfuncs.cpp
+inline bool compareAbsValues(float a, float b)
 {
 	return (std::abs(a) < std::abs(b));
 }
 
 // This function is same as Trim2FixedPoint() in caffeNetworkParser.cpp
-// TODO : It is a generic function. It should go to some other file, probably xi_funcs.cpp
+// TODO : It is a generic function. It should go to some other file, probably xdnnfuncs.cpp
 void Trim2FixedPoint2(vector<float>& data, const int bw, const int fl, RoundingMethod rounding )
 {
-    float pow_bw_minus_1 = pow(2, bw-1);
-    float pow_minus_fl = pow(2, -fl);
-    float pow_plus_fl = pow(2, fl);
-    float max_data = (pow_bw_minus_1 - 1) * pow_minus_fl;
-    float min_data = -pow_bw_minus_1 * pow_minus_fl;
+	float pow_bw_minus_1 = pow(2, bw-1);
+	float pow_minus_fl = pow(2, -fl);
+	float pow_plus_fl = pow(2, fl);
+	float max_data = (pow_bw_minus_1 - 1) * pow_minus_fl;
+	float min_data = -pow_bw_minus_1 * pow_minus_fl;
 
-    for (int index = 0; index < data.size(); ++index)
-    {
-        // Saturate data
-        data[index] = std::max(std::min(data[index], max_data), min_data);
+	for (int index = 0; index < data.size(); ++index)
+	{
+		// Saturate data
+		data[index] = std::max(std::min(data[index], max_data), min_data);
 
-        // Round data
-        data[index] /= pow_minus_fl;
-        switch (rounding) {
-            case ROUND_NEAREST:
-                data[index] = round(data[index]);
-                break;
-            // case ROUND_STOCHASTIC:
-            //     data[index] = floor(data[index] + RandUniform_cpu());
-            //     break;
-            default:
-                break;
-        }
-        data[index] *= pow_minus_fl;
-    }
+		// Round data
+		data[index] /= pow_minus_fl;
+		switch (rounding) {
+		case ROUND_NEAREST:
+			data[index] = round(data[index]);
+			break;
+			// case ROUND_STOCHASTIC:
+			//     data[index] = floor(data[index] + RandUniform_cpu());
+			//     break;
+		default:
+			break;
+		}
+		data[index] *= pow_minus_fl;
+	}
 }
 
-void xi_fuseBNScaleConvParams(XLayer* convLayer, XLayer* bnLayer, XLayer* scaleLayer, int mode)
+void fuseBNScaleConvParams(XLayer* convLayer, XLayer* bnLayer, XLayer* scaleLayer, int mode)
 {
-    // Load Convolution Data
-    std::string conv_weights_path = convLayer->conv_params->weightsPath.at(0);
-    std::string conv_bias_path = convLayer->conv_params->biasPath.at(0);
-    std::vector<float> conv_weights = READDATA(conv_weights_path);
-    std::vector<float> conv_bias = READDATA(conv_bias_path);
-    std::vector<int> conv_weights_dim = convLayer->conv_params->weightsDim.at(0);
-    std::vector<int> conv_bias_dim = convLayer->conv_params->biasDim.at(0);
+	// Load Convolution Data
+	std::vector<float>& conv_weights = convLayer->conv_params->weights.at(0);
+	std::vector<float>& conv_bias = convLayer->conv_params->bias.at(0);
+	std::vector<int> conv_weights_dim = convLayer->conv_params->weightsDim.at(0);
+	std::vector<int> conv_bias_dim = convLayer->conv_params->biasDim.at(0);
 
-    int final_op_bw = convLayer->op_bw;
-    int final_op_fl = convLayer->op_fl;
-    
-    std::vector<float> mean, variance, gamma, beta;
-    float eps = 1e-10;
+	int final_op_bw = convLayer->op_bw;
+	int final_op_fl = convLayer->op_fl;
+	int final_op_th = convLayer->th_layer_out;
 
-    switch(mode)
-    {
-        // Convolution -> [BatchNorm] -> [Scale]
-        case 0:
-            {
+	std::vector<float> mean, variance, gamma, beta;
+	float eps = 1e-10;
 
-                // Load BatchNorm Data
-                if (bnLayer != NULL)
-                {
-                    std::string mean_path = bnLayer->batchnorm_params->meanPath.at(0);
-                    std::string variance_path = bnLayer->batchnorm_params->variancePath.at(0);
-                    mean = READDATA(mean_path);
-                    variance = READDATA(variance_path);
-                    eps = bnLayer->batchnorm_params->eps;
-                    final_op_bw = bnLayer->op_bw;
-                    final_op_fl = bnLayer->op_fl;
-                }
-                else
-                {
-                    mean.resize(conv_bias_dim.at(0), 0.0);
-                    variance.resize(conv_bias_dim.at(0), 1.0);
-                    eps = 0;
-                }
+	switch(mode)
+	{
+	// Convolution -> [BatchNorm] -> [Scale]
+	case 0:
+	{
+
+		// Load BatchNorm Data
+		if (bnLayer != NULL)
+		{
+			mean = bnLayer->batchnorm_params->mean.at(0);
+			variance = bnLayer->batchnorm_params->variance.at(0);
+			eps = bnLayer->batchnorm_params->eps;
+			final_op_bw = bnLayer->op_bw;
+			final_op_fl = bnLayer->op_fl;
+			final_op_th = bnLayer->th_layer_out;
+		}
+		else
+		{
+			mean.resize(conv_bias_dim.at(0), 0.0);
+			variance.resize(conv_bias_dim.at(0), 1.0);
+			eps = 0;
+		}
 
 
-                // Load Scale Layer Data
-                if (scaleLayer != NULL)
-                {
-                    std::string gamma_path = scaleLayer->scale_params->gammaPath.at(0);
-                    std::string beta_path = scaleLayer->scale_params->betaPath.at(0);
-                    gamma = READDATA(gamma_path);
-                    beta = READDATA(beta_path);
-                    final_op_bw = scaleLayer->op_bw;
-                    final_op_fl = scaleLayer->op_fl;
-                }
-                else
-                {
-                    gamma.resize(conv_bias_dim.at(0), 1.0);
-                    beta.resize(conv_bias_dim.at(0), 0.0);
-                }
+		// Load Scale Layer Data
+		if (scaleLayer != NULL)
+		{
+			gamma = scaleLayer->scale_params->gamma.at(0);
+			beta = scaleLayer->scale_params->beta.at(0);
+			final_op_bw = scaleLayer->op_bw;
+			final_op_fl = scaleLayer->op_fl;
+			final_op_th = scaleLayer->th_layer_out;
+		}
+		else
+		{
+			gamma.resize(conv_bias_dim.at(0), 1.0);
+			beta.resize(conv_bias_dim.at(0), 0.0);
+		}
 
-                // Real Operation Starts here
-                int num = conv_bias_dim.at(0);
-                ASSERT( conv_weights.size() % num == 0, EX021, "conv_weights.size() % num != 0 in Layer: " << convLayer->name << " " << num << " " << conv_weights.size())
-                    int count = conv_weights.size()/num;
+		// Real Operation Starts here
+		int num = conv_bias_dim.at(0);
+		ASSERT( conv_weights.size() % num == 0, EX021, "conv_weights.size() % num != 0 in Layer: " << convLayer->name << " " << num << " " << conv_weights.size())
+		int count = conv_weights.size()/num;
 
-                // Calculate the new weights and bias
-                for(int n=0; n<num; ++n)
-                {
-                    int W_offset = n * count;
-                    float M = mean[n];
-                    float V = variance[n];
-                    float G = gamma[n];
-                    float B = beta[n];
-                    float K = std::sqrt(V + eps);
-                    float S = G / std::sqrt(V + eps);
+		// Calculate the new weights and bias
+		for(int n=0; n<num; ++n)
+		{
+			int W_offset = n * count;
+			float M = mean[n];
+			float V = variance[n];
+			float G = gamma[n];
+			float B = beta[n];
+			float K = std::sqrt(V + eps);
+			float S = G / std::sqrt(V + eps);
 
-                    conv_bias[n] = S * (conv_bias[n] - M) + B;
+			conv_bias[n] = S * (conv_bias[n] - M) + B;
 
-                    for(int i=0; i<count; ++i)
-                    {
-                        conv_weights[W_offset + i] *= S;
-                    }
-                }
+			for(int i=0; i<count; ++i)
+			{
+				conv_weights[W_offset + i] *= S;
+			}
+		}
 
-                // Now calculate the Precision Params for weights
+		// Now calculate the Precision Params for weights
 
-                const int CONV_BW = convLayer->wt_bw;
-                int MAX_VALUE = std::pow(2, CONV_BW-1);
-                int int_bits, fl_bits;
-                float log2_val=0;
-                vector<float>::iterator abs_max_iter = std::max_element(conv_weights.begin(), conv_weights.end(), xi_compareAbsValues);
-                float abs_max_val = std::abs(*abs_max_iter);
-            //    ASSERT( abs_max_val <= MAX_VALUE, EO99, 
-            //            "Insufficient bit-precision for weights in " << convLayer->name << ": " << abs_max_val << " v/s " << MAX_VALUE)
+		if(convLayer->quantization_scheme == "DynamicFixed") {
+			const int CONV_BW = convLayer->wt_bw;
+			int MAX_VALUE = std::pow(2, CONV_BW-1);
+			int int_bits, fl_bits;
+			float log2_val=0;
+			vector<float>::iterator abs_max_iter = std::max_element(conv_weights.begin(), conv_weights.end(), compareAbsValues);
+			float abs_max_val = std::abs(*abs_max_iter);
+			/*ASSERT( abs_max_val <= MAX_VALUE, EO99,
+                            "Insufficient bit-precision for weights in " << convLayer->name << ": " << abs_max_val << " v/s " << MAX_VALUE)*/
 
-                // Special case for max<1
-                if(abs_max_val < 1)
-                {
-                    int_bits = 1;                   // Sign bit
-                }
-                else if(abs_max_val == 1)
-                {
-                    int_bits = 2;                   // Sign bit + 1-bit to represent "1"
-                }
-                else
-                {
-                    log2_val = log2f(abs_max_val);
-                    int_bits = static_cast<int>(std::ceil(std::abs(log2_val))) + 1;     // +1 for sign-bit
-                }
+			// Special case for max<1
+			if(abs_max_val < 1)
+			{
+				int_bits = 1;                   // Sign bit
+			}
+			else if(abs_max_val == 1)
+			{
+				int_bits = 2;                   // Sign bit + 1-bit to represent "1"
+			}
+			else
+			{
+				log2_val = log2f(abs_max_val);
+				int_bits = static_cast<int>(std::ceil(std::abs(log2_val))) + 1;     // +1 for sign-bit
+			}
 
-                fl_bits = CONV_BW - int_bits;
-                //Trim2FixedPoint2(conv_weights, CONV_BW, fl_bits, ROUND_NEAREST);
-                //Trim2FixedPoint2(conv_bias, final_op_bw, final_op_fl, ROUND_NEAREST);
-                convLayer->op_bw = final_op_bw;
-                convLayer->op_fl = final_op_fl;
-                convLayer->wt_fl = fl_bits;
+			fl_bits = CONV_BW - int_bits;
 
-                // cerr << "DEBUG : " << convLayer->name << " : " << abs_max_val << " , " 
-                //     << log2_val << " " << std::abs(log2_val) << " " << std::abs(*abs_max_iter) << " " << fl_bits << endl; 
+			convLayer->op_bw = final_op_bw;
+			convLayer->op_fl = final_op_fl;
+			convLayer->wt_fl = fl_bits;
+		}
 
-                break;
-            }
-        default:
-            {
-                ELOG(true, EX022, "Unrecognized mode in Fusion")
-            }
-    }
+		else if(convLayer->quantization_scheme == "Xilinx") {
+			convLayer->th_params = getAbsMaxPerFilter<float>(conv_weights, conv_weights_dim);
+			convLayer->op_bw = final_op_bw;
+			convLayer->th_layer_out = final_op_th;
+		}
 
-    // Dump the new weights and Bias to same files
-    SAVEDATA(conv_weights, conv_weights_path);
-    SAVEDATA(conv_bias, conv_bias_path);
+		// cerr << "DEBUG : " << convLayer->name << " : " << abs_max_val << " , "
+		//     << log2_val << " " << std::abs(log2_val) << " " << std::abs(*abs_max_iter) << " " << fl_bits << endl;
+
+		break;
+	}
+	default:
+	{
+		ELOG(true, EX022, "Unrecognized mode in Fusion")
+	}
+	}
+
+#if DEBUG_WEIGHT_EXTRACTION
+	SAVEDATA(conv_weights, convLayer->conv_params->weightsPath.at(0));
+	SAVEDATA(conv_bias, convLayer->conv_params->biasPath.at(0));
+#endif
 
 }
 
-void XGraphOpt::xi_opt_conv_bn_scale(XGraph* xgraph_opt){
+void XGraphOpt::opt_conv_bn_scale(XGraph* xgraph_opt){
 
 	string *conv_layer_type = new string("Convolution");
 	string *scale_layer_type = new string("Scale");
@@ -1781,28 +522,32 @@ void XGraphOpt::xi_opt_conv_bn_scale(XGraph* xgraph_opt){
 
 						if(rel_flag==1 && scale_flag==1 && bn_flag==1){
 
-							xi_fuseBNScaleConvParams(it->second,bn_layer,scale_layer,0);
-							it->second->conv_params->reluflag=1;
-							it->second->conv_params->has_software_fuse = 1;
+							fuseBNScaleConvParams(it->second,bn_layer,scale_layer,0);
+
+							it->second->conv_params->reluflag = 1;
+							it->second->conv_params->has_software_fuse=1;
+
 							xtract_fuse_flag=1;
 							for(int iter_t_p_l=0;iter_t_p_l<layer_in_place.size();iter_t_p_l++){
 
 
-							std::vector<string>::iterator it_str=std::find(it_t_blob->second->producers.begin(),it_t_blob->second->producers.end(),layer_in_place[iter_t_p_l]);
+								std::vector<string>::iterator it_str=std::find(it_t_blob->second->producers.begin(),it_t_blob->second->producers.end(),layer_in_place[iter_t_p_l]);
 
-							if(it_str!=it_t_blob->second->producers.end())
-							{
-								it_t_blob->second->producers.erase(it_str);
-							}
+								if(it_str!=it_t_blob->second->producers.end())
+								{
+									it_t_blob->second->producers.erase(it_str);
+								}
 
 							}
 						}else{
 
 							if(rel_flag==0 && scale_flag==1 && bn_flag==1){
 
-								xi_fuseBNScaleConvParams(it->second,bn_layer,scale_layer,0);
+								fuseBNScaleConvParams(it->second,bn_layer,scale_layer,0);
 								xtract_fuse_flag=1;
-								it->second->conv_params->has_software_fuse = 1;
+
+								it->second->conv_params->has_software_fuse=1;
+
 								for(int iter_t_p_l=0;iter_t_p_l<layer_in_place.size();iter_t_p_l++){
 
 
@@ -1860,37 +605,107 @@ void XGraphOpt::xi_opt_conv_bn_scale(XGraph* xgraph_opt){
 									map < string, XLayer*>::iterator it_bn_c_layer = xgraph_opt->layers.find(it_t_bn_blob->second->consumers[0]);
 
 									if(it_bn_c_layer->second->type.compare(*scale_layer_type)==0){
+
 										layer_in_place.push_back(it_bn_c_layer->second->name);
+
 										scale_layer=it_bn_c_layer->second;
 
 										map < string, XBlob*>::iterator it_t_s_blob = xgraph_opt->blobs.find(it_bn_c_layer->second->top[0].blob->name);
 
-										if(it_t_s_blob->second->consumers.size()==1){
+										//if(it_t_s_blob->second->consumers.size()==1){
+										int rel_cout_flag=0;
+										for(int iter_rel_c=0;iter_rel_c<it_t_s_blob->second->consumers.size();iter_rel_c++){
 
-											map < string, XLayer*>::iterator it_sc_c_layer = xgraph_opt->layers.find(it_t_s_blob->second->consumers[0]);
+											map < string, XLayer*>::iterator it_sc_c_layer = xgraph_opt->layers.find(it_t_s_blob->second->consumers[iter_rel_c]);
 
 											if(it_sc_c_layer->second->type.compare(*relu_layer_type)==0){
+												rel_cout_flag=1;
 												relu_layer=it_sc_c_layer->second;
 												layer_in_place.push_back(it_sc_c_layer->second->name);
 
 												//Abid_software_fuse(bn_layer,scale_layer,it->second);
-												xi_fuseBNScaleConvParams(it->second,bn_layer,scale_layer,0);
-												it->second->top[0]=it_sc_c_layer->second->top[0];
+												fuseBNScaleConvParams(it->second,bn_layer,scale_layer,0);
+
+												it->second->conv_params->reluflag =1;
+												it->second->conv_params->has_software_fuse=1;
+
+												if(!it_sc_c_layer->second->relu_params->inPlace){
+
+
+													it->second->top[0]=it_sc_c_layer->second->top[0];
+													it->second->top[0].blob->producers[0]=it->second->name;
+													it->second->conv_params->reluflag=1;
+
+													it->second->output_file = it_sc_c_layer->second->output_file;
+
+													for(int iter_inc=0;iter_inc<layer_in_place.size();iter_inc++){
+
+														map < string, XLayer*>::iterator it_d_layer = xgraph_opt->layers.find(layer_in_place[iter_inc]);
+														xgraph_opt->layers.erase(it_d_layer);
+													}
+
+													xgraph_opt->blobs.erase(it_t_blob);
+													xgraph_opt->blobs.erase(it_t_bn_blob);
+													xgraph_opt->blobs.erase(it_t_s_blob);
+													if(rel_cout_flag==1)
+														break;
+												}else{
+
+													it->second->top[0]=it_sc_c_layer->second->top[0];
+													it->second->top[0].blob->producers[0]=it->second->name;
+													it->second->conv_params->reluflag=1;
+
+													it->second->output_file = it_sc_c_layer->second->output_file;
+
+													for(int iter_inc=0;iter_inc<layer_in_place.size();iter_inc++){
+
+														map < string, XLayer*>::iterator it_d_layer = xgraph_opt->layers.find(layer_in_place[iter_inc]);
+														xgraph_opt->layers.erase(it_d_layer);
+													}
+													std::vector<string>::iterator it_str=std::find(it_t_s_blob->second->producers.begin(),it_t_s_blob->second->producers.end(),it_sc_c_layer->second->name);
+
+													if(it_str!=it_t_s_blob->second->producers.end())
+													{
+														it_t_s_blob->second->producers.erase(it_str);
+													}
+
+													it_str=std::find(it_t_s_blob->second->consumers.begin(),it_t_s_blob->second->consumers.end(),it_sc_c_layer->second->name);
+
+													if(it_str!=it_t_s_blob->second->consumers.end())
+													{
+														it_t_s_blob->second->consumers.erase(it_str);
+													}
+													xgraph_opt->blobs.erase(it_t_blob);
+													xgraph_opt->blobs.erase(it_t_bn_blob);
+
+													if(rel_cout_flag==1){
+
+														break;
+													}
+													//xgraph_opt->blobs.erase(it_t_s_blob);
+												}
+											}
+											else{
+
+												fuseBNScaleConvParams(it->second,bn_layer,scale_layer,0);
+
+												it->second->top[0]=scale_layer->top[0];
 												it->second->top[0].blob->producers[0]=it->second->name;
-												it->second->conv_params->reluflag=1;
-												it->second->conv_params->has_software_fuse = 1;
-												it->second->output_file = it_sc_c_layer->second->output_file;
+												//it->second->conv_params->reluflag=1;
+
+												it->second->conv_params->has_software_fuse=1;
+
+												it->second->output_file = scale_layer->output_file;
 
 												for(int iter_inc=0;iter_inc<layer_in_place.size();iter_inc++){
 
 													map < string, XLayer*>::iterator it_d_layer = xgraph_opt->layers.find(layer_in_place[iter_inc]);
 													xgraph_opt->layers.erase(it_d_layer);
 												}
-												
+
 												xgraph_opt->blobs.erase(it_t_blob);
-												
 												xgraph_opt->blobs.erase(it_t_bn_blob);
-												xgraph_opt->blobs.erase(it_t_s_blob);
+												//xgraph_opt->blobs.erase(it_t_s_blob);
 											}
 										}
 									}
@@ -1907,9 +722,10 @@ void XGraphOpt::xi_opt_conv_bn_scale(XGraph* xgraph_opt){
 	delete conv_layer_type;
 	delete scale_layer_type;
 	delete bn_layer_type;
+	delete relu_layer_type;
 }
 
-void XGraphOpt::xi_opt_crelu(XGraph *xgraph_opt){
+void XGraphOpt::opt_crelu(XGraph *xgraph_opt){
 
 	string *conv_layer_type = new string("Convolution");
 	string *relu_layer_type = new string("ReLU");
@@ -1979,7 +795,7 @@ void XGraphOpt::xi_opt_crelu(XGraph *xgraph_opt){
 				map < string, XBlob*>::iterator it_concat_t_blob = xgraph_opt->blobs.find(concat_layer->top[0].blob->name);*/
 
 				if((power_flag!=-1) && (concat_flag!=-1)){
-
+					string relu_name;
 					XBlob* concat_top_blob = concat_layer->top[0].blob; // TODO as per the caffe we always expect only one top[0] blob for each layer
 					concat_flag=-1;
 
@@ -2012,12 +828,21 @@ void XGraphOpt::xi_opt_crelu(XGraph *xgraph_opt){
 							it->second->opcode=OPCODE_CRELU;
 
 							for(int iter_v=0;iter_v<crelu_layers_pattern.size();iter_v++){
+
 								map < string, XLayer*>::iterator it_layer=xgraph_opt->layers.find(crelu_layers_pattern[iter_v]);
 								xgraph_opt->layers.erase(it_layer);
 							}
 							xgraph_opt->blobs.erase(it_pw_t_blob);
 							xgraph_opt->blobs.erase(it_conv_t_blob);
+
 							concat_top_blob->producers.erase(concat_top_blob->producers.begin() + rel_flag);
+
+							std::vector<string>::iterator it_str=std::find(concat_top_blob->consumers.begin(),concat_top_blob->consumers.end(),relu_layer->name);
+
+							if(it_str!=concat_top_blob->consumers.end())
+							{
+								concat_top_blob->consumers.erase(it_str);
+							}
 
 						}
 					}else{
@@ -2055,120 +880,3104 @@ void XGraphOpt::xi_opt_crelu(XGraph *xgraph_opt){
 			}
 		}
 	}
+	delete conv_layer_type;
+	delete relu_layer_type;
+	delete concat_layer_type;
+	delete power_layer_type ;
 }
 
-void xlayer_sequence_generator(vector < XlayerData > & xlayer_seq,XGraph *xgraph){
+void XGraphOpt::custom_layer(XGraph *xgraph_opt){
+
+	vector<string> in_packed,in_unpacked,out_packed,out_unpacked;
+
+	in_packed.push_back("Convolution");
+	in_packed.push_back("Permute");
+	in_packed.push_back("Pooling");
+	in_packed.push_back("L2Normalize");
+	in_packed.push_back("Softmax");
+
+	out_packed.push_back("Convolution");
+	out_packed.push_back("Pooling");
+	out_packed.push_back("L2Normalize");
+
+	in_unpacked.push_back("Deconvolution");
+	in_unpacked.push_back("InnerProduct");
+	in_unpacked.push_back("XCustom");
+	//in_unpacked.push_back("Softmax");
+	in_unpacked.push_back("NMS");
+	in_unpacked.push_back("Crop");
+
+	out_unpacked.push_back("InnerProduct");
+	out_unpacked.push_back("Softmax");
+	out_unpacked.push_back("XCustom");
+	out_unpacked.push_back("Permute");
+	out_unpacked.push_back("NMS");
+	out_unpacked.push_back("Crop");
+	out_unpacked.push_back("Deconvolution");
+
+
+	string *custom_layer_type =   new string("XCustom");
+	int custom_layer_cnt=0;
+	int unpack_flag=0,unpack_flag_fbit=0,pack_flag=0,pack_flag_fbit=0;
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();it++){
+
+		if(it->second->type.compare(*custom_layer_type)==0){
+
+			for(int iter_bottom_b=0;iter_bottom_b<it->second->bottom.size();iter_bottom_b++){
+
+				XBlob* b_blob = it->second->bottom[iter_bottom_b].blob;
+
+				for(int iter_p=0;iter_p<b_blob->producers.size();iter_p++){
+
+					map < string, XLayer*>::iterator prod_layer_it = xgraph_opt->layers.find(b_blob->producers[iter_p]);
+
+					std::vector<string>::iterator out_packed_type_it=std::find(out_packed.begin(),out_packed.end(),prod_layer_it->second->type);
+
+					if(out_packed_type_it!=out_packed.end()){ // one of the custom layer producer is generates packed output, so that here need a unpacked layers.
+
+						string layer_name = "unpack_XCustom";
+						std::stringstream ss1;
+
+						ss1<<layer_name<<custom_layer_cnt;
+						string packed_layer_name = ss1.str();//"conv_lrn1";
+
+						XLayer* dst0 = new XLayer(packed_layer_name, "XPack");
+						xgraph_opt->layers[packed_layer_name] = dst0;
+
+						dst0->xpack_params->pack=false;
+						dst0->opcode=OPCODE_XPACK;
+						//string uniqname = xgraph_opt->getUniqueBlobName();
+						string username = packed_layer_name;
+						XBlob* tmp_blob = new XBlob(username);
+						xgraph_opt->blobs[username] = tmp_blob;
+
+						nameIndex new_blob(tmp_blob, 0);
+
+						dst0->bottom.push_back(it->second->bottom[iter_bottom_b]);
+						dst0->bottomShape.push_back(b_blob->shape);
+
+						tmp_blob->shape = prod_layer_it->second->topShape[0];
+
+						dst0->top.push_back(new_blob);
+						dst0->topShape.push_back(tmp_blob->shape);
+						dst0->quantization_scheme = prod_layer_it->second->quantization_scheme;
+
+						tmp_blob->producers.push_back(packed_layer_name);
+						tmp_blob->consumers.push_back(it->second->name);
+
+						for(int iter_b_cons=0;iter_b_cons<b_blob->consumers.size();iter_b_cons++){
+
+							if(b_blob->consumers[iter_b_cons].compare(it->second->name)==0){
+
+								b_blob->consumers[iter_b_cons]=dst0->name;
+
+							}
+						}
+
+						it->second->bottom[iter_bottom_b]=new_blob;
+						//prod_layer_it->second->top[0]=tmp_blob;
+						//dst0->xpack_params->fbits=	(int)it->second->xcustom_params->float_args[0];// need to fix as below
+						//dst0->xpack_params->fbits=prod_layer_it->second->op_fl;
+
+						dst0->xpack_params->fbits=it->second->ip_fl;
+
+						custom_layer_cnt++;
+						unpack_flag=1;
+						unpack_flag_fbit=dst0->xpack_params->fbits;
+						continue;
+					}
+
+					std::vector<string>::iterator out_unpacked_type_it=std::find(out_unpacked.begin(),out_unpacked.end(),prod_layer_it->second->type);
+
+					if(out_unpacked_type_it!=out_unpacked.end()){ // one of the custom layer producer is generates packed output, so that here need a unpacked layers.
+
+						continue;
+					}
+				}
+			}
+
+			for(int iter_top_b=0;iter_top_b<it->second->top.size();iter_top_b++){
+
+				XBlob* t_blob = it->second->top[iter_top_b].blob;
+
+				for(int iter_c=0;iter_c<t_blob->consumers.size();iter_c++){
+
+					map < string, XLayer*>::iterator cons_layer_it = xgraph_opt->layers.find(t_blob->consumers[iter_c]);
+					std::vector<string>::iterator in_packed_type_it=std::find(in_packed.begin(),in_packed.end(),cons_layer_it->second->type);
+
+					if(in_packed_type_it!=in_packed.end()){ // one of the custom layer producer is generates packed output, so that here need a unpacked layers.
+
+						string layer_name = "pack_XCustom";
+						std::stringstream ss1;
+
+						ss1<<layer_name<<custom_layer_cnt;
+						string packed_layer_name = ss1.str();//"conv_lrn1";
+
+						XLayer* dst0 = new XLayer(packed_layer_name, "XPack");
+						xgraph_opt->layers[packed_layer_name] = dst0;
+
+						dst0->xpack_params->pack=true;
+						dst0->opcode=OPCODE_XPACK;
+
+						//string uniqname = xgraph_opt->getUniqueBlobName();
+						string username = packed_layer_name;
+						XBlob* tmp_blob = new XBlob(username);
+						xgraph_opt->blobs[username] = tmp_blob;
+
+						nameIndex new_blob(tmp_blob, 0);
+
+						dst0->bottom.push_back(it->second->top[iter_top_b]);
+
+						dst0->bottomShape.push_back(t_blob->shape);
+
+						dst0->top.push_back(new_blob);
+						tmp_blob->shape = cons_layer_it->second->topShape[0];
+						dst0->topShape.push_back(tmp_blob->shape);
+
+						tmp_blob->producers.push_back(dst0->name);
+
+						tmp_blob->consumers.push_back(cons_layer_it->second->name);
+						dst0->quantization_scheme = cons_layer_it->second->quantization_scheme;
+						for(int iter_c_b_b=0;iter_c_b_b<cons_layer_it->second->bottom.size();iter_c_b_b++){
+
+							for(int iter_c_b_p=0;iter_c_b_p<cons_layer_it->second->bottom[iter_c_b_b].blob->producers.size();iter_c_b_p++){
+
+								if(cons_layer_it->second->bottom[iter_c_b_b].blob->producers[iter_c_b_p].compare(it->second->name)==0){
+
+									cons_layer_it->second->bottom[iter_c_b_b]=new_blob;
+
+								}
+							}
+						}
+
+						for(int iter_t_b_prod=0;iter_t_b_prod<t_blob->producers.size();iter_t_b_prod++){
+
+							if(t_blob->producers[iter_t_b_prod].compare(it->second->name)==0){
+
+								t_blob->consumers[iter_t_b_prod]=dst0->name;
+
+							}
+						}
+						//it->second->top[iter_c]=tmp_blob;
+						//dst0->xpack_params->fbits=(int)it->second->xcustom_params->float_args[1];// this needs to fix as below
+						//dst0->xpack_params->fbits=cons_layer_it->second->ip_fl;
+						dst0->xpack_params->fbits=it->second->op_fl;
+						custom_layer_cnt++;
+						if(!dst0->xpack_params->fbits)
+							dst0->xpack_params->fbits=unpack_flag_fbit;
+						continue;
+					}
+
+					std::vector<string>::iterator in_unpacked_type_it=std::find(in_unpacked.begin(),in_unpacked.end(),cons_layer_it->second->type);
+
+
+					if(in_unpacked_type_it!=in_unpacked.end()){ // one of the custom layer producer is generates packed output, so that here need a unpacked layers.
+
+						continue;
+					}
+
+				}
+			}
+		}
+	}
+	delete custom_layer_type;
+}
+
+void XGraphOpt::opt_separable_conv(XGraph *xgraph_opt){
+	string *relu_layer_type = new string("ReLU");
+
+	string *conv_layer_type = new string("Convolution");
+
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();it++){
+
+		if(it->second->type.compare(*conv_layer_type)==0){
+
+			if(it->second->conv_params->group>2){
+
+
+				if(it->second->conv_params->M==it->second->conv_params->group){
+
+					if(it->second->top.size()==1){
+						int tem_3d_relu_flag = 0;
+
+						map < string, XBlob*>::iterator it_top_b = xgraph_opt->blobs.find(it->second->top[0].blob->name);
+
+						if(it_top_b->second->consumers.size()==1){
+
+							map < string, XLayer*>::iterator it_cun_layer = xgraph_opt->layers.find(it_top_b->second->consumers[0]);
+
+							if(it_cun_layer->second->type.compare(*relu_layer_type)==0){
+
+
+								map < string, XBlob*>::iterator it_top_rb = xgraph_opt->blobs.find(it_cun_layer->second->top[0].blob->name);
+
+								if(it_top_rb->second->consumers.size()==1){
+
+									map < string, XLayer*>::iterator it_relu_cun_layer = xgraph_opt->layers.find(it_top_rb->second->consumers[0]);
+
+									if(it_relu_cun_layer->second->type.compare(*conv_layer_type)==0){
+
+										it_relu_cun_layer->second->conv_params->reluflag_3d=1;
+
+										xgrap_layer_delete(xgraph_opt,it_cun_layer->second->name);
+
+										it_relu_cun_layer->second->conv_params->M_3d = it->second->conv_params->M;
+										it_relu_cun_layer->second->conv_params->N_3d = it->second->conv_params->N;
+										it_relu_cun_layer->second->conv_params->filter_h_3d = it->second->conv_params->filter_h;
+										it_relu_cun_layer->second->conv_params->filter_w_3d = it->second->conv_params->filter_w;
+
+										it_relu_cun_layer->second->conv_params->stride_h_3d = it->second->conv_params->stride_h;
+										it_relu_cun_layer->second->conv_params->stride_w_3d = it->second->conv_params->stride_w;
+										it_relu_cun_layer->second->conv_params->pad_h_3d = it->second->conv_params->pad_h;
+										it_relu_cun_layer->second->conv_params->pad_w_3d = it->second->conv_params->pad_w;
+										it_relu_cun_layer->second->conv_params->dilation_3d = it->second->conv_params->dilation;
+										it_relu_cun_layer->second->conv_params->group_3d = it->second->conv_params->group;
+										it_relu_cun_layer->second->conv_params->has_bias_3d = it->second->conv_params->has_bias;
+										it_relu_cun_layer->second->conv_params->weightsPath_3d = it->second->conv_params->weightsPath;
+
+										it_relu_cun_layer->second->conv_params->biasPath_3d = it->second->conv_params->biasPath;
+										it_relu_cun_layer->second->conv_params->weights_3d = it->second->conv_params->weights;
+										it_relu_cun_layer->second->conv_params->bias_3d = it->second->conv_params->bias;
+										it_relu_cun_layer->second->conv_params->weightsDim_3d = it->second->conv_params->weightsDim;
+										it_relu_cun_layer->second->conv_params->biasDim_3d = it->second->conv_params->biasDim;
+
+										it_relu_cun_layer->second->conv_params->ip_bw_3d = it->second->ip_bw;
+										it_relu_cun_layer->second->conv_params->ip_fl_3d = it->second->ip_fl;
+
+										it_relu_cun_layer->second->conv_params->op_bw_3d = it->second->op_bw;
+										it_relu_cun_layer->second->conv_params->op_fl_3d = it->second->op_fl;
+										it_relu_cun_layer->second->conv_params->wt_bw_3d = it->second->wt_bw;
+										it_relu_cun_layer->second->conv_params->wt_fl_3d = it->second->wt_fl;
+										it_relu_cun_layer->second->conv_params->th_layer_in_3d = it->second->th_layer_in;
+										it_relu_cun_layer->second->conv_params->th_layer_out_3d = it->second->th_layer_out;
+										it_relu_cun_layer->second->conv_params->th_params_3d = it->second->th_params;
+
+
+										for(int iter_bs=0;iter_bs<it->second->bottomShape.size();iter_bs++){
+											it_relu_cun_layer->second->bottomShape[iter_bs]=it->second->bottomShape[iter_bs];
+										}
+										//xgrap_layer_delete(xgraph_opt,it->second->name);
+										it_relu_cun_layer->second->opcode=OPCODE_3D_CONV;
+
+										map < string, XBlob*>::iterator bottom_blob = xgraph_opt->blobs.find(it_relu_cun_layer->second->bottom[0].blob->name);
+										//for(int iter_it_b=0;iter_it_b<it->second->bottom.size();iter_it_b++){
+
+										std::vector<string>::iterator it_str=std::find(it->second->bottom[0].blob->consumers.begin(),it->second->bottom[0].blob->consumers.end(),it->second->name);
+
+										if(it_str!=it->second->bottom[0].blob->consumers.end())
+										{
+											it->second->bottom[0].blob->consumers.erase(it_str);
+										}
+										//it->second->bottom[0].blob->consumers.erase(it->second->bottom[0].blob->consumers.begin()+0);
+
+										it_relu_cun_layer->second->bottom[0].blob=it->second->bottom[0].blob;
+										it_relu_cun_layer->second->bottom[0].id = it->second->bottom[0].id;
+
+										it->second->bottom[0].blob->consumers.push_back(it_relu_cun_layer->second->name);
+
+										xgraph_opt->blobs.erase(bottom_blob);
+										xgraph_opt->layers.erase(it);
+									}
+								}
+							}else if(it_cun_layer->second->type.compare(*conv_layer_type)==0){
+
+								it_cun_layer->second->conv_params->M_3d = it->second->conv_params->M;
+								it_cun_layer->second->conv_params->N_3d = it->second->conv_params->N;
+								it_cun_layer->second->conv_params->filter_h_3d = it->second->conv_params->filter_h;
+								it_cun_layer->second->conv_params->filter_w_3d = it->second->conv_params->filter_w;
+
+								it_cun_layer->second->conv_params->stride_h_3d = it->second->conv_params->stride_h;
+								it_cun_layer->second->conv_params->stride_w_3d = it->second->conv_params->stride_w;
+								it_cun_layer->second->conv_params->pad_h_3d = it->second->conv_params->pad_h;
+								it_cun_layer->second->conv_params->pad_w_3d = it->second->conv_params->pad_w;
+								it_cun_layer->second->conv_params->dilation_3d = it->second->conv_params->dilation;
+								it_cun_layer->second->conv_params->group_3d = it->second->conv_params->group;
+								it_cun_layer->second->conv_params->has_bias_3d = it->second->conv_params->has_bias;
+								it_cun_layer->second->conv_params->weightsPath_3d = it->second->conv_params->weightsPath;
+
+								it_cun_layer->second->conv_params->biasPath_3d = it->second->conv_params->biasPath;
+								it_cun_layer->second->conv_params->weights_3d = it->second->conv_params->weights;
+								it_cun_layer->second->conv_params->bias_3d = it->second->conv_params->bias;
+								it_cun_layer->second->conv_params->weightsDim_3d = it->second->conv_params->weightsDim;
+								it_cun_layer->second->conv_params->biasDim_3d = it->second->conv_params->biasDim;
+
+								it_cun_layer->second->conv_params->ip_bw_3d = it->second->ip_bw;
+								it_cun_layer->second->conv_params->ip_fl_3d = it->second->ip_fl;
+
+								it_cun_layer->second->conv_params->op_bw_3d = it->second->op_bw;
+								it_cun_layer->second->conv_params->op_fl_3d = it->second->op_fl;
+								it_cun_layer->second->conv_params->wt_bw_3d = it->second->wt_bw;
+								it_cun_layer->second->conv_params->wt_fl_3d = it->second->wt_fl;
+								it_cun_layer->second->conv_params->th_layer_in_3d = it->second->th_layer_in;
+								it_cun_layer->second->conv_params->th_layer_out_3d = it->second->th_layer_out;
+								it_cun_layer->second->conv_params->th_params_3d = it->second->th_params;
+
+								for(int iter_bs=0;iter_bs<it->second->bottomShape.size();iter_bs++){
+									it_cun_layer->second->bottomShape[iter_bs]=it->second->bottomShape[iter_bs];
+								}
+								//xgrap_layer_delete(xgraph_opt,it->second->name);
+
+								it_cun_layer->second->opcode=OPCODE_3D_CONV;
+								map < string, XBlob*>::iterator bottom_blob = xgraph_opt->blobs.find(it_cun_layer->second->bottom[0].blob->name);
+								//for(int iter_it_b=0;iter_it_b<it->second->bottom.size();iter_it_b++){
+
+								std::vector<string>::iterator it_str=std::find(it->second->bottom[0].blob->consumers.begin(),it->second->bottom[0].blob->consumers.end(),it->second->name);
+
+								if(it_str!=it->second->bottom[0].blob->consumers.end())
+								{
+									it->second->bottom[0].blob->consumers.erase(it_str);
+								}
+								//it->second->bottom[0].blob->consumers.erase(it->second->bottom[0].blob->consumers.begin()+0);
+
+								it_cun_layer->second->bottom[0].blob=it->second->bottom[0].blob;
+								it_cun_layer->second->bottom[0].id = it->second->bottom[0].id;
+
+								//it->second->bottom[0].blob->consumers.erase(it->second->bottom[0].blob->consumers.begin()+0);
+								//it->second->bottom[0].blob->producers.erase(it->second->bottom[0].blob->producers.begin()+0);
+
+								it->second->bottom[0].blob->consumers.push_back(it_cun_layer->second->name);
+
+								xgraph_opt->blobs.erase(bottom_blob);
+								xgraph_opt->layers.erase(it);
+								//it_cun_layer->second->opcode=OPCODE_3D_CONV;
+							}
+						}else{
+
+
+							if(it_top_b->second->consumers.size()==2){
+
+								int cnt_type =0;
+								int conv_indx=-1;
+								int relu_indx=-1;
+								int l_conv_f=0;
+								vector<string> name_layer_vect;
+								string tmp_conv_name ;
+								string tmp_relu_name ;
+								vector<map < string, XLayer*>::iterator> vect_layer_it;
+
+								for(int iter_c_t=0;iter_c_t<it_top_b->second->consumers.size();iter_c_t++){
+
+									map < string, XLayer*>::iterator cuns_layer_t = xgraph_opt->layers.find(it_top_b->second->consumers[iter_c_t]);
+									vect_layer_it.push_back(cuns_layer_t);
+									if((cuns_layer_t->second->type.compare(*conv_layer_type)==0)&&(l_conv_f==0)){
+										tmp_conv_name = cuns_layer_t->second->name;
+										conv_indx=iter_c_t;
+										cnt_type++;
+										l_conv_f=1;
+
+									}else{
+										if(cuns_layer_t->second->type.compare(*relu_layer_type)==0){
+											tmp_relu_name = cuns_layer_t->second->name;
+											relu_indx=iter_c_t;
+											cnt_type++;
+										}
+									}
+								}
+								if(cnt_type==2){
+
+									vect_layer_it[conv_indx]->second->conv_params->M_3d = it->second->conv_params->M;
+									vect_layer_it[conv_indx]->second->conv_params->N_3d = it->second->conv_params->N;
+									vect_layer_it[conv_indx]->second->conv_params->filter_h_3d = it->second->conv_params->filter_h;
+									vect_layer_it[conv_indx]->second->conv_params->filter_w_3d = it->second->conv_params->filter_w;
+
+									vect_layer_it[conv_indx]->second->conv_params->stride_h_3d = it->second->conv_params->stride_h;
+									vect_layer_it[conv_indx]->second->conv_params->stride_w_3d = it->second->conv_params->stride_w;
+									vect_layer_it[conv_indx]->second->conv_params->pad_h_3d = it->second->conv_params->pad_h;
+									vect_layer_it[conv_indx]->second->conv_params->pad_w_3d = it->second->conv_params->pad_w;
+									vect_layer_it[conv_indx]->second->conv_params->dilation_3d = it->second->conv_params->dilation;
+									vect_layer_it[conv_indx]->second->conv_params->group_3d = it->second->conv_params->group;
+									vect_layer_it[conv_indx]->second->conv_params->has_bias_3d = it->second->conv_params->has_bias;
+									vect_layer_it[conv_indx]->second->conv_params->weightsPath_3d = it->second->conv_params->weightsPath;
+
+									vect_layer_it[conv_indx]->second->conv_params->biasPath_3d = it->second->conv_params->biasPath;
+									vect_layer_it[conv_indx]->second->conv_params->weights_3d = it->second->conv_params->weights;
+									vect_layer_it[conv_indx]->second->conv_params->bias_3d = it->second->conv_params->bias;
+									vect_layer_it[conv_indx]->second->conv_params->weightsDim_3d = it->second->conv_params->weightsDim;
+									vect_layer_it[conv_indx]->second->conv_params->biasDim_3d = it->second->conv_params->biasDim;
+									vect_layer_it[conv_indx]->second->conv_params->reluflag_3d=1;
+									vect_layer_it[conv_indx]->second->conv_params->ip_bw_3d = it->second->ip_bw;
+									vect_layer_it[conv_indx]->second->conv_params->ip_fl_3d = it->second->ip_fl;
+
+									vect_layer_it[conv_indx]->second->conv_params->op_bw_3d = it->second->op_bw;
+									vect_layer_it[conv_indx]->second->conv_params->op_fl_3d = it->second->op_fl;
+									vect_layer_it[conv_indx]->second->conv_params->wt_bw_3d = it->second->wt_bw;
+									vect_layer_it[conv_indx]->second->conv_params->wt_fl_3d = it->second->wt_fl;
+
+									vect_layer_it[conv_indx]->second->conv_params->th_layer_in_3d = it->second->th_layer_in;
+									vect_layer_it[conv_indx]->second->conv_params->th_layer_out_3d = it->second->th_layer_out;
+									vect_layer_it[conv_indx]->second->conv_params->th_params_3d = it->second->th_params;
+
+									for(int iter_bs=0;iter_bs<it->second->bottomShape.size();iter_bs++){
+										vect_layer_it[conv_indx]->second->bottomShape[iter_bs]=it->second->bottomShape[iter_bs];
+									}
+
+									xgrap_layer_delete(xgraph_opt,vect_layer_it[relu_indx]->second->name);
+									//xgrap_layer_delete(xgraph_opt,it->second->name);
+
+									vect_layer_it[conv_indx]->second->opcode=OPCODE_3D_CONV;
+									map < string, XBlob*>::iterator bottom_blob = xgraph_opt->blobs.find(vect_layer_it[conv_indx]->second->bottom[0].blob->name);
+									//for(int iter_it_b=0;iter_it_b<it->second->bottom.size();iter_it_b++){
+
+									std::vector<string>::iterator it_str=std::find(it->second->bottom[0].blob->consumers.begin(),it->second->bottom[0].blob->consumers.end(),it->second->name);
+
+									if(it_str!=it->second->bottom[0].blob->consumers.end())
+									{
+										it->second->bottom[0].blob->consumers.erase(it_str);
+									}
+									//it->second->bottom[0].blob->consumers.erase(it->second->bottom[0].blob->consumers.begin()+0);
+
+									vect_layer_it[conv_indx]->second->bottom[0].blob=it->second->bottom[0].blob;
+									vect_layer_it[conv_indx]->second->bottom[0].id = it->second->bottom[0].id;
+
+									//it->second->bottom[0].blob->consumers.erase(it->second->bottom[0].blob->consumers.begin()+0);
+									//it->second->bottom[0].blob->producers.erase(it->second->bottom[0].blob->producers.begin()+0);
+									vect_layer_it[conv_indx]->second->intermediateShape.push_back(it->second->topShape[0]);
+									it->second->bottom[0].blob->consumers.push_back(vect_layer_it[conv_indx]->second->name);
+
+									xgraph_opt->blobs.erase(bottom_blob);
+									xgraph_opt->layers.erase(it);
+									//}
+								}
+							}
+						}
+					}else
+					{
+						cerr << "[EO001] Due to mismatch between layer group value and output dimension, Current version support layer group value should be <=2 or group == output dimension(3D separable convolution )" << endl;
+						cerr<<"Current layer group = " <<it->second->conv_params->group <<" output dimension = "<<it->second->conv_params->M<<endl;									exit(-1);
+					}
+				}
+			}
+		}
+	}
+
+	delete conv_layer_type;
+}
+void XGraphOpt::opt_separable_conv_only(XGraph *xgraph_opt){
+
+	string *conv_layer_type = new string("Convolution");
+	int conv_3d_only=0;
+
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();it++){
+
+		if(it->second->type.compare(*conv_layer_type)==0){
+
+			if(it->second->conv_params->group>2){
+
+				if(it->second->conv_params->M==it->second->conv_params->group){
+
+					string layer_name = "conv_3d_only";
+					std::stringstream ss1;
+
+					ss1<<layer_name<<conv_3d_only;
+					string conv_3d_layer_name = ss1.str();//"conv_lrn1";
+
+					XLayer* dst0 = new XLayer(conv_3d_layer_name, "Convolution");
+
+					xgraph_opt->layers[conv_3d_layer_name] = dst0;
+
+					map < string, XBlob*>::iterator top_blob_it;
+					map < string, XBlob*>::iterator bottom_blob_it;
+
+					for(int iter_top=0;iter_top<it->second->top.size();iter_top++){
+
+						dst0->top.push_back(it->second->top[iter_top]);
+						dst0->topShape.push_back(it->second->topShape[iter_top]);
+						string top_blob_name = it->second->top[iter_top].blob->name;
+
+						top_blob_it = xgraph_opt->blobs.find(top_blob_name);
+
+						for(int iter_t_p=0;iter_t_p<top_blob_it->second->producers.size();iter_t_p++){
+
+							if(top_blob_it->second->producers[iter_t_p].compare(it->second->name)==0){
+								top_blob_it->second->producers[iter_t_p] = conv_3d_layer_name;
+							}
+						}
+					}
+
+					for(int iter_bot=0;iter_bot<it->second->bottom.size();iter_bot++){
+
+						dst0->bottom.push_back(it->second->bottom[iter_bot]);
+						dst0->bottomShape.push_back(it->second->bottomShape[iter_bot]);
+
+						string bottom_blob_name = it->second->bottom[iter_bot].blob->name;
+
+						bottom_blob_it = xgraph_opt->blobs.find(bottom_blob_name);
+
+						for(int iter_b_c=0;iter_b_c<bottom_blob_it->second->consumers.size();iter_b_c++){
+
+							if(bottom_blob_it->second->consumers[iter_b_c].compare(it->second->name)==0){
+								bottom_blob_it->second->consumers[iter_b_c] = conv_3d_layer_name;
+							}
+						}
+
+					}
+
+					dst0->conv_params->M_3d = it->second->conv_params->M;
+					dst0->conv_params->N_3d = it->second->conv_params->N;
+					dst0->conv_params->filter_h_3d = it->second->conv_params->filter_h;
+					dst0->conv_params->filter_w_3d = it->second->conv_params->filter_w;
+
+					dst0->conv_params->stride_h_3d = it->second->conv_params->stride_h;
+					dst0->conv_params->stride_w_3d = it->second->conv_params->stride_w;
+					dst0->conv_params->pad_h_3d = it->second->conv_params->pad_h;
+					dst0->conv_params->pad_w_3d = it->second->conv_params->pad_w;
+					dst0->conv_params->dilation_3d = it->second->conv_params->dilation;
+					dst0->conv_params->group_3d = it->second->conv_params->group;
+					dst0->conv_params->has_bias_3d = it->second->conv_params->has_bias;
+					dst0->conv_params->weightsPath_3d = it->second->conv_params->weightsPath;
+
+					dst0->conv_params->biasPath_3d = it->second->conv_params->biasPath;
+					dst0->conv_params->weights_3d = it->second->conv_params->weights;
+					dst0->conv_params->bias_3d = it->second->conv_params->bias;
+					dst0->conv_params->weightsDim_3d = it->second->conv_params->weightsDim;
+					dst0->conv_params->biasDim_3d = it->second->conv_params->biasDim;
+
+					dst0->conv_params->ip_bw_3d = it->second->ip_bw;
+					dst0->conv_params->ip_fl_3d = it->second->ip_fl;
+
+					dst0->conv_params->op_bw_3d = it->second->op_bw;
+					dst0->conv_params->op_fl_3d = it->second->op_fl;
+					dst0->conv_params->wt_bw_3d = it->second->wt_bw;
+					dst0->conv_params->wt_fl_3d = it->second->wt_fl;
+					dst0->conv_params->th_layer_in_3d = it->second->th_layer_in;
+					dst0->conv_params->th_layer_out_3d = it->second->th_layer_out;
+					dst0->conv_params->th_params_3d = it->second->th_params;
+					dst0->intermediateShape.push_back(it->second->topShape[0]);
+					dst0->quantization_scheme = it->second->quantization_scheme;
+					dst0->output_file=it->second->output_file;
+					dst0->opcode=OPCODE_SEPARABLE_CONV;
+					dst0->conv_params->reluflag=false;
+					//map < string, XLayer*>::iterator it_cut = it;
+
+					mapStrXLayer::iterator cur_it = it;
+					it++;
+					xgraph_opt->layers.erase(cur_it);
+					conv_3d_only++;
+				}else{
+					it++;
+					cerr << "[EO001] Due to mismatch between layer group value and output dimension, Current version support layer group value should be <=2 or group == output dimension(3D separable convolution )" << endl;
+					cerr<<"Current layer group = " <<it->second->conv_params->group <<" output dimension = "<<it->second->conv_params->M<<endl;									exit(-1);
+				}
+			}else{
+				it++;
+			}
+		}
+	}
+
+	delete conv_layer_type;
+}
+void XGraphOpt::opt_sw_eltwise(XGraph *xgraph_opt){
+
+	string *eltwise_layer_type = new string("Eltwise");
+
+	int eltwise_cnt=0;
+
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();it++){
+
+		if (it->second->type.compare(*eltwise_layer_type)==0){
+
+			it->second->opcode = OPCODE_SW_ELTWISE_ADD;
+
+		}
+	}
+	delete eltwise_layer_type;
+}
+bool check_parallel_params(vector<XLayer*> &vec_layer,vector<XLayer*> &layer_list){
+
+	int kernel_h;
+	int kernel_w;
+	int stride_h;
+	int stride_w;
+	int pad_h;
+	int pad_w;
+	int op_fl;
+	int op_bw;
+	int ip_fl;
+	int ip_bw;
+	int wt_fl;
+	int wt_bw;
+	int output_h;
+	int output_w;
+	vector<string> conv_k_list,conv_s_list,conv_p_list,conv_o_list,conv_out_fl,conv_out_bw,conv_relu_list,conv_wt_fl,conv_wt_bw,conv_in_fl,conv_in_bw;
+
+
+
+
+	for(int iter_p_c=0;iter_p_c<vec_layer.size();iter_p_c++){
+
+		kernel_h=vec_layer[iter_p_c]->conv_params->filter_h;
+		kernel_w=vec_layer[iter_p_c]->conv_params->filter_w;
+
+		for(int f_s=iter_p_c+1;f_s<vec_layer.size();f_s++){
+
+			if((kernel_h==vec_layer[f_s]->conv_params->filter_h) && (kernel_w==vec_layer[f_s]->conv_params->filter_w)){
+
+				std::vector<string>::iterator it_str1=std::find(conv_k_list.begin(),conv_k_list.end(),vec_layer[iter_p_c]->name);
+
+				if(it_str1==conv_k_list.end())
+				{
+					conv_k_list.push_back(vec_layer[iter_p_c]->name);
+					layer_list.push_back(vec_layer[iter_p_c]);
+
+				}
+
+				std::vector<string>::iterator it_str=std::find(conv_k_list.begin(),conv_k_list.end(),vec_layer[f_s]->name);
+				if(it_str==conv_k_list.end())
+				{
+					conv_k_list.push_back(vec_layer[f_s]->name);
+					layer_list.push_back(vec_layer[f_s]);
+
+				}
+			}
+		}
+	}
+
+
+	if(layer_list.size()<=1){
+
+		cout<<"layer_list.size()<=1"<<endl;
+		return false;
+
+	}else{
+
+		if(!(layer_list.size()==conv_k_list.size())){
+			return false;
+		}
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			op_fl=layer_list[iter_l]->op_fl;
+			op_bw=layer_list[iter_l]->op_bw;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if(op_fl==layer_list[f_s]->op_fl){
+
+					std::vector<string>::iterator it_str1=std::find(conv_out_fl.begin(),conv_out_fl.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_out_fl.end())
+					{
+						conv_out_fl.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_out_fl.begin(),conv_out_fl.end(),layer_list[f_s]->name);
+					if(it_str==conv_out_fl.end())
+					{
+						conv_out_fl.push_back(layer_list[f_s]->name);
+
+					}
+
+				}
+				if(op_bw==layer_list[f_s]->op_bw){
+
+					std::vector<string>::iterator it_str=std::find(conv_out_bw.begin(),conv_out_bw.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_out_bw.end())
+					{
+						conv_out_bw.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_out_bw.begin(),conv_out_bw.end(),layer_list[f_s]->name);
+					if(it_str==conv_out_bw.end())
+					{
+						conv_out_bw.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+		if(!(layer_list.size()==conv_out_fl.size()))
+			return false;
+
+		if(!(layer_list.size()==conv_out_bw.size()))
+			return false;
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			ip_fl=layer_list[iter_l]->ip_fl;
+			ip_bw=layer_list[iter_l]->ip_bw;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if(ip_fl==layer_list[f_s]->ip_fl){
+
+					std::vector<string>::iterator it_str1=std::find(conv_in_fl.begin(),conv_in_fl.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_in_fl.end())
+					{
+						conv_in_fl.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_in_fl.begin(),conv_in_fl.end(),layer_list[f_s]->name);
+					if(it_str==conv_in_fl.end())
+					{
+						conv_in_fl.push_back(layer_list[f_s]->name);
+
+					}
+
+				}
+				if(ip_bw==layer_list[f_s]->ip_bw){
+
+					std::vector<string>::iterator it_str=std::find(conv_in_bw.begin(),conv_in_bw.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_in_bw.end())
+					{
+						conv_in_bw.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_in_bw.begin(),conv_in_bw.end(),layer_list[f_s]->name);
+					if(it_str==conv_in_bw.end())
+					{
+						conv_in_bw.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+		if(!(layer_list.size()==conv_in_fl.size()))
+			return false;
+		if(!(layer_list.size()==conv_in_bw.size()))
+			return false;
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			wt_fl=layer_list[iter_l]->wt_fl;
+			wt_bw=layer_list[iter_l]->wt_bw;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if(wt_fl==layer_list[f_s]->wt_fl){
+
+					std::vector<string>::iterator it_str1=std::find(conv_wt_fl.begin(),conv_wt_fl.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_wt_fl.end())
+					{
+						conv_wt_fl.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_wt_fl.begin(),conv_wt_fl.end(),layer_list[f_s]->name);
+					if(it_str==conv_wt_fl.end())
+					{
+						conv_wt_fl.push_back(layer_list[f_s]->name);
+
+					}
+
+				}
+				if(wt_bw==layer_list[f_s]->wt_bw){
+
+					std::vector<string>::iterator it_str=std::find(conv_wt_bw.begin(),conv_wt_bw.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_wt_bw.end())
+					{
+						conv_wt_bw.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_wt_bw.begin(),conv_wt_bw.end(),layer_list[f_s]->name);
+					if(it_str==conv_wt_bw.end())
+					{
+						conv_wt_bw.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+		if(!(layer_list.size()==conv_wt_fl.size()))
+			return false;
+		if(!(layer_list.size()==conv_wt_bw.size()))
+			return false;
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			pad_h=layer_list[iter_l]->conv_params->pad_h;
+			pad_w=layer_list[iter_l]->conv_params->pad_w;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if((pad_h==layer_list[f_s]->conv_params->pad_h) && (pad_w==layer_list[f_s]->conv_params->pad_w)){
+
+					std::vector<string>::iterator it_str1=std::find(conv_p_list.begin(),conv_p_list.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_p_list.end())
+					{
+						conv_p_list.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_p_list.begin(),conv_p_list.end(),layer_list[f_s]->name);
+					if(it_str==conv_p_list.end())
+					{
+						conv_p_list.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+		if(!(layer_list.size()==conv_p_list.size()))
+			return false;
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			output_h=layer_list[iter_l]->topShape[0].at(2);
+			output_w=layer_list[iter_l]->topShape[0].at(3);
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if((output_h==layer_list[f_s]->topShape[0].at(2)) && (output_w==layer_list[f_s]->topShape[0].at(3))){
+
+					std::vector<string>::iterator it_str1=std::find(conv_o_list.begin(),conv_o_list.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_o_list.end())
+					{
+						conv_o_list.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_o_list.begin(),conv_o_list.end(),layer_list[f_s]->name);
+					if(it_str==conv_o_list.end())
+					{
+						conv_o_list.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+		if(!(layer_list.size()==conv_o_list.size()))
+			return false;
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			stride_h=layer_list[iter_l]->conv_params->stride_h;
+			stride_w=layer_list[iter_l]->conv_params->stride_w;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if((stride_h==layer_list[f_s]->conv_params->stride_h) && (stride_w==layer_list[f_s]->conv_params->stride_w)){
+
+					std::vector<string>::iterator it_str1=std::find(conv_s_list.begin(),conv_s_list.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_s_list.end())
+					{
+						conv_s_list.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_s_list.begin(),conv_s_list.end(),layer_list[f_s]->name);
+					if(it_str==conv_s_list.end())
+					{
+						conv_s_list.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+		if(!(layer_list.size()==conv_s_list.size()))
+			return false;
+	}
+	return true;
+}
+bool check_parallel_params_offline(vector<XLayer*> &vec_layer,vector<XLayer*> &layer_list){
+
+	int kernel_h;
+	int kernel_w;
+	int stride_h;
+	int stride_w;
+	int pad_h;
+	int pad_w;
+
+	int op_bw;
+
+	int ip_bw;
+
+	int wt_bw;
+	int output_h;
+	int output_w;
+	float th_layer_in;
+	float th_layer_out;
+	vector<string> conv_k_list,conv_s_list,conv_p_list,conv_o_list,conv_out_bw,conv_relu_list,conv_wt_fl,conv_wt_bw,conv_in_bw;
+	vector<string>conv_out_th,conv_in_th;
+
+
+
+	for(int iter_p_c=0;iter_p_c<vec_layer.size();iter_p_c++){
+
+		kernel_h=vec_layer[iter_p_c]->conv_params->filter_h;
+		kernel_w=vec_layer[iter_p_c]->conv_params->filter_w;
+
+		for(int f_s=iter_p_c+1;f_s<vec_layer.size();f_s++){
+
+			if((kernel_h==vec_layer[f_s]->conv_params->filter_h) && (kernel_w==vec_layer[f_s]->conv_params->filter_w)){
+
+				std::vector<string>::iterator it_str1=std::find(conv_k_list.begin(),conv_k_list.end(),vec_layer[iter_p_c]->name);
+
+				if(it_str1==conv_k_list.end())
+				{
+					conv_k_list.push_back(vec_layer[iter_p_c]->name);
+					layer_list.push_back(vec_layer[iter_p_c]);
+
+				}
+
+				std::vector<string>::iterator it_str=std::find(conv_k_list.begin(),conv_k_list.end(),vec_layer[f_s]->name);
+				if(it_str==conv_k_list.end())
+				{
+					conv_k_list.push_back(vec_layer[f_s]->name);
+					layer_list.push_back(vec_layer[f_s]);
+
+				}
+			}
+		}
+	}
+
+
+	if(layer_list.size()<=1){
+
+		cout<<"layer_list.size()<=1"<<endl;
+		return false;
+
+	}else{
+
+		if(!(layer_list.size()==conv_k_list.size())){
+			return false;
+		}
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			op_bw=layer_list[iter_l]->op_bw;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+
+				if(op_bw==layer_list[f_s]->op_bw){
+
+					std::vector<string>::iterator it_str=std::find(conv_out_bw.begin(),conv_out_bw.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_out_bw.end())
+					{
+						conv_out_bw.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_out_bw.begin(),conv_out_bw.end(),layer_list[f_s]->name);
+					if(it_str==conv_out_bw.end())
+					{
+						conv_out_bw.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+		if(!(layer_list.size()==conv_out_bw.size()))
+			return false;
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			float out_th=layer_list[iter_l]->th_layer_out;
+			float in_th=layer_list[iter_l]->th_layer_in;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if(out_th==layer_list[f_s]->th_layer_out){
+
+					std::vector<string>::iterator it_str1=std::find(conv_out_th.begin(),conv_out_th.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_out_th.end())
+					{
+						conv_out_th.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_out_th.begin(),conv_out_th.end(),layer_list[f_s]->name);
+					if(it_str==conv_out_th.end())
+					{
+						conv_out_th.push_back(layer_list[f_s]->name);
+
+					}
+
+				}
+				if(in_th==layer_list[f_s]->th_layer_in){
+
+					std::vector<string>::iterator it_str=std::find(conv_in_th.begin(),conv_in_th.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_in_th.end())
+					{
+						conv_in_th.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_in_th.begin(),conv_in_th.end(),layer_list[f_s]->name);
+					if(it_str==conv_in_th.end())
+					{
+						conv_in_th.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+		if(!(layer_list.size()==conv_out_th.size()))
+			return false;
+		if(!(layer_list.size()==conv_in_th.size()))
+			return false;
+
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			//			ip_fl=layer_list[iter_l]->ip_fl;
+			ip_bw=layer_list[iter_l]->ip_bw;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+				if(ip_bw==layer_list[f_s]->ip_bw){
+
+					std::vector<string>::iterator it_str=std::find(conv_in_bw.begin(),conv_in_bw.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_in_bw.end())
+					{
+						conv_in_bw.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_in_bw.begin(),conv_in_bw.end(),layer_list[f_s]->name);
+					if(it_str==conv_in_bw.end())
+					{
+						conv_in_bw.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+		if(!(layer_list.size()==conv_in_bw.size()))
+			return false;
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+
+			wt_bw=layer_list[iter_l]->wt_bw;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+
+				if(wt_bw==layer_list[f_s]->wt_bw){
+
+					std::vector<string>::iterator it_str=std::find(conv_wt_bw.begin(),conv_wt_bw.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_wt_bw.end())
+					{
+						conv_wt_bw.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_wt_bw.begin(),conv_wt_bw.end(),layer_list[f_s]->name);
+					if(it_str==conv_wt_bw.end())
+					{
+						conv_wt_bw.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+
+		if(!(layer_list.size()==conv_wt_bw.size()))
+			return false;
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			pad_h=layer_list[iter_l]->conv_params->pad_h;
+			pad_w=layer_list[iter_l]->conv_params->pad_w;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if((pad_h==layer_list[f_s]->conv_params->pad_h) && (pad_w==layer_list[f_s]->conv_params->pad_w)){
+
+					std::vector<string>::iterator it_str1=std::find(conv_p_list.begin(),conv_p_list.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_p_list.end())
+					{
+						conv_p_list.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_p_list.begin(),conv_p_list.end(),layer_list[f_s]->name);
+					if(it_str==conv_p_list.end())
+					{
+						conv_p_list.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+		if(!(layer_list.size()==conv_p_list.size()))
+			return false;
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			output_h=layer_list[iter_l]->topShape[0].at(2);
+			output_w=layer_list[iter_l]->topShape[0].at(3);
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if((output_h==layer_list[f_s]->topShape[0].at(2)) && (output_w==layer_list[f_s]->topShape[0].at(3))){
+
+					std::vector<string>::iterator it_str1=std::find(conv_o_list.begin(),conv_o_list.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_o_list.end())
+					{
+						conv_o_list.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_o_list.begin(),conv_o_list.end(),layer_list[f_s]->name);
+					if(it_str==conv_o_list.end())
+					{
+						conv_o_list.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+		if(!(layer_list.size()==conv_o_list.size()))
+			return false;
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			stride_h=layer_list[iter_l]->conv_params->stride_h;
+			stride_w=layer_list[iter_l]->conv_params->stride_w;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if((stride_h==layer_list[f_s]->conv_params->stride_h) && (stride_w==layer_list[f_s]->conv_params->stride_w)){
+
+					std::vector<string>::iterator it_str1=std::find(conv_s_list.begin(),conv_s_list.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_s_list.end())
+					{
+						conv_s_list.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_s_list.begin(),conv_s_list.end(),layer_list[f_s]->name);
+					if(it_str==conv_s_list.end())
+					{
+						conv_s_list.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+		if(!(layer_list.size()==conv_s_list.size()))
+			return false;
+	}
+	return true;
+}
+bool parallel_conv_fuse(XGraph* xgraph_opt,map < string, XBlob*>::iterator &blob_it,vector<XLayer*> &vec_layer,int fuse_cnt){
+
+	vector<XLayer*> layer_list;
+	string quant_scheme=vec_layer[0]->quantization_scheme;
+	bool status = false;
+
+	if(quant_scheme.compare("Xilinx")!=0){
+
+		status=check_parallel_params(vec_layer, layer_list);
+	}else{
+		status=check_parallel_params_offline(vec_layer,layer_list);
+
+	}
+	vector<int> blob_channel;
+
+	vector<string> tmp_top_blob_name;
+	vector<int> tmp_shape,tmp_custom;
+
+	vector< vector<int> > tmp_custom_shape;
+
+	if(status==true){
+		int relu_false_cnt=0,relu_true_cnt=0;
+		for(int iter_r=0;iter_r<layer_list.size();iter_r++){
+
+			if(layer_list[iter_r]->conv_params->reluflag==true){
+				relu_true_cnt++;
+			}else{
+				relu_false_cnt++;
+			}
+		}
+		if(relu_true_cnt==0){
+
+			if(relu_false_cnt!=layer_list.size())
+				return false;
+		}else{
+
+			if(relu_true_cnt!=layer_list.size())
+				return false;
+		}
+
+		for(int iter_ch=0;iter_ch<layer_list.size();iter_ch++){
+
+			int tmp_channel=AlignSize(layer_list[iter_ch]->topShape[0].at(1),16);
+
+			std::vector<string>::iterator it_str=std::find(tmp_top_blob_name.begin(),tmp_top_blob_name.end(),layer_list[iter_ch]->top[0].blob->name);
+
+			if(it_str==tmp_top_blob_name.end())
+			{
+				tmp_top_blob_name.push_back(layer_list[iter_ch]->top[0].blob->name);
+
+			}
+			blob_channel.push_back(tmp_channel);
+		}
+		string layer_name = "conv_parallel_fuse";
+		std::stringstream ss1;
+		string tmp_batchnorm_name;
+		ss1<<layer_name<<fuse_cnt;
+		string fuse_layer_name = ss1.str();//"conv_lrn1";
+
+		XLayer* dst0 = new XLayer(fuse_layer_name, "Convolution");
+
+		xgraph_opt->layers[fuse_layer_name] = dst0;
+
+		string username = fuse_layer_name;
+		XBlob* tmp_blob = new XBlob(username);
+		xgraph_opt->blobs[username] = tmp_blob;
+		dst0->opcode=OPCODE_CONV;//OPCODE_PARALLEL_CONV_FUSE;
+		if(relu_true_cnt)
+			dst0->conv_params->reluflag=true;
+		tmp_shape.push_back(blob_it->second->shape.at(0));
+		int tmp_sum_c=0;
+		int tmp_sum_w=0;
+		int tmp_sum_h=0;
+		tmp_sum_h=layer_list[0]->topShape[0].at(2);
+		tmp_sum_w=layer_list[0]->topShape[0].at(3);
+
+		for(int t_b_c=0;t_b_c<layer_list.size();t_b_c++){
+
+			tmp_sum_c= tmp_sum_c+blob_channel[t_b_c];
+			//tmp_sum_h= tmp_sum_h+layer_list[t_b_c]->topShape[0].at(2);
+			//tmp_sum_w= tmp_sum_w+layer_list[t_b_c]->topShape[0].at(3);
+		}
+
+		tmp_shape.push_back(tmp_sum_c);
+		tmp_shape.push_back(tmp_sum_h);
+		tmp_shape.push_back(tmp_sum_w);
+		vector<int> tmp_weightsDim;
+		int n_out=0;
+		int n_in=0;
+		int n_fh=0;
+		int n_fw=0;
+
+		for(int iter_wd=0;iter_wd<layer_list.size();iter_wd++){
+
+			n_out= n_out+AlignSize(layer_list[iter_wd]->conv_params->weightsDim[0].at(0),16);
+			n_in = n_in+AlignSize(layer_list[iter_wd]->conv_params->weightsDim[0].at(1),16);
+			n_fh = n_fh+layer_list[iter_wd]->conv_params->weightsDim[0].at(2);
+			n_fw = n_fw+layer_list[iter_wd]->conv_params->weightsDim[0].at(3);
+
+		}
+
+		tmp_weightsDim.push_back(n_out);
+		tmp_weightsDim.push_back(n_in);
+		tmp_weightsDim.push_back(n_fh);
+		tmp_weightsDim.push_back(n_fw);
+
+
+		int cnt_weight=0;
+		dst0->conv_params->weightsDim.push_back(tmp_weightsDim);
+		vector<int> tmp_biasdim;
+		tmp_biasdim.push_back(tmp_shape.at(1));
+		dst0->conv_params->biasDim.push_back(tmp_biasdim);
+
+		int o_n,i_n;
+		float tmp_bias_val=0.0,tmp_th_val=0.0f;
+		vector<float> tmp_weights,tmp_bias,th_params;
+
+		for(int iter_bias_c=0;iter_bias_c<layer_list.size();iter_bias_c++){
+
+			for(int iter_s_b=0;iter_s_b<blob_channel[iter_bias_c];iter_s_b++){
+
+				if(layer_list[iter_bias_c]->conv_params->bias[0].size()>iter_s_b)
+
+					tmp_bias.push_back(layer_list[iter_bias_c]->conv_params->bias[0][iter_s_b]);
+				else
+					tmp_bias.push_back(tmp_bias_val);
+			}
+
+		}
+		if(quant_scheme.compare("Xilinx")==0){
+
+			for(int iter_ll_c=0;iter_ll_c<layer_list.size();iter_ll_c++){
+
+				for(int iter_th_c=0;iter_th_c<blob_channel[iter_ll_c];iter_th_c++){
+
+					if(layer_list[iter_ll_c]->th_params.size()>iter_th_c)
+
+						th_params.push_back(layer_list[iter_ll_c]->th_params[iter_th_c]);
+					else
+						th_params.push_back(tmp_th_val);
+				}
+			}
+		}
+		for(int t_b_c=0;t_b_c<layer_list.size();t_b_c++){
+
+			o_n = layer_list[t_b_c]->conv_params->weightsDim[0].at(0);
+			i_n = layer_list[t_b_c]->conv_params->weightsDim[0].at(1);
+
+			n_out = AlignSize(layer_list[t_b_c]->conv_params->weightsDim[0].at(0),16);
+			n_in = AlignSize(layer_list[t_b_c]->conv_params->weightsDim[0].at(1),16);
+
+			for(int iter_n=0;iter_n<n_out;iter_n++){
+
+				for(int iter_m=0;iter_m<n_in;iter_m++){
+
+					int w_h=layer_list[t_b_c]->conv_params->weightsDim[0].at(2);
+
+					for(int iter_fh=0;iter_fh<w_h;iter_fh++){
+
+						int w_w=layer_list[t_b_c]->conv_params->weightsDim[0].at(3);
+
+						for(int iter_fw=0;iter_fw<w_w;iter_fw++){
+
+							int indx = iter_n*i_n*w_h*w_w+iter_m*w_h*w_w+iter_fh*w_w+iter_fw;
+							cnt_weight=indx;
+
+							if(o_n>iter_n ){
+
+								if(i_n>iter_m){
+
+									tmp_weights.push_back(layer_list[t_b_c]->conv_params->weights[0][indx]);
+								}else{
+									float w_dum=0.0;
+									tmp_weights.push_back(w_dum);
+								}
+							}else{
+								float w_dum=0.0;
+								tmp_weights.push_back(w_dum);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		dst0->conv_params->weights.push_back(tmp_weights);
+		dst0->conv_params->bias.push_back(tmp_bias);
+		if(quant_scheme.compare("Xilinx")==0){
+			dst0->th_params=th_params;
+			dst0->th_layer_in = layer_list[0]->th_layer_in;
+			dst0->th_layer_out = layer_list[0]->th_layer_out;
+			dst0->quantization_scheme = quant_scheme;
+		}
+		//dst0->bottom=layer_list[0]->bottom;
+
+		tmp_blob->shape=tmp_shape;
+
+		tmp_blob->producerDim.push_back(tmp_blob->shape);
+		if(tmp_top_blob_name.size()==1){
+			tmp_blob->consumerDim.push_back(tmp_blob->shape);
+		}
+		else{
+
+			if(layer_list.size()==tmp_top_blob_name.size()){
+				for(int iter_b_s=0;iter_b_s<layer_list.size();iter_b_s++){
+					tmp_blob->consumerDim.push_back(layer_list[iter_b_s]->top[0].blob->shape);
+				}
+			}else{
+				cerr << "support need to added ,currenlty no support for this pattern" << endl;
+				exit(-1);
+
+			}
+		}
+
+		nameIndex new_blob(tmp_blob,0);
+		nameIndex bottom_blob(blob_it->second,0);
+		dst0->top.push_back(new_blob);
+		dst0->bottom.push_back(bottom_blob);
+		tmp_blob->producers.push_back(dst0->name);
+
+		/*************************/
+		string produce_name = blob_it->second->producers[0];
+		map < string, XLayer*>::iterator it_pro_layer =xgraph_opt->layers.find(produce_name);
+
+		dst0->conv_params->N = blob_it->second->shape.at(1);
+		dst0->conv_params->M = tmp_blob->shape.at(1);
+		dst0->conv_params->filter_h = layer_list[0]->conv_params->filter_h;
+		dst0->conv_params->filter_w = layer_list[0]->conv_params->filter_w;
+		dst0->conv_params->pad_h=layer_list[0]->conv_params->pad_h;
+		dst0->conv_params->pad_w=layer_list[0]->conv_params->pad_w;
+		dst0->conv_params->stride_h=layer_list[0]->conv_params->stride_h;
+		dst0->conv_params->stride_w=layer_list[0]->conv_params->stride_w;
+		dst0->conv_params->dilation=1;
+		dst0->conv_params->group =1;
+
+		dst0->op_bw = layer_list[0]->op_bw;
+		if(quant_scheme.compare("Xilinx")!=0)
+			dst0->op_fl = layer_list[0]->op_fl;
+		// dst0->user_ip_bw = layer_list[0]->user_ip_bw;
+		// dst0->user_ip_fl = layer_list[0]->user_ip_fl;
+		dst0->ip_bw = layer_list[0]->ip_bw;
+		if(quant_scheme.compare("Xilinx")!=0)
+			dst0->ip_fl = layer_list[0]->ip_fl;
+		dst0->wt_bw = layer_list[0]->wt_bw;
+		if(quant_scheme.compare("Xilinx")!=0)
+			dst0->wt_fl = layer_list[0]->wt_fl;
+
+		dst0->output_file=fuse_layer_name;
+
+		dst0->topShape.push_back(tmp_blob->shape);
+
+		dst0->bottomShape.push_back(blob_it->second->shape);
+
+		/**************************/
+
+		for(int l_t_cus=0;l_t_cus<layer_list.size();l_t_cus++){
+
+			for(int iter_t_cus=0;iter_t_cus<layer_list[l_t_cus]->top[0].blob->consumers.size();iter_t_cus++){
+
+				std::vector<string>::iterator it_str=std::find(tmp_blob->consumers.begin(),tmp_blob->consumers.end(),layer_list[l_t_cus]->top[0].blob->consumers[iter_t_cus]);
+
+				if(it_str==tmp_blob->consumers.end())
+				{
+					tmp_blob->consumers.push_back(layer_list[l_t_cus]->top[0].blob->consumers[iter_t_cus]);
+
+				}
+
+			}
+		}
+		std::vector<string>::iterator it_insert;
+		int cnt_erase=0;
+		for(int l_d=0;l_d<layer_list.size();l_d++){
+
+			std::vector<string>::iterator it_str=std::find(blob_it->second->consumers.begin(),blob_it->second->consumers.end(),layer_list[l_d]->name);
+
+			if(it_str!=blob_it->second->consumers.end())
+			{
+				if(cnt_erase==0){
+					it_insert=it_str;
+					cnt_erase++;
+				}
+				blob_it->second->consumers.erase(it_str);
+
+			}
+		}
+		blob_it->second->consumers.insert(it_insert,dst0->name);
+
+
+		for(int iter_l_p=0;iter_l_p<tmp_top_blob_name.size();iter_l_p++){
+
+			map < string, XBlob* >::iterator top_blob_it = xgraph_opt->blobs.find(tmp_top_blob_name[iter_l_p]);
+
+			for(int iter_tb_c=0;iter_tb_c<top_blob_it->second->consumers.size();iter_tb_c++){
+
+				map < string, XLayer* >::iterator layer_it = xgraph_opt->layers.find(top_blob_it->second->consumers[iter_tb_c]);
+
+				for(int iter_tb_cu_p=0;iter_tb_cu_p<layer_it->second->bottom.size();iter_tb_cu_p++){
+
+					if(layer_it->second->bottom[iter_tb_cu_p].blob->name.compare(tmp_top_blob_name[iter_l_p])==0){
+
+						layer_it->second->bottom[iter_tb_cu_p].blob =  new_blob.blob;
+						layer_it->second->bottom[iter_tb_cu_p].id =  iter_l_p;
+					}
+				}
+			}
+		}
+		for(int l_d=0;l_d<layer_list.size();l_d++){
+
+			map < string, XBlob* >::iterator d_blob_it = xgraph_opt->blobs.find(layer_list[l_d]->top[0].blob->name);
+			if(d_blob_it!=xgraph_opt->blobs.end())
+				xgraph_opt->blobs.erase(d_blob_it);
+			map < string, XLayer* >::iterator layer_it = xgraph_opt->layers.find(layer_list[l_d]->name);
+			if(layer_it!=xgraph_opt->layers.end())
+				xgraph_opt->layers.erase(layer_it);
+		}
+		return true;
+	}
+	return true;
+}
+
+#if 0 // this working parallel fuse.
+
+bool parallel_conv_fuse(XGraph* xgraph_opt,map < string, XBlob*>::iterator &blob_it,vector<XLayer*> &vec_layer,int fuse_cnt){
+
+	vector<XLayer*> layer_list;
+
+	int kernel_h;
+	int kernel_w;
+	int stride_h;
+	int stride_w;
+	int pad_h;
+	int pad_w;
+	int op_fl;
+	int op_bw;
+	int ip_fl;
+	int ip_bw;
+	int wt_fl;
+	int wt_bw;
+	int output_h;
+	int output_w;
+	vector<string> conv_k_list,conv_s_list,conv_p_list,conv_o_list,conv_out_fl,conv_out_bw,conv_relu_list,conv_wt_fl,conv_wt_bw,conv_in_fl,conv_in_bw;
+
+
+	vector<int> blob_channel;
+
+	for(int iter_p_c=0;iter_p_c<vec_layer.size();iter_p_c++){
+
+		kernel_h=vec_layer[iter_p_c]->conv_params->filter_h;
+		kernel_w=vec_layer[iter_p_c]->conv_params->filter_w;
+
+		for(int f_s=iter_p_c+1;f_s<vec_layer.size();f_s++){
+
+			if((kernel_h==vec_layer[f_s]->conv_params->filter_h) && (kernel_w==vec_layer[f_s]->conv_params->filter_w)){
+
+				std::vector<string>::iterator it_str1=std::find(conv_k_list.begin(),conv_k_list.end(),vec_layer[iter_p_c]->name);
+
+				if(it_str1==conv_k_list.end())
+				{
+					conv_k_list.push_back(vec_layer[iter_p_c]->name);
+					layer_list.push_back(vec_layer[iter_p_c]);
+
+				}
+
+				std::vector<string>::iterator it_str=std::find(conv_k_list.begin(),conv_k_list.end(),vec_layer[f_s]->name);
+				if(it_str==conv_k_list.end())
+				{
+					conv_k_list.push_back(vec_layer[f_s]->name);
+					layer_list.push_back(vec_layer[f_s]);
+
+				}
+			}
+		}
+	}
+
+	if(layer_list.size()<=1){
+
+		cout<<"layer_list.size()<=1"<<endl;
+		return false;
+
+	}else{
+		int relu_false_cnt=0,relu_true_cnt=0;
+		for(int iter_r=0;iter_r<layer_list.size();iter_r++){
+
+			if(layer_list[iter_r]->conv_params->reluflag==true){
+				relu_true_cnt++;
+			}else{
+				relu_false_cnt++;
+			}
+		}
+		if(relu_true_cnt==0){
+
+			if(relu_false_cnt!=layer_list.size())
+				return false;
+		}else{
+
+			if(relu_true_cnt!=layer_list.size())
+				return false;
+		}
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			op_fl=layer_list[iter_l]->op_fl;
+			op_bw=layer_list[iter_l]->op_bw;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if(op_fl==layer_list[f_s]->op_fl){
+
+					std::vector<string>::iterator it_str1=std::find(conv_out_fl.begin(),conv_out_fl.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_out_fl.end())
+					{
+						conv_out_fl.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_out_fl.begin(),conv_out_fl.end(),layer_list[f_s]->name);
+					if(it_str==conv_out_fl.end())
+					{
+						conv_out_fl.push_back(layer_list[f_s]->name);
+
+					}
+
+				}
+				if(op_bw==layer_list[f_s]->op_bw){
+
+					std::vector<string>::iterator it_str=std::find(conv_out_bw.begin(),conv_out_bw.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_out_bw.end())
+					{
+						conv_out_bw.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_out_bw.begin(),conv_out_bw.end(),layer_list[f_s]->name);
+					if(it_str==conv_out_bw.end())
+					{
+						conv_out_bw.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			ip_fl=layer_list[iter_l]->ip_fl;
+			ip_bw=layer_list[iter_l]->ip_bw;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if(ip_fl==layer_list[f_s]->ip_fl){
+
+					std::vector<string>::iterator it_str1=std::find(conv_in_fl.begin(),conv_in_fl.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_in_fl.end())
+					{
+						conv_in_fl.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_in_fl.begin(),conv_in_fl.end(),layer_list[f_s]->name);
+					if(it_str==conv_in_fl.end())
+					{
+						conv_in_fl.push_back(layer_list[f_s]->name);
+
+					}
+
+				}
+				if(ip_bw==layer_list[f_s]->ip_bw){
+
+					std::vector<string>::iterator it_str=std::find(conv_in_bw.begin(),conv_in_bw.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_in_bw.end())
+					{
+						conv_in_bw.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_in_bw.begin(),conv_in_bw.end(),layer_list[f_s]->name);
+					if(it_str==conv_in_bw.end())
+					{
+						conv_in_bw.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			wt_fl=layer_list[iter_l]->wt_fl;
+			wt_bw=layer_list[iter_l]->wt_bw;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if(wt_fl==layer_list[f_s]->wt_fl){
+
+					std::vector<string>::iterator it_str1=std::find(conv_wt_fl.begin(),conv_wt_fl.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_wt_fl.end())
+					{
+						conv_wt_fl.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_wt_fl.begin(),conv_wt_fl.end(),layer_list[f_s]->name);
+					if(it_str==conv_wt_fl.end())
+					{
+						conv_wt_fl.push_back(layer_list[f_s]->name);
+
+					}
+
+				}
+				if(wt_bw==layer_list[f_s]->wt_bw){
+
+					std::vector<string>::iterator it_str=std::find(conv_wt_bw.begin(),conv_wt_bw.end(),layer_list[iter_l]->name);
+
+					if(it_str==conv_wt_bw.end())
+					{
+						conv_wt_bw.push_back(layer_list[iter_l]->name);
+
+					}
+					it_str=std::find(conv_wt_bw.begin(),conv_wt_bw.end(),layer_list[f_s]->name);
+					if(it_str==conv_wt_bw.end())
+					{
+						conv_wt_bw.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			pad_h=layer_list[iter_l]->conv_params->pad_h;
+			pad_w=layer_list[iter_l]->conv_params->pad_w;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if((pad_h==layer_list[f_s]->conv_params->pad_h) && (pad_w==layer_list[f_s]->conv_params->pad_w)){
+
+					std::vector<string>::iterator it_str1=std::find(conv_p_list.begin(),conv_p_list.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_p_list.end())
+					{
+						conv_p_list.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_p_list.begin(),conv_p_list.end(),layer_list[f_s]->name);
+					if(it_str==conv_p_list.end())
+					{
+						conv_p_list.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			output_h=layer_list[iter_l]->topShape[0].at(2);
+			output_w=layer_list[iter_l]->topShape[0].at(3);
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if((output_h==layer_list[f_s]->topShape[0].at(2)) && (output_w==layer_list[f_s]->topShape[0].at(3))){
+
+					std::vector<string>::iterator it_str1=std::find(conv_o_list.begin(),conv_o_list.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_o_list.end())
+					{
+						conv_o_list.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_o_list.begin(),conv_o_list.end(),layer_list[f_s]->name);
+					if(it_str==conv_o_list.end())
+					{
+						conv_o_list.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+		for(int iter_l=0;iter_l<layer_list.size();iter_l++){
+
+			stride_h=layer_list[iter_l]->conv_params->stride_h;
+			stride_w=layer_list[iter_l]->conv_params->stride_w;
+
+			for(int f_s=iter_l+1;f_s<layer_list.size();f_s++){
+
+
+				if((stride_h==layer_list[f_s]->conv_params->stride_h) && (stride_w==layer_list[f_s]->conv_params->stride_w)){
+
+					std::vector<string>::iterator it_str1=std::find(conv_s_list.begin(),conv_s_list.end(),layer_list[iter_l]->name);
+
+					if(it_str1==conv_s_list.end())
+					{
+						conv_s_list.push_back(layer_list[iter_l]->name);
+
+					}
+
+					std::vector<string>::iterator it_str=std::find(conv_s_list.begin(),conv_s_list.end(),layer_list[f_s]->name);
+					if(it_str==conv_s_list.end())
+					{
+						conv_s_list.push_back(layer_list[f_s]->name);
+
+					}
+				}
+			}
+		}
+
+		if(!(layer_list.size()==conv_k_list.size())){
+			return false;
+		}
+		else{
+
+			if(!(layer_list.size()==conv_s_list.size())){
+				return false;
+			}else{
+
+				if(!(layer_list.size()==conv_p_list.size()))
+					return false;
+				else{
+
+					if(!(layer_list.size()==conv_o_list.size()))
+						return false;
+					else{
+
+						if(!(layer_list.size()==conv_out_fl.size()))
+							return false;
+						else{
+							if(!(layer_list.size()==conv_out_bw.size()))
+								return false;
+							else{
+								if(!(layer_list.size()==conv_wt_bw.size()))
+									return false;
+								else{
+
+									if(!(layer_list.size()==conv_wt_fl.size()))
+										return false;
+									else{
+										if(!(layer_list.size()==conv_in_bw.size()))
+											return false;
+										else{
+
+											if(!(layer_list.size()==conv_in_fl.size()))
+												return false;
+											else{
+
+												vector<string> tmp_top_blob_name;
+												vector<int> tmp_shape,tmp_custom;
+
+												vector< vector<int> > tmp_custom_shape;
+
+												for(int iter_ch=0;iter_ch<layer_list.size();iter_ch++){
+
+													int tmp_channel=AlignSize(layer_list[iter_ch]->topShape[0].at(1),16);
+
+													std::vector<string>::iterator it_str=std::find(tmp_top_blob_name.begin(),tmp_top_blob_name.end(),layer_list[iter_ch]->top[0].blob->name);
+
+													if(it_str==tmp_top_blob_name.end())
+													{
+														tmp_top_blob_name.push_back(layer_list[iter_ch]->top[0].blob->name);
+
+													}
+													blob_channel.push_back(tmp_channel);
+												}
+												string layer_name = "conv_parallel_fuse";
+												std::stringstream ss1;
+												string tmp_batchnorm_name;
+												ss1<<layer_name<<fuse_cnt;
+												string fuse_layer_name = ss1.str();//"conv_lrn1";
+
+												XLayer* dst0 = new XLayer(fuse_layer_name, "Convolution");
+
+												xgraph_opt->layers[fuse_layer_name] = dst0;
+
+												string username = fuse_layer_name;
+												XBlob* tmp_blob = new XBlob(username);
+												xgraph_opt->blobs[username] = tmp_blob;
+												dst0->opcode=OPCODE_CONV;//OPCODE_PARALLEL_CONV_FUSE;
+												if(relu_true_cnt)
+													dst0->conv_params->reluflag=true;
+												tmp_shape.push_back(blob_it->second->shape.at(0));
+												int tmp_sum_c=0;
+												int tmp_sum_w=0;
+												int tmp_sum_h=0;
+												tmp_sum_h=layer_list[0]->topShape[0].at(2);
+												tmp_sum_w=layer_list[0]->topShape[0].at(3);
+
+												for(int t_b_c=0;t_b_c<layer_list.size();t_b_c++){
+
+													tmp_sum_c= tmp_sum_c+blob_channel[t_b_c];
+													//tmp_sum_h= tmp_sum_h+layer_list[t_b_c]->topShape[0].at(2);
+													//tmp_sum_w= tmp_sum_w+layer_list[t_b_c]->topShape[0].at(3);
+												}
+
+												tmp_shape.push_back(tmp_sum_c);
+												tmp_shape.push_back(tmp_sum_h);
+												tmp_shape.push_back(tmp_sum_w);
+												vector<int> tmp_weightsDim;
+												int n_out=0;
+												int n_in=0;
+												int n_fh=0;
+												int n_fw=0;
+
+												for(int iter_wd=0;iter_wd<layer_list.size();iter_wd++){
+
+													n_out= n_out+AlignSize(layer_list[iter_wd]->conv_params->weightsDim[0].at(0),16);
+													n_in = n_in+AlignSize(layer_list[iter_wd]->conv_params->weightsDim[0].at(1),16);
+													n_fh = n_fh+layer_list[iter_wd]->conv_params->weightsDim[0].at(2);
+													n_fw = n_fw+layer_list[iter_wd]->conv_params->weightsDim[0].at(3);
+
+												}
+
+												tmp_weightsDim.push_back(n_out);
+												tmp_weightsDim.push_back(n_in);
+												tmp_weightsDim.push_back(n_fh);
+												tmp_weightsDim.push_back(n_fw);
+
+
+												int cnt_weight=0;
+												dst0->conv_params->weightsDim.push_back(tmp_weightsDim);
+												vector<int> tmp_biasdim;
+												tmp_biasdim.push_back(tmp_shape.at(1));
+												dst0->conv_params->biasDim.push_back(tmp_biasdim);
+
+												int o_n,i_n;
+												float tmp_bias_val=0.0;
+												vector<float> tmp_weights,tmp_bias;
+
+												for(int iter_bias_c=0;iter_bias_c<layer_list.size();iter_bias_c++){
+
+													for(int iter_s_b=0;iter_s_b<blob_channel[iter_bias_c];iter_s_b++){
+
+														if(layer_list[iter_bias_c]->conv_params->bias[0].size()>iter_s_b)
+
+															tmp_bias.push_back(layer_list[iter_bias_c]->conv_params->bias[0][iter_s_b]);
+														else
+															tmp_bias.push_back(tmp_bias_val);
+													}
+
+												}
+
+												for(int t_b_c=0;t_b_c<layer_list.size();t_b_c++){
+
+													o_n = layer_list[t_b_c]->conv_params->weightsDim[0].at(0);
+													i_n = layer_list[t_b_c]->conv_params->weightsDim[0].at(1);
+
+													n_out = AlignSize(layer_list[t_b_c]->conv_params->weightsDim[0].at(0),16);
+													n_in = AlignSize(layer_list[t_b_c]->conv_params->weightsDim[0].at(1),16);
+
+													for(int iter_n=0;iter_n<n_out;iter_n++){
+
+														for(int iter_m=0;iter_m<n_in;iter_m++){
+
+															int w_h=layer_list[t_b_c]->conv_params->weightsDim[0].at(2);
+
+															for(int iter_fh=0;iter_fh<w_h;iter_fh++){
+
+																int w_w=layer_list[t_b_c]->conv_params->weightsDim[0].at(3);
+
+																for(int iter_fw=0;iter_fw<w_w;iter_fw++){
+
+																	int indx = iter_n*i_n*w_h*w_w+iter_m*w_h*w_w+iter_fh*w_w+iter_fw;
+																	cnt_weight=indx;
+
+																	if(o_n>iter_n ){
+
+																		if(i_n>iter_m){
+
+																			tmp_weights.push_back(layer_list[t_b_c]->conv_params->weights[0][indx]);
+																		}else{
+																			float w_dum=0.0;
+																			tmp_weights.push_back(w_dum);
+																		}
+																	}else{
+																		float w_dum=0.0;
+																		tmp_weights.push_back(w_dum);
+																	}
+																}
+															}
+														}
+													}
+												}
+
+												dst0->conv_params->weights.push_back(tmp_weights);
+												dst0->conv_params->bias.push_back(tmp_bias);
+												//dst0->bottom=layer_list[0]->bottom;
+
+												tmp_blob->shape=tmp_shape;
+
+												tmp_blob->producerDim.push_back(tmp_blob->shape);
+												if(tmp_top_blob_name.size()==1){
+													tmp_blob->consumerDim.push_back(tmp_blob->shape);
+												}
+												else{
+
+													if(layer_list.size()==tmp_top_blob_name.size()){
+														for(int iter_b_s=0;iter_b_s<layer_list.size();iter_b_s++){
+															tmp_blob->consumerDim.push_back(layer_list[iter_b_s]->top[0].blob->shape);
+														}
+													}else{
+														cerr << "support need to added ,currenlty no support for this pattern" << endl;
+														exit(-1);
+
+													}
+												}
+
+												nameIndex new_blob(tmp_blob,0);
+												nameIndex bottom_blob(blob_it->second,0);
+												dst0->top.push_back(new_blob);
+												dst0->bottom.push_back(bottom_blob);
+												tmp_blob->producers.push_back(dst0->name);
+
+												/*************************/
+												string produce_name = blob_it->second->producers[0];
+												map < string, XLayer*>::iterator it_pro_layer =xgraph_opt->layers.find(produce_name);
+
+												dst0->conv_params->N = blob_it->second->shape.at(1);
+												dst0->conv_params->M = tmp_blob->shape.at(1);
+												dst0->conv_params->filter_h = layer_list[0]->conv_params->filter_h;
+												dst0->conv_params->filter_w = layer_list[0]->conv_params->filter_w;
+												dst0->conv_params->pad_h=layer_list[0]->conv_params->pad_h;
+												dst0->conv_params->pad_w=layer_list[0]->conv_params->pad_w;
+												dst0->conv_params->stride_h=layer_list[0]->conv_params->stride_h;
+												dst0->conv_params->stride_w=layer_list[0]->conv_params->stride_w;
+												dst0->conv_params->dilation=1;
+												dst0->conv_params->group =1;
+
+												dst0->op_bw = layer_list[0]->op_bw;
+												dst0->op_fl = layer_list[0]->op_fl;
+												// dst0->user_ip_bw = layer_list[0]->user_ip_bw;
+												// dst0->user_ip_fl = layer_list[0]->user_ip_fl;
+												dst0->ip_bw = layer_list[0]->ip_bw;
+												dst0->ip_fl = layer_list[0]->ip_fl;
+												dst0->wt_bw = layer_list[0]->wt_bw;
+												dst0->wt_fl = layer_list[0]->wt_fl;
+
+												dst0->output_file=fuse_layer_name;
+
+												dst0->topShape.push_back(tmp_blob->shape);
+
+												dst0->bottomShape.push_back(blob_it->second->shape);
+
+												/**************************/
+
+												for(int l_t_cus=0;l_t_cus<layer_list.size();l_t_cus++){
+
+													for(int iter_t_cus=0;iter_t_cus<layer_list[l_t_cus]->top[0].blob->consumers.size();iter_t_cus++){
+
+														std::vector<string>::iterator it_str=std::find(tmp_blob->consumers.begin(),tmp_blob->consumers.end(),layer_list[l_t_cus]->top[0].blob->consumers[iter_t_cus]);
+
+														if(it_str==tmp_blob->consumers.end())
+														{
+															tmp_blob->consumers.push_back(layer_list[l_t_cus]->top[0].blob->consumers[iter_t_cus]);
+
+														}
+
+													}
+												}
+												std::vector<string>::iterator it_insert;
+												int cnt_erase=0;
+												for(int l_d=0;l_d<layer_list.size();l_d++){
+
+													std::vector<string>::iterator it_str=std::find(blob_it->second->consumers.begin(),blob_it->second->consumers.end(),layer_list[l_d]->name);
+
+													if(it_str!=blob_it->second->consumers.end())
+													{
+														if(cnt_erase==0){
+															it_insert=it_str;
+															cnt_erase++;
+														}
+														blob_it->second->consumers.erase(it_str);
+
+													}
+												}
+												blob_it->second->consumers.insert(it_insert,dst0->name);
+
+												/*for(int l_d=0;l_d<layer_list.size();l_d++){
+
+													std::vector<string>::iterator it_str=std::find(blob_it->second->consumers.begin(),blob_it->second->consumers.end(),layer_list[l_d]->name);
+
+													if(it_str!=blob_it->second->consumers.end())
+													{
+														blob_it->second->consumers.erase(it_str);
+
+													}
+												}*/
+												for(int iter_l_p=0;iter_l_p<tmp_top_blob_name.size();iter_l_p++){
+
+													map < string, XBlob* >::iterator top_blob_it = xgraph_opt->blobs.find(tmp_top_blob_name[iter_l_p]);
+
+													for(int iter_tb_c=0;iter_tb_c<top_blob_it->second->consumers.size();iter_tb_c++){
+
+														map < string, XLayer* >::iterator layer_it = xgraph_opt->layers.find(top_blob_it->second->consumers[iter_tb_c]);
+
+														for(int iter_tb_cu_p=0;iter_tb_cu_p<layer_it->second->bottom.size();iter_tb_cu_p++){
+
+															if(layer_it->second->bottom[iter_tb_cu_p].blob->name.compare(tmp_top_blob_name[iter_l_p])==0){
+
+																layer_it->second->bottom[iter_tb_cu_p].blob =  new_blob.blob;
+																layer_it->second->bottom[iter_tb_cu_p].id =  iter_l_p;
+															}
+														}
+													}
+												}
+												for(int l_d=0;l_d<layer_list.size();l_d++){
+
+													map < string, XBlob* >::iterator d_blob_it = xgraph_opt->blobs.find(layer_list[l_d]->top[0].blob->name);
+													if(d_blob_it!=xgraph_opt->blobs.end())
+														xgraph_opt->blobs.erase(d_blob_it);
+													map < string, XLayer* >::iterator layer_it = xgraph_opt->layers.find(layer_list[l_d]->name);
+													if(layer_it!=xgraph_opt->layers.end())
+														xgraph_opt->layers.erase(layer_it);
+												}
+												return true;
+											}
+										}
+									}
+								}
+							}
+						}
+
+					}
+				}
+			}
+		}
+	}
+}
+#endif
+void XGraphOpt::opt_parallel_conv_fuse(XGraph* xgraph_opt){
+
+	string *conv_layer_type = new string("Convolution");
+	int fuse_cnt=0;
+	for(map < string, XBlob*>::iterator it=xgraph_opt->blobs.begin();it!=xgraph_opt->blobs.end();it++){
+
+		int conv_cnt=0;
+		int match_pro_cnt=0;
+		vector<string> no_match_pos;
+		vector<string> layer_names;
+		vector<XLayer*> vec_layer;
+		int no_match=0;
+
+		if(it->second->consumers.size()>1){
+
+			for(int iter_b_c_c=0;iter_b_c_c<it->second->consumers.size();iter_b_c_c++){
+
+				string tmp_name = it->second->consumers[iter_b_c_c];
+				map < string, XLayer*>::iterator it_layer = xgraph_opt->layers.find(tmp_name);
+
+				if(it_layer->second->type.compare(*conv_layer_type)==0){
+
+					if(it_layer->second->opcode==OPCODE_CONV)
+						layer_names.push_back(it->second->consumers[iter_b_c_c]);
+				}
+			}
+
+			for(int iter_l_c=0;iter_l_c<layer_names.size();iter_l_c++){
+
+				map < string, XLayer*>::iterator it_layer = xgraph_opt->layers.find(layer_names[iter_l_c]);
+
+				int pro_size = it_layer->second->top[0].blob->producers.size();
+
+				if(pro_size>1){
+
+					for(int iter_t_p=0;iter_t_p<pro_size;iter_t_p++){
+
+						std::vector<string>::iterator it_str1=std::find(layer_names.begin(),layer_names.end(),it_layer->second->top[0].blob->producers[iter_t_p]);
+
+						if(it_str1==layer_names.end()){
+
+							std::vector<string>::iterator it_str=std::find(no_match_pos.begin(),no_match_pos.end(),it_layer->second->top[0].blob->producers[iter_t_p]);
+
+							if(it_str==no_match_pos.end())
+							{
+								no_match_pos.push_back(layer_names[iter_l_c]);
+								no_match=1;
+							}
+						}
+					}
+				}
+			}
+			if(no_match==0){
+
+				for(int iter_l_c=0;iter_l_c<layer_names.size();iter_l_c++){
+
+					map < string, XLayer*>::iterator it_layer = xgraph_opt->layers.find(layer_names[iter_l_c]);
+					vec_layer.push_back(it_layer->second);
+					conv_cnt++;
+				}
+			}else{
+
+				for(int iter_l_c=0;iter_l_c<layer_names.size();iter_l_c++){
+
+					std::vector<string>::iterator it_str=std::find(no_match_pos.begin(),no_match_pos.end(),layer_names[iter_l_c]);
+
+					if(it_str==no_match_pos.end())
+					{
+						map < string, XLayer*>::iterator it_layer = xgraph_opt->layers.find(layer_names[iter_l_c]);
+
+						vec_layer.push_back(it_layer->second);
+
+						conv_cnt++;
+					}
+				}
+
+			}
+			if(conv_cnt>1){
+
+				bool flag_done=parallel_conv_fuse(xgraph_opt,it,vec_layer,fuse_cnt);
+				if(flag_done)
+					fuse_cnt++;
+
+			}else{
+				conv_cnt=0;
+				continue;
+			}
+		}
+	}
+	delete conv_layer_type;
+}
+void find_max_q_factor_xlayer(vector < XlayerData > & xlayer_seq){
+
+
+	for(int iter_xinx=0; iter_xinx<xlayer_seq.size();iter_xinx++){
+
+
+		int Qfactor_consumer =  0;
+		int Ffactor_consumer =  0;
+		int Qfactor_producer =  0;
+		int Ffactor_producer =  0;
+		int Qfactor_max =  0;
+		int Ffactor_max =  0;
+
+
+		//if(it->second->consumers.size()!=0){
+
+		if((xlayer_seq[iter_xinx].hw_ops->ip_bw == 0) && (xlayer_seq[iter_xinx].hw_ops->ip_fl==0)){
+
+			for(int iter_pre_l=0;iter_pre_l<xlayer_seq[iter_xinx].prev_layers_ID.size();iter_pre_l++){
+
+				int prev_layer_id1 = xlayer_seq[iter_xinx].prev_layers_ID[iter_pre_l].layerindex;
+
+				int Qfactor_tmp =0;
+				Qfactor_tmp = xlayer_seq[prev_layer_id1].hw_ops->op_bw;
+
+				if(Qfactor_tmp>Qfactor_consumer){
+
+					Ffactor_consumer = xlayer_seq[prev_layer_id1].hw_ops->op_fl;
+					Qfactor_consumer=(Qfactor_tmp-Ffactor_consumer);
+
+				}
+			}
+			Qfactor_max = Qfactor_consumer;
+			Ffactor_max = Ffactor_consumer;
+			xlayer_seq[iter_xinx].hw_ops->ip_bw=Qfactor_max+Ffactor_max;
+			xlayer_seq[iter_xinx].hw_ops->ip_fl = Ffactor_max;
+
+			for(int iter_pre_l=0;iter_pre_l<xlayer_seq[iter_xinx].prev_layers_ID.size();iter_pre_l++){
+
+				int prev_layer_id1 = xlayer_seq[iter_xinx].prev_layers_ID[iter_pre_l].layerindex;
+
+				xlayer_seq[prev_layer_id1].hw_ops->op_bw=Qfactor_max+Ffactor_max;
+				xlayer_seq[prev_layer_id1].hw_ops->op_fl = Ffactor_max;
+
+			}
+		}
+
+
+		if((xlayer_seq[iter_xinx].hw_ops->op_bw == 0) && (xlayer_seq[iter_xinx].hw_ops->op_fl==0)){
+
+			for(int iter_next_l=0;iter_next_l<xlayer_seq[iter_xinx].next_layer_ID.size();iter_next_l++){
+
+				int next_layer_id1 = xlayer_seq[iter_xinx].next_layer_ID[iter_next_l].layerindex;
+
+				int Qfactor_tmp =0;
+				Qfactor_tmp = xlayer_seq[next_layer_id1].hw_ops->ip_bw;
+
+				if(Qfactor_tmp>Qfactor_producer){
+
+					Ffactor_producer = xlayer_seq[next_layer_id1].hw_ops->ip_fl;
+					Qfactor_producer=(Qfactor_tmp-Ffactor_producer);
+
+				}
+			}
+			if(xlayer_seq[iter_xinx].next_layer_ID.size()!=0){
+
+				Qfactor_max = Qfactor_producer;
+				Ffactor_max = Ffactor_producer;
+				xlayer_seq[iter_xinx].hw_ops->op_bw=Qfactor_max+Ffactor_max;
+				xlayer_seq[iter_xinx].hw_ops->op_fl = Ffactor_max;
+
+				for(int iter_next_l=0;iter_next_l<xlayer_seq[iter_xinx].next_layer_ID.size();iter_next_l++){
+
+					int next_layer_id1 = xlayer_seq[iter_xinx].next_layer_ID[iter_next_l].layerindex;
+
+					xlayer_seq[next_layer_id1].hw_ops->ip_bw=Qfactor_max+Ffactor_max;
+					xlayer_seq[next_layer_id1].hw_ops->ip_fl = Ffactor_max;
+
+				}
+			}else{
+				xlayer_seq[iter_xinx].hw_ops->op_bw=xlayer_seq[iter_xinx].hw_ops->ip_bw;
+				xlayer_seq[iter_xinx].hw_ops->op_fl=xlayer_seq[iter_xinx].hw_ops->ip_fl;
+			}
+		}
+	}
+	//}
+}
+
+void XGraphOpt::opt_separable_conv_no_bias(XGraph *xgraph_opt,vector<string> &bn_opt_table){
+
+	string *conv_layer_type = new string("Convolution");
+	string *relu_layer_type = new string ("ReLU");
+	int batchnorm_cnt=0;
+	string relu_output_file;
+	vector<int> tmp_val;
+	string tmp_string = "NULL";
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();it++){
+
+		if(it->second->type.compare(*conv_layer_type)==0){
+			int relu_layer_flage=0;
+			if(it->second->conv_params->group>2){
+
+
+				if(it->second->conv_params->M==it->second->conv_params->group){
+
+					it->second->opcode=OPCODE_SEPARABLE_CONV;
+					it->second->type="Pooling";
+
+
+					if(it->second->conv_params->has_bias){
+
+						map < string, XBlob*>::iterator top_3DS_iter = xgraph_opt->blobs.find(it->second->top[0].blob->name);
+
+						if(top_3DS_iter->second->producers.size()>1){
+
+							for(int iter_3d_p=0;iter_3d_p<top_3DS_iter->second->producers.size();iter_3d_p++){
+
+								map < string, XLayer*>::iterator cons_layer_it =  xgraph_opt->layers.find(top_3DS_iter->second->producers[iter_3d_p]);
+
+								if (cons_layer_it->second->type.compare(*relu_layer_type)==0){
+									relu_layer_flage=1;
+									xgrap_layer_delete(xgraph_opt,cons_layer_it->second->name);
+									relu_output_file=cons_layer_it->second->output_file;
+									break;
+								}
+							}
+						}else{
+
+							if(top_3DS_iter->second->producers.size()==1){
+
+								for(int iter_3d_c=0;iter_3d_c<top_3DS_iter->second->consumers.size();iter_3d_c++){
+
+									map < string, XLayer*>::iterator cons_layer_it =  xgraph_opt->layers.find(top_3DS_iter->second->consumers[iter_3d_c]);
+
+									if (cons_layer_it->second->type.compare(*relu_layer_type)==0){
+										relu_layer_flage=1;
+										xgrap_layer_delete(xgraph_opt,cons_layer_it->second->name);
+										relu_output_file=cons_layer_it->second->output_file;
+										break;
+									}
+								}
+							}
+						}
+
+						string layer_name = "conv_scale";
+						std::stringstream ss1,outfile;
+						string tmp_batchnorm_name;
+
+						ss1<<layer_name<<batchnorm_cnt;
+
+						string scale_layer_name = ss1.str();//"conv_lrn1";
+
+						XLayer* dst0 = new XLayer(scale_layer_name, "Convolution");
+						xgraph_opt->layers[scale_layer_name] = dst0;
+
+						bn_opt_table.push_back(scale_layer_name);//]="Convolution";
+
+						//string uniqname = xgraph_opt->getUniqueBlobName();
+						string username = scale_layer_name;
+						XBlob* tmp_blob = new XBlob(username);
+						xgraph_opt->blobs[username] = tmp_blob;
+
+						outfile<<scale_layer_name<<"_out.txt";
+
+						tmp_blob->shape=it->second->top[0].blob->shape;
+
+						tmp_blob->producerDim.push_back(tmp_blob->shape);
+						tmp_blob->consumerDim.push_back(tmp_blob->shape);
+
+						nameIndex new_blob(tmp_blob, 0);
+
+						dst0->top.push_back(new_blob);
+
+						// copy lrn params to first conv params
+
+						dst0->conv_params->N = tmp_blob->shape.at(1);
+						dst0->conv_params->M = tmp_blob->shape.at(1);
+						dst0->conv_params->filter_h = 0;
+						dst0->conv_params->filter_w = 0;
+						dst0->conv_params->pad_h=0;
+						dst0->conv_params->pad_w=0;
+						dst0->conv_params->dilation=1;
+						dst0->conv_params->group =1;
+						dst0->conv_params->has_bias = 0;
+						dst0->conv_params->extra_reluflag = false;
+						tmp_val.push_back(0);
+						dst0->conv_params->scale_gammaDim.push_back(tmp_val);
+						dst0->conv_params->scale_gammaPath.push_back(tmp_string);
+						dst0->conv_params->scale_betaDim = it->second->conv_params->biasDim;
+						//dst0->conv_params->scale_betaPath = it->second->conv_params->biasPath;
+						dst0->conv_params->scale_beta = it->second->conv_params->bias[0];
+						//cout<<"Opcode 10"<< layer_it->second->scale_params->gammaPath[0]<<endl;
+						//cout<<"Opcode 10"<< layer_it->second->scale_params->betaPath[0]<<endl;
+						dst0->scale_beta_bw=0;
+						dst0->scale_beta_fl=0;
+						dst0->scale_gamma_bw= 0;
+						dst0->scale_gamma_fl= 0;
+						dst0->op_bw = it->second->op_bw;
+						dst0->op_fl = it->second->op_fl;
+						dst0->scale_gamma_by_std_bw = 0;
+						dst0->scale_gamma_by_std_fl = 0;
+
+						dst0->conv_params->batchnorm_meanDim.push_back(tmp_val);;
+
+						dst0->conv_params->batchnorm_meanPath.push_back(tmp_string);
+						dst0->conv_params->batchnorm_varianceDim.push_back(tmp_val);;
+						dst0->conv_params->batchnorm_variancePath.push_back(tmp_string);
+						dst0->conv_params->batchnorm_eps = 0;
+						dst0->ip_bw = it->second->ip_bw;
+						dst0->ip_fl = it->second->ip_fl;
+						dst0->bn_mean_bw = 0;
+						dst0->bn_mean_fl = 0;
+						dst0->bn_variance_bw = 0;
+						dst0->bn_variance_fl = 0;
+
+						dst0->opcode = OPCODE_BN;
+
+						dst0->bottom.push_back(top_3DS_iter->second);
+
+						for(int iter_t_c=0;iter_t_c<top_3DS_iter->second->consumers.size();iter_t_c++){
+
+							tmp_blob->consumers.push_back(top_3DS_iter->second->consumers[iter_t_c]);
+						}
+
+						top_3DS_iter->second->consumers[0]=dst0->name;
+
+						tmp_blob->producers.push_back(dst0->name);
+
+						if(relu_layer_flage){
+
+							dst0->output_file=relu_output_file;
+
+							relu_layer_flage=0;
+
+						}else{
+							//outfile<<tmp_blob<<batchnorm_cnt<<"_out.txt";
+							dst0->output_file = outfile.str();//"conv_lrn1";
+
+
+						}
+						batchnorm_cnt++;
+					}
+
+				}else
+				{
+					cerr << "[EO001] Due to mismatch between layer group value and output dimension, Current version support layer group value should be <=2 or group == output dimension(3D separable convolution )" << endl;
+					cerr<<"Current layer group = " <<it->second->conv_params->group <<" output dimension = "<<it->second->conv_params->M<<endl;									exit(-1);
+				}
+			}
+		}
+	}
+
+	delete conv_layer_type;
+	delete relu_layer_type;
+}
+
+void find_output_format_conversion_info(XGraph *xgraph_opt,map < string, XBlob*>::iterator &it_out_blob,kernelInfo& opt_descriptor,int &pack_fl,int &pack_format,string &quantization_scheme,int &custom_layer_cnt){
+
+	if(it_out_blob->second->producers.size()==1){
+		map<opcode_num_e, Opcode_info>::iterator it_opcode_tmp;
+		int output_layer_flag=0;
+		map < string, XLayer*>::iterator it_prod_layer= xgraph_opt->layers.find(it_out_blob->second->producers[0]);
+
+		for(map<opcode_num_e, Opcode_info>::iterator it_opcode = opt_descriptor.opcode_info_map.begin();it_opcode!=opt_descriptor.opcode_info_map.end();it_opcode++){
+
+
+			if(it_opcode->second.mega_module.module_name.compare(it_prod_layer->second->type)==0)
+			{
+				output_layer_flag=1;
+				if((it_opcode->second.mega_module.module_name.compare("Convolution")==0) || (it_opcode->second.mega_module.module_name.compare("Pooling")==0) ){
+
+					if(it_prod_layer->second->opcode==OPCODE_AVRPOOL2CONV){
+						pack_fl=it_prod_layer->second->conv_params->op_fl_3d;
+						quantization_scheme=it_prod_layer->second->quantization_scheme;
+						it_opcode_tmp=it_opcode;
+#if SINGLE_IO_PORT==0
+						pack_format = 0;
+#else
+						pack_format = 5;
+
+#endif
+						break;
+					}else{
+						if(it_prod_layer->second->opcode==OPCODE_POOL2CONV){
+							map < string, XLayer*>::iterator tmp_prods = xgraph_opt->layers.find(it_prod_layer->second->bottom[0].blob->producers[0]);//TODO Assumed its convolution
+							pack_fl=tmp_prods->second->op_fl;
+							quantization_scheme = tmp_prods->second->quantization_scheme;
+#if SINGLE_IO_PORT==0
+							pack_format = 0;
+#else
+							pack_format = 5;
+
+#endif
+							break;
+						}
+						else{
+							if(it_prod_layer->second->opcode==OPCODE_POOL){
+								map < string, XLayer*>::iterator it_p_c_layer= xgraph_opt->layers.find(it_prod_layer->second->bottom[0].blob->producers[0]);
+								pack_fl=it_p_c_layer->second->op_fl;
+								quantization_scheme=it_p_c_layer->second->quantization_scheme;
+								it_opcode_tmp=it_opcode;
+								pack_format=0;
+								break;
+							}else{
+								pack_fl=it_prod_layer->second->op_fl;
+								quantization_scheme=it_prod_layer->second->quantization_scheme;
+								it_opcode_tmp=it_opcode;
+#if SINGLE_IO_PORT==0
+								pack_format = 0;
+#else
+								pack_format = 5;
+
+#endif
+								break;
+							}
+
+						}
+					}
+				}else if(it_opcode->second.mega_module.module_name.compare("Permute")==0) {
+					map < string, XLayer*>::iterator it_p_c_layer= xgraph_opt->layers.find(it_prod_layer->second->bottom[0].blob->producers[0]);
+					pack_fl=it_p_c_layer->second->op_fl;
+					pack_format=3;
+					quantization_scheme=it_p_c_layer->second->quantization_scheme;
+					it_opcode_tmp=it_opcode;
+					break;
+				}
+
+			}
+		}
+		if((output_layer_flag==0) && (pack_format==-1)){
+
+			cout<<" CRITICAL WARNING: chAIDNN can't expect's "<<xgraph_opt->end_layer<<"output layer" <<endl;
+			return;
+		}
+		if(pack_format!=-1){
+
+			string layer_name;
+			layer_name= "format_converter";
+
+			std::stringstream ss1;
+
+			ss1<<layer_name<<custom_layer_cnt;
+			string packed_layer_name = ss1.str();
+
+			XLayer* dst0= new XLayer(packed_layer_name, "XPack");
+
+			int pack_fl=0;
+			dst0->xpack_params->pack=pack_format;
+
+			dst0->xpack_params->fbits = pack_fl;
+			if(it_prod_layer->second->opcode==OPCODE_AVRPOOL2CONV || it_prod_layer->second->opcode==OPCODE_POOL2CONV){
+
+				dst0->th_layer_in = it_prod_layer->second->conv_params->th_layer_out_3d;
+				dst0->ip_bw = it_prod_layer->second->conv_params->op_bw_3d;
+				dst0->op_bw = it_prod_layer->second->conv_params->op_bw_3d;
+				dst0->ip_fl=it_prod_layer->second->conv_params->op_fl_3d;
+				dst0->op_fl=it_prod_layer->second->conv_params->op_fl_3d;
+
+			}else{
+				if(it_prod_layer->second->opcode==OPCODE_POOL){
+					map < string, XLayer*>::iterator it_p_c_layer= xgraph_opt->layers.find(it_prod_layer->second->bottom[0].blob->producers[0]); //TODO Assumed this is convloution layer
+					dst0->th_layer_in = it_p_c_layer->second->th_layer_out;
+					dst0->ip_bw = it_p_c_layer->second->op_bw;
+					dst0->op_bw = it_p_c_layer->second->op_bw;
+					dst0->ip_fl=it_p_c_layer->second->op_fl;
+					dst0->op_fl=it_p_c_layer->second->op_fl;
+				}else{
+					dst0->th_layer_in = it_prod_layer->second->th_layer_out;
+					dst0->ip_bw = it_prod_layer->second->op_bw;
+					dst0->op_bw = it_prod_layer->second->op_bw;
+					dst0->ip_fl=it_prod_layer->second->op_fl;
+					dst0->op_fl=it_prod_layer->second->op_fl;
+				}
+			}
+
+			xgraph_opt->layers[packed_layer_name] = dst0;
+			dst0->opcode=OPCODE_XUNPACK;
+			dst0->quantization_scheme = quantization_scheme; //TODO In feature we need to update this as layer based instead of xgraph
+
+			string username = packed_layer_name;
+			XBlob* tmp_blob = new XBlob(username);
+			xgraph_opt->blobs[username] = tmp_blob;
+			nameIndex new_blob(tmp_blob, 0);
+
+			tmp_blob->shape=it_out_blob->second->shape;
+
+			dst0->top.push_back(tmp_blob); //it means layer
+
+
+			dst0->bottomShape.push_back(tmp_blob->shape);
+			dst0->topShape.push_back(tmp_blob->shape);
+			map<opcode_num_e, Opcode_info>::iterator it_pack_opcode;
+			Port_info output_port,tmp_port;
+			if((pack_format==0) || (pack_format==5))
+				it_pack_opcode = opt_descriptor.opcode_info_map.find(OPCODE_XUNPACK);
+			else if(pack_format==3)
+				it_pack_opcode = opt_descriptor.opcode_info_map.find(OPCODE_PERMUTE_XUNPACK);
+
+			for(int iter_pack_in=0;iter_pack_in<it_pack_opcode->second.port_vec.size();iter_pack_in++){
+
+				if(it_pack_opcode->second.port_vec[iter_pack_in].port_enum==XI_OUTPUT){
+
+					tmp_port=it_pack_opcode->second.port_vec[iter_pack_in];
+				}
+			}
+			for(int iter_port=0;iter_port<it_pack_opcode->second.port_vec.size();iter_port++){
+
+				if(it_pack_opcode->second.port_vec[iter_port].port_enum==XI_INPUT)
+					output_port = it_pack_opcode->second.port_vec[iter_port];
+			}
+			dst0->xpack_params->in_port_vec.push_back(output_port);
+			dst0->xpack_params->out_port_vec.push_back(tmp_port);
+
+			it_prod_layer->second->top[0].blob->consumers.push_back(dst0->name);
+			int in_fl=0,out_fl=0;
+			dst0->bottom.push_back(it_prod_layer->second->top[0]);
+			tmp_blob->producers.push_back(dst0->name);
+
+			custom_layer_cnt++;
+
+		}
+	}
+
+}
+
+void find_in_format_conversion_info(XGraph *xgraph_opt,map < string, XBlob*>::iterator &it_in_blob,kernelInfo& opt_descriptor,int &pack_fl,int &pack_format,string &quantization_scheme,int &custom_layer_cnt){
+
+	if(it_in_blob->second->consumers.size()==1){
+		map<opcode_num_e, Opcode_info>::iterator it_opcode_tmp;
+		map < string, XLayer*>::iterator it_conv_layer= xgraph_opt->layers.find(it_in_blob->second->consumers[0]);
+
+		for(map<opcode_num_e, Opcode_info>::iterator it_opcode = opt_descriptor.opcode_info_map.begin();it_opcode!=opt_descriptor.opcode_info_map.end();it_opcode++){
+
+
+			if(it_opcode->second.mega_module.module_name.compare(it_conv_layer->second->type)==0)
+			{
+				if((it_opcode->second.mega_module.module_name.compare("Convolution")==0) || (it_opcode->second.mega_module.module_name.compare("Pooling")==0)){
+
+					if(it_conv_layer->second->opcode==OPCODE_AVRPOOL2CONV){
+						pack_fl=it_conv_layer->second->conv_params->op_fl_3d;
+						quantization_scheme=it_conv_layer->second->quantization_scheme;
+#if SINGLE_IO_PORT==0
+						pack_format = 1;
+#else
+						pack_format = 4;
+
+#endif
+						it_opcode_tmp=it_opcode;
+						break;
+					}
+					else{
+						if((it_conv_layer->second->opcode==OPCODE_POOL||it_conv_layer->second->opcode==OPCODE_POOL2CONV)&&(it_conv_layer->second->pool_params->PoolType==MAX)){
+							if(it_conv_layer->second->quantization_scheme.compare("Xilinx")!=0){
+								cout<<" CRITICAL WARNING: chAIDNN expect's fl bits for start layer" <<endl;
+								return;
+							}
+						}else{
+							pack_fl=it_conv_layer->second->ip_fl;
+							quantization_scheme=it_conv_layer->second->quantization_scheme;
+#if SINGLE_IO_PORT==0
+							pack_format = 1;
+#else
+							pack_format = 4;
+
+#endif
+							it_opcode_tmp=it_opcode;
+							break;
+						}
+					}
+
+
+				}else if(it_opcode->second.mega_module.module_name.compare("Permute")==0) {
+
+					pack_fl=it_conv_layer->second->op_fl;
+					pack_format=1;
+					it_opcode_tmp=it_opcode;
+					quantization_scheme=it_conv_layer->second->quantization_scheme;
+					break;
+				}
+			}
+		}
+		if(pack_format!=-1){
+			//		map < string, XLayer*>::iterator cons_layer_it = xgraph_opt->layers.find(it_in_blob->second->consumers[0]);
+
+			string tmp_cons_layer_name;
+			string layer_name;
+			layer_name= "format_converter";
+			std::stringstream ss1;
+
+			ss1<<layer_name<<custom_layer_cnt;
+			string packed_layer_name = ss1.str();
+
+			XLayer* dst0=new XLayer(packed_layer_name, "XPack");
+			int pack_fl=0;
+			tmp_cons_layer_name=it_conv_layer->second->name;
+
+			dst0->xpack_params->pack=pack_format;
+
+			dst0->xpack_params->fbits = pack_fl;
+			xgraph_opt->layers[packed_layer_name] = dst0;
+			dst0->opcode=OPCODE_XPACK;
+
+			dst0->quantization_scheme = quantization_scheme; //TODO In feature we need to update this as layer based instead of xgraph
+
+
+			XBlob* tmp_blob = new XBlob(packed_layer_name);
+			xgraph_opt->blobs[packed_layer_name] = tmp_blob;
+			nameIndex new_blob(tmp_blob, 0);
+
+			tmp_blob->shape=it_conv_layer->second->topShape[0];
+
+			dst0->top.push_back(tmp_blob); //it means layer
+			//dst0->top[0].id = 0;
+
+			dst0->bottomShape.push_back(tmp_blob->shape);
+			dst0->topShape.push_back(tmp_blob->shape);
+
+			//******** pack info **********/
+			map<opcode_num_e, Opcode_info>::iterator it_pack_opcode;
+			Port_info output_port,tmp_port;
+			if(pack_format==1)
+				it_pack_opcode = opt_descriptor.opcode_info_map.find(OPCODE_XPACK);
+
+			for(int iter_pack_in=0;iter_pack_in<it_pack_opcode->second.port_vec.size();iter_pack_in++){
+
+				if(it_pack_opcode->second.port_vec[iter_pack_in].port_enum==XI_OUTPUT){
+
+					tmp_port=it_pack_opcode->second.port_vec[iter_pack_in];
+				}
+			}
+			for(int iter_port=0;iter_port<it_opcode_tmp->second.port_vec.size();iter_port++){
+
+				if(it_pack_opcode->second.port_vec[iter_port].port_enum==XI_INPUT)
+					output_port = it_pack_opcode->second.port_vec[iter_port];
+			}
+
+			dst0->xpack_params->in_port_vec.push_back(output_port);
+			dst0->xpack_params->out_port_vec.push_back(tmp_port);
+
+			if(it_conv_layer->second->opcode==OPCODE_AVRPOOL2CONV||it_conv_layer->second->opcode==OPCODE_POOL2CONV){
+
+				dst0->th_layer_in = it_conv_layer->second->conv_params->th_layer_in_3d;
+				dst0->ip_bw = it_conv_layer->second->conv_params->ip_bw_3d;
+				dst0->op_bw = it_conv_layer->second->conv_params->ip_bw_3d;
+				dst0->ip_fl = it_conv_layer->second->conv_params->ip_fl_3d;
+				dst0->op_fl = it_conv_layer->second->conv_params->ip_fl_3d;
+			}else{
+				if(it_conv_layer->second->opcode!=OPCODE_POOL){
+					dst0->th_layer_in = it_conv_layer->second->th_layer_in;
+					dst0->ip_bw = it_conv_layer->second->ip_bw;
+					dst0->op_bw = it_conv_layer->second->ip_bw;
+					dst0->ip_fl = it_conv_layer->second->ip_fl;
+					dst0->op_fl = it_conv_layer->second->ip_fl;
+				}else{
+					if(it_conv_layer->second->opcode==OPCODE_POOL){
+						map < string, XLayer*>::iterator it_layer_prod = xgraph_opt->layers.find(it_conv_layer->second->top[0].blob->consumers[0]); // TODO assumed this is convolution
+						dst0->th_layer_in = it_layer_prod->second->th_layer_in;
+						dst0->ip_bw = it_layer_prod->second->ip_bw;
+						dst0->op_bw = it_layer_prod->second->ip_bw;
+						dst0->ip_fl = it_layer_prod->second->ip_fl;
+						dst0->op_fl = it_layer_prod->second->ip_fl;
+					}
+				}
+			}
+
+			it_conv_layer->second->bottom[0].blob->consumers[0]= dst0->name;
+
+			dst0->bottom.push_back(it_conv_layer->second->bottom[0]);
+			dst0->bottom[0].id=0;
+
+			tmp_blob->consumers.push_back(it_conv_layer->second->name);
+			tmp_blob->producers.push_back(dst0->name);
+
+			it_conv_layer->second->bottom[0].blob=tmp_blob;
+			it_conv_layer->second->bottom[0].id=0;
+
+
+			custom_layer_cnt++;
+		}
+	}
+}
+void XGraphOpt::update_xgraph_pack_unpack_layer(XGraph* xgraph_opt,vector < BDegree >& Bdepth,kernelInfo& opt_descriptor,int &in_put_layer){
+
+	int custom_layer_cnt=0;
+
+	for(int iter_bdepth=0;iter_bdepth<Bdepth.size();iter_bdepth++){
+
+		for(int iter_b_name=0;iter_b_name<Bdepth[iter_bdepth].blobs_name.size();iter_b_name++){
+
+			map < string, XBlob*>::iterator it_blob = xgraph_opt->blobs.find(Bdepth[iter_bdepth].blobs_name[iter_b_name]);
+
+			vector<Port_info_s> cons_port_format,prod_port_format;
+			Port_info_s c_unique_port,p_unique_port;
+			Port_info_s expected_port;
+			packinfo prod_in_pack_info,prod_out_pack_info,cons_in_pack_info,cons_out_pack_info;
+
+			int change_status=-1;
+
+			/*find the concensus on consumer type*/
+
+			find_input_port_type(xgraph_opt,opt_descriptor,it_blob,c_unique_port,cons_port_format,change_status); // TODO this implementation works one input per consumer layer
+
+			if(change_status==-1)
+				continue;
+
+			change_status=-1;
+
+			find_output_port_type(xgraph_opt,opt_descriptor,it_blob,p_unique_port,prod_port_format,change_status); // TODO this implementation works one output per producer layer
+
+			if(change_status==-1)
+				continue;
+			///bool producers_same_type = check_producers();
+
+			bool producers_same_type= check_producers_port(prod_port_format);
+
+			///bool consumers_same_type = check_consumers();
+
+			bool consumers_same_type = check_consumers_port(cons_port_format);
+
+			///bool prod_con_same = check(prods, consumers);
+
+			bool prod_con_same=check_cons_prod_port_same(p_unique_port,c_unique_port);
+
+
+			if(prod_con_same == false)
+			{
+
+				if(producers_same_type == true && consumers_same_type == true)
+				{
+					/* insert one format conv below this blob */
+					inser_format_conversion_layer_below_it(xgraph_opt,it_blob,opt_descriptor,p_unique_port,c_unique_port,custom_layer_cnt);
+				}
+				if(producers_same_type == false )
+				{
+					/* check and insert  format conv above this  blob for each producer  aim at final format same as pack_port deducded above*/
+					//cerr << "[BEEO001] different produces format is not supported in the version " << endl;
+					inser_format_conversion_layer_above_it(xgraph_opt,it_blob,opt_descriptor,p_unique_port,c_unique_port,custom_layer_cnt);
+				}
+				if(consumers_same_type == false )
+				{
+					/* insert on format conv below blob for each consumer, input format is pack_port and aim at the format that the consumer needs */
+
+					inser_format_conversion_layer_below_it(xgraph_opt,it_blob,opt_descriptor,p_unique_port,c_unique_port,custom_layer_cnt);
+				}
+			}
+		}
+	}
+
+	map < string, XBlob*>::iterator it_out_blob = xgraph_opt->blobs.find(xgraph_opt->output_blob);
+	int out_pack_fl=-1,in_pack_fl=-1;
+	int out_pack_format=-1,in_pack_format=-1;
+	string out_quantization_scheme,in_quantization_scheme;
+	if(in_put_layer==0){
+
+		map < string, XBlob*>::iterator it_in_blob = xgraph_opt->blobs.find(xgraph_opt->input_blob);
+
+		find_in_format_conversion_info(xgraph_opt,it_in_blob,opt_descriptor,in_pack_fl,in_pack_format,in_quantization_scheme,custom_layer_cnt);
+
+	}
+	if(xgraph_opt->model_last_layer==false)
+	find_output_format_conversion_info(xgraph_opt,it_out_blob,opt_descriptor,out_pack_fl,out_pack_format,out_quantization_scheme,custom_layer_cnt);
+
+}
+
+void find_in_out_thresold(XGraph *xgraph){
+
+
+	for(map < string, XBlob*>::iterator it=xgraph->blobs.begin();it!=xgraph->blobs.end();it++){
+
+		vector<string> cons_layer_name,prod_layer_name;
+		vector<float> cons_in_th;
+		vector<float>  prod_out_th;
+		string quant_scheme_name;
+		//map < string, XBlob*>::iterator blob_it = xgraph->blobs.find(Bdepth[it_d].blobs_name[it_b]);
+
+		for(int iter_b_c=0;iter_b_c<it->second->consumers.size();iter_b_c++){
+
+			map < string, XLayer*>::iterator c_layer_it = xgraph->layers.find(it->second->consumers[iter_b_c]);
+			if(c_layer_it->second->quantization_scheme.compare("Xilinx")==0){
+
+				if((c_layer_it->second->opcode==OPCODE_AVRPOOL2CONV)||(c_layer_it->second->opcode==OPCODE_POOL2CONV)){
+					cons_in_th.push_back(c_layer_it->second->conv_params->th_layer_in_3d);
+				}else{
+					cons_in_th.push_back(c_layer_it->second->th_layer_in);
+				}
+				cons_layer_name.push_back(it->second->consumers[iter_b_c]);
+			}
+		}
+		for(int iter_b_p=0;iter_b_p<it->second->producers.size();iter_b_p++){
+
+			map < string, XLayer*>::iterator p_layer_it = xgraph->layers.find(it->second->producers[iter_b_p]);
+			quant_scheme_name = p_layer_it->second->quantization_scheme;
+			if(p_layer_it->second->quantization_scheme.compare("Xilinx")==0){
+				if((p_layer_it->second->opcode==OPCODE_AVRPOOL2CONV)||(p_layer_it->second->opcode==OPCODE_POOL2CONV)){
+
+					prod_out_th.push_back(p_layer_it->second->conv_params->th_layer_out_3d);
+				}else{
+					prod_out_th.push_back(p_layer_it->second->th_layer_out);
+				}
+				prod_layer_name.push_back(it->second->producers[iter_b_p]);
+
+			}
+		}
+		if(quant_scheme_name.compare("Xilinx")==0){
+			for(int it_p_th=0;it_p_th<prod_out_th.size();it_p_th++){
+
+				for(int it_c_th=0;it_c_th<cons_in_th.size();it_c_th++){
+
+					if(prod_out_th[it_p_th]!=cons_in_th[it_c_th]){
+						cout<<" CRITICAL WARNING: A drop in accuracy may be Observed" <<endl;
+						cout<< "Following producer and consumer layes threshold values are not matching "<<endl;
+						cout<<"Producer layer name:"<<prod_layer_name[it_p_th]<<endl;
+						cout<<"Consumer layer name:"<<cons_layer_name[it_c_th]<<endl;
+
+					}
+				}
+			}
+		}
+	}
+}
+/// This module is responsble for generate
+void xlayer_sequence_generator(vector < XlayerData > & xlayer_seq,XGraph *xgraph,kernelInfo& opt_descriptor,int in_put_layer){
 
 	XGraphOpt xgraphopt;
 	map<string, int> layer_seq_table;
 	map<string, string> layer_type_table;
 
-	map<string, string> mem_type_table;
-	vector < BDegree > Bdepth,reUseBdepth;
+	map<string, io_mem_data_type_e> mem_type_table;
+	vector < BDegree > Bdepth_interm,Bdepth,reUseBdepth;
 	vector<string> bn_opt_table;
-	checkGraphInsanity(xgraph);
+	map<string,struct io_type> LayerIOType;
 
-	xgraphopt.xi_opt_priorbox(xgraph);
-#if O_DEBUG
-	cout<<"xgraphopt.xi_opt_priorbox(&graph) done" << endl;
-#endif
+	xgraphopt.opt_data(xgraph);
 
-#if O_DEBUG
-	cout<<"xgraphopt.xi_opt_relu(&graph) done" << endl;
-#endif
-	xgraphopt.xi_opt_dropout(xgraph);
-#if O_DEBUG
-	cout<<"xgraphopt.xi_opt_dropout(&graph) done" << endl;
-#endif
+	update_layer_io_type(LayerIOType,opt_descriptor);
 
+	// checkGraphInsanity(xgraph);
 
-
-	xgraphopt.xi_opt_reshape(xgraph);
-	xgraphopt.xi_opt_flatten(xgraph);
-
-
+	xgraphopt.opt_priorbox(xgraph);
 
 #if O_DEBUG
-	cout << " xi_opt_concat optimization done" << endl;
+	cout<<"xgraphopt.opt_priorbox(&graph) done" << endl;
 #endif
 
 
 
-	xgraphopt.xi_opt_deconv(xgraph);
 #if O_DEBUG
-	cout << " xi_opt_deconv optimization done" << endl;
+	cout<<"xgraphopt.opt_relu(&graph) done" << endl;
 #endif
 
 
-	xi_update_xlayer_opcode(xgraph);
-	xgraphopt.xi_opt_crelu(xgraph);
-	xgraphopt.xi_opt_conv_bn_scale(xgraph);
-
-	xgraphopt.xi_opt_batchNorm(xgraph,bn_opt_table);
-	xgraphopt.xi_opt_eltwise(xgraph);
-
-	xgraphopt.xi_opt_fuse_bn_conv(xgraph,bn_opt_table);
+	xgraphopt.opt_dropout(xgraph);
+#if O_DEBUG
+	cout<<"xgraphopt.opt_dropout(&graph) done" << endl;
+#endif
 
 
 
-	//xgraphopt.xi_opt_eltwise(xgraph);
+	xgraphopt.opt_reshape(xgraph);
+	xgraphopt.opt_flatten(xgraph);
 
-	xgraphopt.xi_opt_relu(xgraph);
-	xgraphopt.xi_opt_lrn(xgraph);
-	xgraphopt.xi_opt_concat(xgraph);
 
-	xgraphopt.xi_opt_find_max_q_factor(xgraph);
-	xi_find_blobs_degree(xgraph,Bdepth);
 
 #if O_DEBUG
-	xi_print_blobs_degre(Bdepth);
+	cout << " opt_concat optimization done" << endl;
+#endif
+
+
+
+	xgraphopt.opt_deconv(xgraph);
+#if O_DEBUG
+	cout << " opt_deconv optimization done" << endl;
+#endif
+
+	xgraphopt.opt_conv_bn_scale(xgraph);
+
+	xgraphopt.opt_separable_conv(xgraph);
+
+	//xgraph->drawGraph("/tmp/optimized_3d_graph.dot");
+
+	xgraphopt.opt_separable_conv_only(xgraph);
+	//xgraphopt.opt_separable_conv_no_bias(xgraph,bn_opt_table); only needed for separable convolution have bias
+
+	xgraphopt.opt_crelu(xgraph);
+
+	xgraphopt.opt_batchNorm(xgraph,bn_opt_table);
+
+
+	//xgraphopt.opt_eltwise(xgraph);
+
+	if(bn_opt_table.size()){
+		xgraphopt.opt_fuse_bn_conv(xgraph,bn_opt_table);
+	}
+
+	//xgraphopt.opt_pool_conv_fuse(xgraph);
+
+	xgraphopt.opt_pool2conv(xgraph);
+
+	//#if FC_KERNEL_EXIST==0
+	//	xgraphopt.opt_fc2conv(xgraph);
+	//#endif
+
+	xgraphopt.opt_eltwise(xgraph);
+
+	xgraphopt.opt_relu(xgraph);
+
+	xgraphopt.opt_lrn(xgraph); // TODO offline changes need to discussed with team and add changes
+
+	xgraphopt.opt_concat(xgraph);
+	xgraphopt.opt_parallel_conv_fuse(xgraph);  //TODO:Anitha for SSD
+
+	//xgraphopt.custom_layer(xgraph); // after all optimization, custom layer support is added
+
+	//find_max_q_factor(xgraph);
+	//xgraph->drawGraph("/tmp/optimized_graph0.dot");
+
+
+	update_xlayer_opcode(xgraph,opt_descriptor);
+	find_total_output_plane(xgraph); // support is needed for extended batching
+	find_blobs_degree(xgraph,Bdepth_interm);
+	xgraphopt.update_xgraph_pack_unpack_layer(xgraph,Bdepth_interm,opt_descriptor,in_put_layer);
+
+	find_blobs_degree(xgraph,Bdepth);
+
+	//print_blobs_degre(Bdepth);
+	find_in_out_thresold(xgraph);
+#if O_DEBUG
+	print_blobs_degre(Bdepth);
 
 #endif
 
-	xi_create_seq_num_table(xlayer_seq,layer_seq_table,layer_type_table,Bdepth,xgraph);
-	xi_update_prev_next_layer_info(xlayer_seq,layer_seq_table,xgraph);
-	xi_update_io_mem_type(xlayer_seq,xgraph,Bdepth,layer_type_table,mem_type_table);
-	xi_update_buffer_reuse_xlayer_seq(xlayer_seq,Bdepth,layer_seq_table,mem_type_table,xgraph,reUseBdepth);
-	
+	create_seq_num_table(xlayer_seq,layer_seq_table,layer_type_table,Bdepth,xgraph);
+	update_prev_next_layer_info(xlayer_seq,layer_seq_table,xgraph);
+	update_io_mem_type(xlayer_seq,xgraph,Bdepth,layer_type_table,mem_type_table,LayerIOType,opt_descriptor);
+
+#if O_DEBUG
+	mem_type_print(mem_type_table);
+
+#endif
+
+
+	update_buffer_reuse_xlayer_seq(xlayer_seq,Bdepth,layer_seq_table,mem_type_table,xgraph,reUseBdepth);
+	//	xgraph->drawGraph("/tmp/optimized_graph.dot");
+
+
 }
 
+void XGraphOpt::opt_data(XGraph* graph){
 
-void checkGraphInsanity(XGraph* graph)
-{
-	//  #. Check if input shape, resize shape & mean shape are OK.
-	int nchannels = graph->input_blob.blob->shape.at(1);
-	int input_height = graph->input_blob.blob->shape.at(2);
-	int input_width = graph->input_blob.blob->shape.at(3);
+	string *input_layer_type = new string("Input");
+	int input_out_flag=0;
 
-	int resize_height = graph->transform_params.resize_height;
-	int resize_width = graph->transform_params.resize_width;
+	for(map < string, XLayer*>::iterator it = graph->layers.begin();it !=graph->layers.end();){
 
-	// If mean data has only one value or no value, then there is no issue at all.
-	if(graph->meanData.size() > 1)
-	{
-		// If mean has same number of elements as number of channels, then also no issue
-		if(graph->meanData.size() != nchannels)
-		{
-			// If resize shape is mentioned, number of elements in resized image and mean should be same
-			// If not specified, number of elements in input image and mean should be same.
-			if((resize_height > 0) && (resize_width > 0))
-			{
-				ELOG(   (nchannels * resize_height * resize_width != graph->meanData.size()),
-						EO006, "Number of elements in the mean data doesn't match total pixels as per resize dimensions : "
-						<< nchannels*resize_height*resize_width << " v/s " << graph->meanData.size() );
-			}
-			else
-			{
-				ELOG(   (nchannels * input_height * input_width != graph->meanData.size()),
-						EO007, "Number of elements in the mean data doesn't match total pixels as per input dimensions : "
-						<< nchannels*input_height*input_width << " v/s " << graph->meanData.size() );
-			}
+		if (it->second->type.compare(*input_layer_type)==0){
+			input_out_flag=1;
+			map < string, XBlob*>::iterator top_it = graph->blobs.find(it->second->top[0].blob->name);
+
+			mapStrXLayer::iterator cur_it = it;
+			it++;
+			xgrap_layer_delete(graph,cur_it->second->name);
+
+		}
+		if(input_out_flag==0)
+			it++;
+		else{
+
+			input_out_flag=0;
 		}
 	}
+	delete input_layer_type;
 }
-
-
-void XGraphOpt::xi_opt_priorbox(XGraph* graph)
+void XGraphOpt::opt_priorbox(XGraph* graph)
 {
 	// Find NMS Layer
 	mapStrXLayer_it nms_it = graph->layers.end();
@@ -2212,44 +4021,18 @@ void XGraphOpt::xi_opt_priorbox(XGraph* graph)
 		}
 		XLayer* pb_concat_layer = priorbox_concat_layer_it->second;
 		deallocateLayers.push_back(pb_concat_layer);
-		string pboxFileName = graph->saveDir + nms_layer->name + "_weights";
-		string varFileName = graph->saveDir + nms_layer->name + "_bias";
 
-#if GENERATE_CONSTDATA
-		// Open files to dump the priorbox
-		//string pboxFileName = nms_layer->uname + "_pbox.txt";
-
-		std::ofstream pbox_output_file(pboxFileName.c_str());
-		if(!pbox_output_file)
-		{
-			cerr << "[ERROR] Couldn't create " << pboxFileName << endl;
-			exit(-1);
-		}
-		std::ostream_iterator<float> pbox_output_iterator(pbox_output_file, "\n");
-
-		// Open file to dump variance
-		//string varFileName = nms_layer->uname + "_var.txt";
-		std::ofstream var_output_file(varFileName.c_str());
-		if(!var_output_file)
-		{
-			cerr << "[ERROR] Couldn't create " << varFileName << endl;
-			exit(-1);
-		}
-		std::ostream_iterator<float> var_output_iterator(var_output_file, "\n");
-#endif
+		// Vectors to store concatenated pbox and variances
+		vector<float>& pboxVector = nms_layer->nms_params->pbox;
+		vector<float>& varVector  = nms_layer->nms_params->var;
 
 		// Get the parent layers of prior_box_concat layer.
 		vector<string> pb_layers = graph->getParentLayers(nms_parent_layers.at(2));
-		vector<int> shape(3, 1);
-		shape[2] = 0;                   // Initialize last dim for accumulation
+		vector<int> shape(3, 1);        // shape = 1x1x1
+		shape[2] = 0;                   // shape = 1x1x0; Initialize last dim for accumulation
 
 		vector<string> blobsToBeDeleted;
 
-#if GENERATE_CONSTDATA
-		// #. Dump its data to corresponding txt files
-		cerr << "[IG003] Saving " << pboxFileName << endl;
-		cerr << "[IG004] Saving " << varFileName << endl;
-#endif
 		for(int i=0; i<pb_layers.size(); i++)
 		{
 			// #. Take each layer and check if it is a PriorBox Layer
@@ -2268,25 +4051,40 @@ void XGraphOpt::xi_opt_priorbox(XGraph* graph)
 			int dim = pboxShape[2];
 			shape[2] += dim;
 
-#if GENERATE_CONSTDATA
-			// #. Dump its data to corresponding txt files
-			std::copy(pb_layer->priorbox_params->pbox.begin(), pb_layer->priorbox_params->pbox.begin() + dim, pbox_output_iterator);
-			std::copy(pb_layer->priorbox_params->pbox.begin()+dim, pb_layer->priorbox_params->pbox.end(), var_output_iterator);
-#endif
+			// #. Concatenate the each pboxes and vars
+			pboxVector.insert(pboxVector.end(), pb_layer->priorbox_params->pbox.begin(), pb_layer->priorbox_params->pbox.begin() + dim);
+			varVector.insert(varVector.end(), pb_layer->priorbox_params->pbox.begin()+dim, pb_layer->priorbox_params->pbox.end());
 
 			// #. delete layer from the graph
 			vector<string> blobsToDelete = graph->deleteLayerFromGraph(pb_layer->name);
 			std::copy(blobsToDelete.begin(), blobsToDelete.end(), std::back_inserter(blobsToBeDeleted));
 		}
 
-		nms_layer->nms_params->pboxFile = pboxFileName;
-		nms_layer->nms_params->varFile = varFileName;
 		nms_layer->nms_params->pboxShape = shape;
 		nms_layer->nms_params->varShape = shape;
 
-#if GENERATE_CONSTDATA
-		pbox_output_file.close();
-		var_output_file.close();
+#if DEBUG_WEIGHT_EXTRACTION
+		string pboxFileName = graph->saveDir + nms_layer->name + "_weights";
+		string varFileName = graph->saveDir + nms_layer->name + "_bias";
+		nms_layer->nms_params->pboxFile = pboxFileName;
+		nms_layer->nms_params->varFile = varFileName;
+		int sizeInBytes1 = pboxVector.size() * sizeof(float);
+		cerr << "[IG001] Saving " << pboxFileName << " (" << humanReadableSize(sizeInBytes1) << ")" << "\t";
+		if(sizeInBytes1 > (14*1024*1024))
+		{
+			cerr << "Parsing large data, this may take a while ...";
+		}
+		cerr << endl;
+		SAVEDATA(pboxVector, pboxFileName);
+
+		int sizeInBytes2 = varVector.size() * sizeof(float);
+		cerr << "[IG001] Saving " << varFileName << " (" << humanReadableSize(sizeInBytes2) << ")" << "\t";
+		if(sizeInBytes2 > (14*1024*1024))
+		{
+			cerr << "Parsing large data, this may take a while ...";
+		}
+		cerr << endl;
+		SAVEDATA(varVector, varFileName);
 #endif
 
 		// #. Now remove the concat layer
@@ -2305,11 +4103,10 @@ void XGraphOpt::xi_opt_priorbox(XGraph* graph)
 		{
 			delete deallocateLayers.at(i);
 		}
-
 	}
-
 }
-void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table){
+
+void XGraphOpt::opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table){
 
 	string *batchNorm_layer_type = new string("BatchNorm");
 	string *scale_layer_type = new string("Scale");
@@ -2321,12 +4118,13 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();it++){
 
 		if(it->second->type.compare(*batchNorm_layer_type)==0){
+
 			string relu_output_file,scale_output_file;
+			int relu_flag_enabled =0;
 			if(it->second->batchnorm_params->global_stats==true){ //TODO currently resnet 50/34 we see global_stats always true... we may need to implement false case as well.
 
 				if(it->second->batchnorm_params->inPlace){
 
-					int relu_flag_enabled =0;
 					string blob_name = it->second->bottom[0].blob->name;
 
 					map < string, XBlob* > ::iterator blob_it = xgraph_opt->blobs.find(blob_name);
@@ -2351,9 +4149,8 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 
 								bn_opt_table.push_back(scale_layer_name);//]="Convolution";
 
-								string uniqname = xgraph_opt->getUniqueBlobName();
 								string username = scale_layer_name;
-								XBlob* tmp_blob = new XBlob(username, uniqname);
+								XBlob* tmp_blob = new XBlob(username);
 								xgraph_opt->blobs[username] = tmp_blob;
 
 								tmp_blob->shape=it->second->top[0].blob->shape;
@@ -2364,7 +4161,7 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 								nameIndex new_blob(tmp_blob, 0);
 
 								dst0->top.push_back(new_blob);
-
+								dst0->topShape.push_back(new_blob.blob->shape);
 								// copy lrn params to first conv params
 
 								dst0->conv_params->N = tmp_blob->shape.at(1);
@@ -2378,21 +4175,25 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 								dst0->conv_params->has_bias = 0;
 								dst0->conv_params->extra_reluflag = false;
 								dst0->conv_params->scale_gammaDim = layer_it->second->scale_params->gammaDim;
-								dst0->conv_params->scale_gammaPath = layer_it->second->scale_params->gammaPath;
+								dst0->conv_params->scale_gamma = layer_it->second->scale_params->gamma[0];
 								dst0->conv_params->scale_betaDim = layer_it->second->scale_params->betaDim;
-								dst0->conv_params->scale_betaPath = layer_it->second->scale_params->betaPath;
-								//cout<<"Opcode 10"<< layer_it->second->scale_params->gammaPath[0]<<endl;
-								//cout<<"Opcode 10"<< layer_it->second->scale_params->betaPath[0]<<endl;
+								dst0->conv_params->scale_beta = layer_it->second->scale_params->beta[0];
 								dst0->scale_beta_bw=layer_it->second->scale_beta_bw;
 								dst0->scale_beta_fl=layer_it->second->scale_beta_fl;
 								dst0->scale_gamma_bw= layer_it->second->scale_gamma_bw;
 								dst0->scale_gamma_fl= layer_it->second->scale_gamma_fl;
 								dst0->op_bw = layer_it->second->op_bw;
 								dst0->op_fl = layer_it->second->op_fl;
+								dst0->ip_fl = it->second->ip_fl;
+								dst0->ip_bw = it->second->ip_bw;
 								dst0->scale_gamma_by_std_bw = layer_it->second->scale_gamma_by_std_bw;
 								dst0->scale_gamma_by_std_fl = layer_it->second->scale_gamma_by_std_fl;
+								dst0->conv_params->th_layer_in_scale = layer_it->second->th_layer_in;
+								dst0->conv_params->th_layer_out_scale = layer_it->second->th_layer_out;
+								dst0->conv_params->th_params_beta_scale = layer_it->second->th_scale_beta;
+								dst0->conv_params->th_params_gamma_scale = layer_it->second->th_scale_gamma;
+								dst0->quantization_scheme = it->second->quantization_scheme;
 
-								//map < string, XBlob*>::iterator blob_it = xgraph_opt->blobs.find(it->second->top[0].blob->name);
 								map < string, XLayer*>::iterator relu_layer_it;
 								map < string, XLayer*>::iterator scale_layer_it;
 
@@ -2406,7 +4207,6 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 
 											relu_layer_it = prod_layer_it;
 											relu_flag_enabled=1;
-											//names_layers_del.push_back(prod_layer_it->second->name);
 											relu_output_file=prod_layer_it->second->output_file;
 											dst0->conv_params->extra_reluflag = true;
 											blob_it->second->producers.erase(blob_it->second->producers.begin() + iter_prod);
@@ -2431,7 +4231,6 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 										if(prod_layer_it->second->type.compare(*batchNorm_layer_type)==0){
 
 											tmp_batchnorm_name = prod_layer_it->second->name;
-											//names_layers_del.push_back(prod_layer_it->second->name);
 											blob_it->second->producers.erase(blob_it->second->producers.begin() + iter_prod);
 											iter_prod=iter_prod-2;
 											if(iter_prod==-2)
@@ -2443,9 +4242,9 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 								map < string, XLayer*>::iterator bn_layer_it=xgraph_opt->layers.find(tmp_batchnorm_name);
 
 								dst0->conv_params->batchnorm_meanDim = bn_layer_it->second->batchnorm_params->meanDim;
-								dst0->conv_params->batchnorm_meanPath = bn_layer_it->second->batchnorm_params->meanPath;
+								dst0->conv_params->batchnorm_mean = bn_layer_it->second->batchnorm_params->mean[0];
 								dst0->conv_params->batchnorm_varianceDim = bn_layer_it->second->batchnorm_params->varianceDim;
-								dst0->conv_params->batchnorm_variancePath = bn_layer_it->second->batchnorm_params->variancePath;
+								dst0->conv_params->batchnorm_variance = bn_layer_it->second->batchnorm_params->variance[0];
 								dst0->conv_params->batchnorm_eps = bn_layer_it->second->batchnorm_params->eps;
 								dst0->ip_bw = bn_layer_it->second->ip_bw;
 								dst0->ip_fl = bn_layer_it->second->ip_fl;
@@ -2453,6 +4252,11 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 								dst0->bn_mean_fl = bn_layer_it->second->bn_mean_fl;
 								dst0->bn_variance_bw = bn_layer_it->second->bn_variance_bw;
 								dst0->bn_variance_fl = bn_layer_it->second->bn_variance_fl;
+
+								dst0->conv_params->th_layer_in_batchnorm = bn_layer_it->second->th_layer_in;
+								dst0->conv_params->th_layer_out_batchnorm = bn_layer_it->second->th_layer_out;
+								dst0->conv_params->th_params_variance_batchnorm = bn_layer_it->second->th_bn_variance;
+								dst0->conv_params->th_params_mean_batchnorm = bn_layer_it->second->th_bn_mean;
 
 								for(int iter_con_c=0;iter_con_c<blob_it->second->consumers.size();iter_con_c++){
 
@@ -2472,9 +4276,7 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 										iter_con_c--;
 									}
 									else if(cons_layer_it->second->type.compare(*scale_layer_type)==0){
-										//	blob_it->second->consumers.erase(blob_it->second->consumers.begin()+ iter_con_c);
 										blob_it->second->consumers[iter_con_c]=scale_layer_name;
-										//iter_con_c--;
 									}
 
 									else if(cons_layer_it->second->type.compare("Convolution")==0){
@@ -2526,12 +4328,14 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 
 								dst0->opcode = OPCODE_BN;
 								dst0->bottom.push_back(blob_it->second);
+								dst0->bottomShape.push_back(blob_it->second->shape);
 								tmp_blob->producers.push_back(dst0->name);
 
 								if(relu_flag_enabled){
 
 									dst0->output_file=relu_output_file;
 									xgraph_opt->layers.erase(relu_layer_it);
+									relu_flag_enabled=0;
 
 								}else{
 
@@ -2572,7 +4376,7 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 											if (scale_top_cons_layer->second->type.compare(*relu_layer_type)==0){
 
 												if(!scale_top_cons_layer->second->relu_params->inPlace){
-
+													relu_flag_enabled=1;
 													string layer_name = "conv_scale";
 													std::stringstream ss1;
 													string tmp_batchnorm_name;
@@ -2584,7 +4388,7 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 
 													map < string, XBlob*>::iterator it_bottom_blob = xgraph_opt->blobs.find(it->second->bottom[0].blob->name); // TODO : assuming only one bottom blob is connected to BN layer
 													dst0->top.push_back(scale_top_cons_layer->second->top[0]); // TODO : assuming only one top blob is connected to ReLU layer
-
+													dst0->topShape.push_back(scale_top_cons_layer->second->topShape[0]);
 													scale_top_cons_layer->second->top[0].blob->producers[0]=dst0->name;
 
 													dst0->conv_params->N = it_bottom_blob->second->shape.at(1);
@@ -2598,10 +4402,9 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 													dst0->conv_params->has_bias = 0;
 													dst0->conv_params->extra_reluflag = true;
 													dst0->conv_params->scale_gammaDim = it_cons_layer->second->scale_params->gammaDim;
-													dst0->conv_params->scale_gammaPath = it_cons_layer->second->scale_params->gammaPath;
+													dst0->conv_params->scale_gamma = it_cons_layer->second->scale_params->gamma[0];
 													dst0->conv_params->scale_betaDim = it_cons_layer->second->scale_params->betaDim;
-													dst0->conv_params->scale_betaPath = it_cons_layer->second->scale_params->betaPath;
-
+													dst0->conv_params->scale_beta = it_cons_layer->second->scale_params->beta[0];
 													dst0->scale_beta_bw=it_cons_layer->second->scale_beta_bw;
 													dst0->scale_beta_fl=it_cons_layer->second->scale_beta_fl;
 													dst0->scale_gamma_bw= it_cons_layer->second->scale_gamma_bw;
@@ -2609,13 +4412,18 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 													dst0->scale_gamma_by_std_bw = it_cons_layer->second->scale_gamma_by_std_bw;
 													dst0->scale_gamma_by_std_fl = it_cons_layer->second->scale_gamma_by_std_fl;
 
+													dst0->conv_params->th_layer_in_scale = it_cons_layer->second->th_layer_in;
+													dst0->conv_params->th_layer_out_scale = it_cons_layer->second->th_layer_out;
+													dst0->conv_params->th_params_beta_scale = it_cons_layer->second->th_scale_beta;
+													dst0->conv_params->th_params_gamma_scale = it_cons_layer->second->th_scale_gamma;
+
 													dst0->op_bw = it_cons_layer->second->op_bw;
 													dst0->op_fl = it_cons_layer->second->op_fl;
 
 													dst0->conv_params->batchnorm_meanDim = it->second->batchnorm_params->meanDim;
-													dst0->conv_params->batchnorm_meanPath = it->second->batchnorm_params->meanPath;
+													dst0->conv_params->batchnorm_mean = it->second->batchnorm_params->mean[0];
 													dst0->conv_params->batchnorm_varianceDim = it->second->batchnorm_params->varianceDim;
-													dst0->conv_params->batchnorm_variancePath = it->second->batchnorm_params->variancePath;
+													dst0->conv_params->batchnorm_variance = it->second->batchnorm_params->variance[0];
 													dst0->conv_params->batchnorm_eps = it->second->batchnorm_params->eps;
 													dst0->ip_bw = it->second->ip_bw;
 													dst0->ip_fl = it->second->ip_fl;
@@ -2623,11 +4431,18 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 													dst0->bn_mean_fl = it->second->bn_mean_fl;
 													dst0->bn_variance_bw = it->second->bn_variance_bw;
 													dst0->bn_variance_fl = it->second->bn_variance_fl;
+
+													dst0->conv_params->th_layer_in_batchnorm = it->second->th_layer_in;
+													dst0->conv_params->th_layer_out_batchnorm = it->second->th_layer_out;
+													dst0->conv_params->th_params_variance_batchnorm = it->second->th_bn_variance;
+													dst0->conv_params->th_params_mean_batchnorm = it->second->th_bn_mean;
+
 													dst0->output_file = scale_top_cons_layer->second->output_file;
 													dst0->opcode = OPCODE_BN;
 													dst0->bottom.push_back(it->second->bottom[0]);
+													dst0->bottomShape.push_back(it->second->bottom[0].blob->shape);
 													it->second->bottom[0].blob->consumers[0] = dst0->name;
-
+													dst0->quantization_scheme = it->second->quantization_scheme;
 													map < string, XBlob*>::iterator bn_top_blob_it = xgraph_opt->blobs.find(it->second->top[0].blob->name);
 													xgraph_opt->blobs.erase(bn_top_blob_it);
 													xgraph_opt->layers.erase(it);
@@ -2668,9 +4483,9 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 													dst0->conv_params->has_bias = 0;
 													dst0->conv_params->extra_reluflag = true;
 													dst0->conv_params->scale_gammaDim = it_cons_layer->second->scale_params->gammaDim;
-													dst0->conv_params->scale_gammaPath = it_cons_layer->second->scale_params->gammaPath;
+													dst0->conv_params->scale_gamma = it_cons_layer->second->scale_params->gamma[0];
 													dst0->conv_params->scale_betaDim = it_cons_layer->second->scale_params->betaDim;
-													dst0->conv_params->scale_betaPath = it_cons_layer->second->scale_params->betaPath;
+													dst0->conv_params->scale_beta = it_cons_layer->second->scale_params->beta[0];
 
 													dst0->scale_beta_bw=it_cons_layer->second->scale_beta_bw;
 													dst0->scale_beta_fl=it_cons_layer->second->scale_beta_fl;
@@ -2679,18 +4494,25 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 													dst0->scale_gamma_by_std_bw = it_cons_layer->second->scale_gamma_by_std_bw;
 													dst0->scale_gamma_by_std_fl = it_cons_layer->second->scale_gamma_by_std_fl;
 
+													dst0->conv_params->th_layer_in_scale = it_cons_layer->second->th_layer_in;
+													dst0->conv_params->th_layer_out_scale = it_cons_layer->second->th_layer_out;
+													dst0->conv_params->th_params_beta_scale = it_cons_layer->second->th_scale_beta;
+													dst0->conv_params->th_params_gamma_scale = it_cons_layer->second->th_scale_gamma;
+
 													dst0->op_bw = it_cons_layer->second->op_bw;
 													dst0->op_fl = it_cons_layer->second->op_fl;
 
 													dst0->conv_params->batchnorm_meanDim = it->second->batchnorm_params->meanDim;
-													dst0->conv_params->batchnorm_meanPath = it->second->batchnorm_params->meanPath;
+													dst0->conv_params->batchnorm_mean = it->second->batchnorm_params->mean[0];
 													dst0->conv_params->batchnorm_varianceDim = it->second->batchnorm_params->varianceDim;
-													dst0->conv_params->batchnorm_variancePath = it->second->batchnorm_params->variancePath;
-
-
-
-
+													dst0->conv_params->batchnorm_variance = it->second->batchnorm_params->variance[0];
 													dst0->conv_params->batchnorm_eps = it->second->batchnorm_params->eps;
+
+													dst0->conv_params->th_layer_in_batchnorm = it->second->th_layer_in;
+													dst0->conv_params->th_layer_out_batchnorm = it->second->th_layer_out;
+													dst0->conv_params->th_params_variance_batchnorm = it->second->th_bn_variance;
+													dst0->conv_params->th_params_mean_batchnorm = it->second->th_bn_mean;
+
 													dst0->ip_bw = it->second->ip_bw;
 													dst0->ip_fl = it->second->ip_fl;
 													dst0->bn_mean_bw = it->second->bn_mean_bw;
@@ -2699,18 +4521,130 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 													dst0->bn_variance_fl = it->second->bn_variance_fl;
 													dst0->output_file = it_cons_layer->second->output_file;
 													dst0->opcode = OPCODE_BN;
-													dst0->bottom.push_back(it->second->bottom[0]);
-													it->second->bottom[0].blob->consumers[0] = dst0->name;
+													dst0->quantization_scheme = it->second->quantization_scheme;
+													for(int iter_b_s=0;iter_b_s<it->second->bottom.size();iter_b_s++){
+
+														dst0->bottom.push_back(it->second->bottom[iter_b_s]);
+														dst0->bottomShape.push_back(it->second->bottom[iter_b_s].blob->shape);
+														for(int iter_b_c=0;iter_b_c<it->second->bottom[iter_b_s].blob->consumers.size();iter_b_c++){
+
+															if(it->second->bottom[iter_b_s].blob->consumers[iter_b_c].compare(it->second->name)==0){
+
+																it->second->bottom[iter_b_s].blob->consumers[iter_b_c]=dst0->name;
+															}
+														}
+													}
+
+
 
 													map < string, XBlob*>::iterator bn_top_blob_it = xgraph_opt->blobs.find(it->second->top[0].blob->name);
 													xgraph_opt->blobs.erase(bn_top_blob_it);
 													xgraph_opt->layers.erase(it);
 
 													map < string, XBlob*>::iterator scale_top_blob_it = xgraph_opt->blobs.find(it_cons_layer->second->top[0].blob->name);
-													xgraph_opt->blobs.erase(scale_top_blob_it);
+
+													std::vector<string>::iterator it_str=std::find(scale_top_blob_it->second->producers.begin(),scale_top_blob_it->second->producers.end(),scale_top_cons_layer->second->name);
+													if(it_str!=scale_top_blob_it->second->producers.end())
+													{
+														scale_top_blob_it->second->producers.erase(it_str);
+													}
+													it_str=std::find(scale_top_blob_it->second->consumers.begin(),scale_top_blob_it->second->consumers.end(),scale_top_cons_layer->second->name);
+													if(it_str!=scale_top_blob_it->second->consumers.end())
+													{
+														scale_top_blob_it->second->consumers.erase(it_str);
+													}
+
 													xgraph_opt->layers.erase(it_cons_layer);
+													xgraph_opt->layers.erase(scale_top_cons_layer);
 													batchnorm_cnt++;
 												}
+											}else{
+
+												string layer_name = "conv_scale";
+												std::stringstream ss1;
+												string tmp_batchnorm_name;
+												ss1<<layer_name<<batchnorm_cnt;
+												string scale_layer_name = ss1.str();//"conv_lrn1";
+
+
+												bn_opt_table.push_back(scale_layer_name);
+												XLayer* dst0 = new XLayer(scale_layer_name, "Convolution");
+												xgraph_opt->layers[scale_layer_name] = dst0;
+
+												map < string, XBlob*>::iterator it_bottom_blob = xgraph_opt->blobs.find(it->second->bottom[0].blob->name); // TODO : assuming only one bottom blob is connected to BN layer
+												dst0->top.push_back(it_cons_layer->second->top[0]); // TODO : assuming only one top blob is connected to ReLU layer
+
+												it_cons_layer->second->top[0].blob->producers[0]=dst0->name;
+
+												dst0->conv_params->N = it_bottom_blob->second->shape.at(1);
+												dst0->conv_params->M = it_cons_layer->second->top[0].blob->shape.at(1); // TODO : assuming only one top blob is connected to ReLU layer
+												dst0->conv_params->filter_h = 0;
+												dst0->conv_params->filter_w = 0;
+												dst0->conv_params->pad_h=0;
+												dst0->conv_params->pad_w=0;
+												dst0->conv_params->dilation=1;
+												dst0->conv_params->group =1;
+												dst0->conv_params->has_bias = 0;
+												dst0->conv_params->extra_reluflag = true;
+												dst0->conv_params->scale_gammaDim = it_cons_layer->second->scale_params->gammaDim;
+												dst0->conv_params->scale_gamma = it_cons_layer->second->scale_params->gamma[0];
+												dst0->conv_params->scale_betaDim = it_cons_layer->second->scale_params->betaDim;
+												dst0->conv_params->scale_beta = it_cons_layer->second->scale_params->beta[0];
+
+												dst0->conv_params->th_layer_in_scale = it_cons_layer->second->th_layer_in;
+												dst0->conv_params->th_layer_out_scale = it_cons_layer->second->th_layer_out;
+												dst0->conv_params->th_params_beta_scale = it_cons_layer->second->th_scale_beta;
+												dst0->conv_params->th_params_gamma_scale = it_cons_layer->second->th_scale_gamma;
+
+												dst0->scale_beta_bw=it_cons_layer->second->scale_beta_bw;
+												dst0->scale_beta_fl=it_cons_layer->second->scale_beta_fl;
+												dst0->scale_gamma_bw= it_cons_layer->second->scale_gamma_bw;
+												dst0->scale_gamma_fl= it_cons_layer->second->scale_gamma_fl;
+												dst0->scale_gamma_by_std_bw = it_cons_layer->second->scale_gamma_by_std_bw;
+												dst0->scale_gamma_by_std_fl = it_cons_layer->second->scale_gamma_by_std_fl;
+
+												dst0->op_bw = it_cons_layer->second->op_bw;
+												dst0->op_fl = it_cons_layer->second->op_fl;
+
+												dst0->conv_params->batchnorm_meanDim = it->second->batchnorm_params->meanDim;
+												dst0->conv_params->batchnorm_mean = it->second->batchnorm_params->mean[0];
+												dst0->conv_params->batchnorm_varianceDim = it->second->batchnorm_params->varianceDim;
+												dst0->conv_params->batchnorm_variance = it->second->batchnorm_params->variance[0];
+												dst0->conv_params->batchnorm_eps = it->second->batchnorm_params->eps;
+
+												dst0->conv_params->th_layer_in_batchnorm = it->second->th_layer_in;
+												dst0->conv_params->th_layer_out_batchnorm = it->second->th_layer_out;
+												dst0->conv_params->th_params_variance_batchnorm = it->second->th_bn_variance;
+												dst0->conv_params->th_params_mean_batchnorm = it->second->th_bn_mean;
+
+												dst0->ip_bw = it->second->ip_bw;
+												dst0->ip_fl = it->second->ip_fl;
+												dst0->bn_mean_bw = it->second->bn_mean_bw;
+												dst0->bn_mean_fl = it->second->bn_mean_fl;
+												dst0->bn_variance_bw = it->second->bn_variance_bw;
+												dst0->bn_variance_fl = it->second->bn_variance_fl;
+												dst0->output_file = it_cons_layer->second->output_file;
+												dst0->opcode = OPCODE_BN;
+												dst0->quantization_scheme = it->second->quantization_scheme;
+												for(int iter_b_s=0;iter_b_s<it->second->bottom.size();iter_b_s++){
+
+													dst0->bottom.push_back(it->second->bottom[iter_b_s]);
+													dst0->bottomShape.push_back(it->second->bottom[iter_b_s].blob->shape);
+													for(int iter_b_c=0;iter_b_c<it->second->bottom[iter_b_s].blob->consumers.size();iter_b_c++){
+
+														if(it->second->bottom[iter_b_s].blob->consumers[iter_b_c].compare(it->second->name)==0){
+
+															it->second->bottom[iter_b_s].blob->consumers[iter_b_c]=dst0->name;
+														}
+													}
+												}
+
+												map < string, XBlob*>::iterator bn_top_blob_it = xgraph_opt->blobs.find(it->second->top[0].blob->name);
+												xgraph_opt->blobs.erase(bn_top_blob_it);
+												xgraph_opt->layers.erase(it);
+												xgraph_opt->layers.erase(it_cons_layer);
+
+												batchnorm_cnt++;
 											}
 										}
 									}
@@ -2723,10 +4657,13 @@ void XGraphOpt::xi_opt_batchNorm(XGraph *xgraph_opt,vector<string> &bn_opt_table
 			}
 		}
 	}
+	delete batchNorm_layer_type;
+	delete scale_layer_type;
+	delete relu_layer_type;
 }
 
 
-void XGraphOpt::xi_opt_scale(XGraph *xgraph_opt){
+void XGraphOpt::opt_scale(XGraph *xgraph_opt){
 
 	string *scale_layer_type = new string("Scale");
 	string *relu_layer_type = new string("ReLU");
@@ -2753,9 +4690,9 @@ void XGraphOpt::xi_opt_scale(XGraph *xgraph_opt){
 				XLayer* dst0 = new XLayer(scale_layer_name, "Convolution");
 				xgraph_opt->layers[scale_layer_name] = dst0;
 
-				string uniqname = xgraph_opt->getUniqueBlobName();
+				//string uniqname = xgraph_opt->getUniqueBlobName();
 				string username = scale_layer_name;
-				XBlob* tmp_blob = new XBlob(username, uniqname);
+				XBlob* tmp_blob = new XBlob(username);
 				xgraph_opt->blobs[username] = tmp_blob;
 
 				tmp_blob->shape=it->second->top[0].blob->shape;
@@ -2780,9 +4717,11 @@ void XGraphOpt::xi_opt_scale(XGraph *xgraph_opt){
 				dst0->conv_params->has_bias = 0;
 				dst0->conv_params->reluflag = false;
 				dst0->conv_params->scale_gammaDim = it->second->scale_params->gammaDim;
-				dst0->conv_params->scale_gammaPath = it->second->scale_params->gammaPath;
+				//dst0->conv_params->scale_gammaPath = it->second->scale_params->gammaPath;
+				dst0->conv_params->scale_gamma = it->second->scale_params->gamma[0];
 				dst0->conv_params->scale_betaDim = it->second->scale_params->betaDim;
-				dst0->conv_params->scale_betaPath = it->second->scale_params->betaPath;
+				//dst0->conv_params->scale_betaPath = it->second->scale_params->betaPath;
+				dst0->conv_params->scale_beta = it->second->scale_params->beta[0];
 
 
 				map < string, XBlob*>::iterator blob_it = xgraph_opt->blobs.find(it->second->top[0].blob->name);
@@ -2881,9 +4820,11 @@ void XGraphOpt::xi_opt_scale(XGraph *xgraph_opt){
 				map < string, XLayer*>::iterator bn_layer_it=xgraph_opt->layers.find(tmp_batchnorm_name);
 
 				dst0->conv_params->batchnorm_meanDim = bn_layer_it->second->batchnorm_params->meanDim;
-				dst0->conv_params->batchnorm_meanPath = bn_layer_it->second->batchnorm_params->meanPath;
+				//dst0->conv_params->batchnorm_meanPath = bn_layer_it->second->batchnorm_params->meanPath;
+				dst0->conv_params->batchnorm_mean = bn_layer_it->second->batchnorm_params->mean[0];
 				dst0->conv_params->batchnorm_varianceDim = bn_layer_it->second->batchnorm_params->varianceDim;
-				dst0->conv_params->batchnorm_variancePath = bn_layer_it->second->batchnorm_params->variancePath;
+				//dst0->conv_params->batchnorm_variancePath = bn_layer_it->second->batchnorm_params->variancePath;
+				dst0->conv_params->batchnorm_variance = bn_layer_it->second->batchnorm_params->variance[0];
 				dst0->conv_params->batchnorm_eps = bn_layer_it->second->batchnorm_params->eps;
 
 				dst0->opcode = OPCODE_BN;
@@ -2902,11 +4843,562 @@ void XGraphOpt::xi_opt_scale(XGraph *xgraph_opt){
 	}
 	delete scale_layer_type;
 	delete relu_layer_type;
+	delete batchNorm_layer_type;
 }
 
 
+/*void XGraphOpt::opt_pool2conv(XGraph *xgraph_opt){
 
-void XGraphOpt::xi_opt_eltwise(XGraph *xgraph_opt){
+	string *pool_layer_type = new string("Pooling");
+
+	int pool_cnt=0;
+
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();){
+
+		if (it->second->type.compare(*pool_layer_type)==0 && (it->second->pool_params->PoolType==AVE)){
+
+#if POOL_KERNEL_EXIST
+
+			string layer_name = "conv_pool";
+			std::stringstream ss1;
+
+			ss1<<layer_name<<pool_cnt;
+			string pool_layer_name = ss1.str();//"conv_lrn1";
+
+			XLayer* dst0 = new XLayer(pool_layer_name, "Convolution");
+
+			xgraph_opt->layers[pool_layer_name] = dst0;
+
+			map < string, XBlob*>::iterator top_blob_it;
+			map < string, XBlob*>::iterator bottom_blob_it;
+
+			for(int iter_top=0;iter_top<it->second->top.size();iter_top++){
+
+				dst0->top.push_back(it->second->top[iter_top]);
+				dst0->topShape.push_back(it->second->topShape[iter_top]);
+				string top_blob_name = it->second->top[iter_top].blob->name;
+
+				top_blob_it = xgraph_opt->blobs.find(top_blob_name);
+
+				for(int iter_t_p=0;iter_t_p<top_blob_it->second->producers.size();iter_t_p++){
+
+					if(top_blob_it->second->producers[iter_t_p].compare(it->second->name)==0){
+						top_blob_it->second->producers[iter_t_p] = pool_layer_name;
+					}
+				}
+			}
+
+			for(int iter_bot=0;iter_bot<it->second->bottom.size();iter_bot++){
+
+				dst0->bottom.push_back(it->second->bottom[iter_bot]);
+				dst0->bottomShape.push_back(it->second->bottomShape[iter_bot]);
+
+				string bottom_blob_name = it->second->bottom[iter_bot].blob->name;
+
+				bottom_blob_it = xgraph_opt->blobs.find(bottom_blob_name);
+
+				for(int iter_b_c=0;iter_b_c<bottom_blob_it->second->consumers.size();iter_b_c++){
+
+					if(bottom_blob_it->second->consumers[iter_b_c].compare(it->second->name)==0){
+						bottom_blob_it->second->consumers[iter_b_c] = pool_layer_name;
+					}
+				}
+
+			}
+
+			dst0->intermediateShape.push_back(it->second->topShape[0]);
+			dst0->conv_params->M_3d = it->second->pool_params->N;
+			dst0->conv_params->N_3d = it->second->pool_params->N;
+			dst0->conv_params->filter_h_3d = it->second->pool_params->kernel_h;
+			dst0->conv_params->filter_w_3d = it->second->pool_params->kernel_w;
+
+			dst0->conv_params->stride_h_3d = it->second->pool_params->stride_h;
+			dst0->conv_params->stride_w_3d = it->second->pool_params->stride_w;
+			dst0->conv_params->pad_h_3d = it->second->pool_params->pad_h;
+			dst0->conv_params->pad_w_3d = it->second->pool_params->pad_w;
+
+			dst0->conv_params->ip_bw_3d = it->second->ip_bw;
+			dst0->conv_params->ip_fl_3d = it->second->ip_fl;
+			dst0->conv_params->op_bw_3d = it->second->op_bw;
+			dst0->conv_params->op_fl_3d = it->second->op_fl;
+
+			dst0->conv_params->th_layer_in_3d = it->second->th_layer_in;
+			dst0->conv_params->th_layer_out_3d = it->second->th_layer_out;
+			dst0->conv_params->th_params_3d = it->second->th_params;
+			dst0->quantization_scheme = it->second->quantization_scheme;
+			dst0->output_file=it->second->output_file;
+			//			if(it->second->pool_params->PoolType==MAX)
+			//				dst0->opcode = OPCODE_POOL2CONV;
+			//			else
+			dst0->opcode = OPCODE_AVRPOOL2CONV;
+
+			dst0->conv_params->reluflag=false;
+
+			mapStrXLayer::iterator cur_it = it;
+			it++;
+			xgraph_opt->layers.erase(cur_it);
+			pool_cnt++;
+
+#else
+			it++;
+#endif
+		}else{
+			it++;
+		}
+	}
+	delete pool_layer_type;
+}*/
+void XGraphOpt::opt_pool2conv(XGraph *xgraph_opt){
+
+	string *pool_layer_type = new string("Pooling");
+
+	int pool_cnt=0;
+
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();){
+
+		if (it->second->type.compare(*pool_layer_type)==0){
+
+			if(it->second->pool_params->PoolType==AVE){
+
+				string layer_name = "conv_pool";
+				std::stringstream ss1;
+
+				ss1<<layer_name<<pool_cnt;
+				string pool_layer_name = ss1.str();//"conv_lrn1";
+
+				XLayer* dst0 = new XLayer(pool_layer_name, "Convolution");
+
+				xgraph_opt->layers[pool_layer_name] = dst0;
+
+				map < string, XBlob*>::iterator top_blob_it;
+				map < string, XBlob*>::iterator bottom_blob_it;
+
+				for(int iter_top=0;iter_top<it->second->top.size();iter_top++){
+
+					dst0->top.push_back(it->second->top[iter_top]);
+					dst0->topShape.push_back(it->second->topShape[iter_top]);
+					string top_blob_name = it->second->top[iter_top].blob->name;
+
+					top_blob_it = xgraph_opt->blobs.find(top_blob_name);
+
+					for(int iter_t_p=0;iter_t_p<top_blob_it->second->producers.size();iter_t_p++){
+
+						if(top_blob_it->second->producers[iter_t_p].compare(it->second->name)==0){
+							top_blob_it->second->producers[iter_t_p] = pool_layer_name;
+						}
+					}
+				}
+
+				for(int iter_bot=0;iter_bot<it->second->bottom.size();iter_bot++){
+
+					dst0->bottom.push_back(it->second->bottom[iter_bot]);
+					dst0->bottomShape.push_back(it->second->bottomShape[iter_bot]);
+
+					string bottom_blob_name = it->second->bottom[iter_bot].blob->name;
+
+					bottom_blob_it = xgraph_opt->blobs.find(bottom_blob_name);
+
+					for(int iter_b_c=0;iter_b_c<bottom_blob_it->second->consumers.size();iter_b_c++){
+
+						if(bottom_blob_it->second->consumers[iter_b_c].compare(it->second->name)==0){
+							bottom_blob_it->second->consumers[iter_b_c] = pool_layer_name;
+						}
+					}
+
+				}
+
+				dst0->intermediateShape.push_back(it->second->topShape[0]);
+				dst0->conv_params->M_3d = it->second->pool_params->N;
+				dst0->conv_params->N_3d = it->second->pool_params->N;
+				dst0->conv_params->filter_h_3d = it->second->pool_params->kernel_h;
+				dst0->conv_params->filter_w_3d = it->second->pool_params->kernel_w;
+
+				dst0->conv_params->stride_h_3d = it->second->pool_params->stride_h;
+				dst0->conv_params->stride_w_3d = it->second->pool_params->stride_w;
+				dst0->conv_params->pad_h_3d = it->second->pool_params->pad_h;
+				dst0->conv_params->pad_w_3d = it->second->pool_params->pad_w;
+
+				dst0->conv_params->ip_bw_3d = it->second->ip_bw;
+				dst0->conv_params->ip_fl_3d = it->second->ip_fl;
+				dst0->conv_params->op_bw_3d = it->second->op_bw;
+				dst0->conv_params->op_fl_3d = it->second->op_fl;
+
+				dst0->conv_params->th_layer_in_3d = it->second->th_layer_in;
+				dst0->conv_params->th_layer_out_3d = it->second->th_layer_out;
+				dst0->conv_params->th_params_3d = it->second->th_params;
+				dst0->quantization_scheme = it->second->quantization_scheme;
+				dst0->output_file=it->second->output_file;
+				//			if(it->second->pool_params->PoolType==MAX)
+				//				dst0->opcode = OPCODE_POOL2CONV;
+				//			else
+				dst0->opcode = OPCODE_AVRPOOL2CONV;
+
+				dst0->conv_params->reluflag=false;
+
+				mapStrXLayer::iterator cur_it = it;
+				it++;
+				xgraph_opt->layers.erase(cur_it);
+				pool_cnt++;
+
+			}else{
+#if POOL_KERNEL_EXIST==0
+				string layer_name = "conv_pool";
+				std::stringstream ss1;
+
+				ss1<<layer_name<<pool_cnt;
+				string pool_layer_name = ss1.str();//"conv_lrn1";
+
+				XLayer* dst0 = new XLayer(pool_layer_name, "Convolution");
+
+				xgraph_opt->layers[pool_layer_name] = dst0;
+
+				map < string, XBlob*>::iterator top_blob_it;
+				map < string, XBlob*>::iterator bottom_blob_it;
+
+				for(int iter_top=0;iter_top<it->second->top.size();iter_top++){
+
+					dst0->top.push_back(it->second->top[iter_top]);
+					dst0->topShape.push_back(it->second->topShape[iter_top]);
+					string top_blob_name = it->second->top[iter_top].blob->name;
+
+					top_blob_it = xgraph_opt->blobs.find(top_blob_name);
+
+					for(int iter_t_p=0;iter_t_p<top_blob_it->second->producers.size();iter_t_p++){
+
+						if(top_blob_it->second->producers[iter_t_p].compare(it->second->name)==0){
+							top_blob_it->second->producers[iter_t_p] = pool_layer_name;
+						}
+					}
+				}
+
+				for(int iter_bot=0;iter_bot<it->second->bottom.size();iter_bot++){
+
+					dst0->bottom.push_back(it->second->bottom[iter_bot]);
+					dst0->bottomShape.push_back(it->second->bottomShape[iter_bot]);
+
+					string bottom_blob_name = it->second->bottom[iter_bot].blob->name;
+
+					bottom_blob_it = xgraph_opt->blobs.find(bottom_blob_name);
+
+					for(int iter_b_c=0;iter_b_c<bottom_blob_it->second->consumers.size();iter_b_c++){
+
+						if(bottom_blob_it->second->consumers[iter_b_c].compare(it->second->name)==0){
+							bottom_blob_it->second->consumers[iter_b_c] = pool_layer_name;
+						}
+					}
+
+				}
+
+				dst0->intermediateShape.push_back(it->second->topShape[0]);
+				dst0->conv_params->M_3d = it->second->pool_params->N;
+				dst0->conv_params->N_3d = it->second->pool_params->N;
+				dst0->conv_params->filter_h_3d = it->second->pool_params->kernel_h;
+				dst0->conv_params->filter_w_3d = it->second->pool_params->kernel_w;
+
+				dst0->conv_params->stride_h_3d = it->second->pool_params->stride_h;
+				dst0->conv_params->stride_w_3d = it->second->pool_params->stride_w;
+				dst0->conv_params->pad_h_3d = it->second->pool_params->pad_h;
+				dst0->conv_params->pad_w_3d = it->second->pool_params->pad_w;
+
+				dst0->conv_params->ip_bw_3d = it->second->ip_bw;
+				dst0->conv_params->ip_fl_3d = it->second->ip_fl;
+				dst0->conv_params->op_bw_3d = it->second->op_bw;
+				dst0->conv_params->op_fl_3d = it->second->op_fl;
+
+				dst0->conv_params->th_layer_in_3d = it->second->th_layer_in;
+				dst0->conv_params->th_layer_out_3d = it->second->th_layer_out;
+				dst0->conv_params->th_params_3d = it->second->th_params;
+				dst0->quantization_scheme = it->second->quantization_scheme;
+				dst0->output_file=it->second->output_file;
+				//			if(it->second->pool_params->PoolType==MAX)
+				//				dst0->opcode = OPCODE_POOL2CONV;
+				//			else
+				dst0->opcode = OPCODE_POOL2CONV;
+
+				dst0->conv_params->reluflag=false;
+
+				mapStrXLayer::iterator cur_it = it;
+				it++;
+				xgraph_opt->layers.erase(cur_it);
+				pool_cnt++;
+#else
+				it++;
+#endif
+			}
+		}else{
+			it++;
+		}
+	}
+	delete pool_layer_type;
+}
+void XGraphOpt::opt_fc2conv(XGraph *xgraph_opt){
+
+	string *fc_layer_type = new string("InnerProduct");
+
+	int fc_cnt=0;
+
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();){
+
+		if (it->second->type.compare(*fc_layer_type)==0){
+
+
+			string layer_name = "conv_fc";
+			std::stringstream ss1;
+
+			ss1<<layer_name<<fc_cnt;
+			string fc_layer_name = ss1.str();//"conv_lrn1";
+
+			XLayer* dst0 = new XLayer(fc_layer_name, "Convolution");
+			xgraph_opt->layers[fc_layer_name] = dst0;
+
+			map < string, XBlob*>::iterator top_blob_it;
+			map < string, XBlob*>::iterator bottom_blob_it;
+
+			for(int iter_top=0;iter_top<it->second->top.size();iter_top++){
+
+				dst0->top.push_back(it->second->top[iter_top]);
+				dst0->topShape.push_back(it->second->topShape[iter_top]);
+				string top_blob_name = it->second->top[iter_top].blob->name;
+
+				top_blob_it = xgraph_opt->blobs.find(top_blob_name);
+
+				for(int iter_t_p=0;iter_t_p<top_blob_it->second->producers.size();iter_t_p++){
+
+					if(top_blob_it->second->producers[iter_t_p].compare(it->second->name)==0){
+						top_blob_it->second->producers[iter_t_p] = fc_layer_name;
+					}
+				}
+			}
+
+			for(int iter_bot=0;iter_bot<it->second->bottom.size();iter_bot++){
+
+				dst0->bottom.push_back(it->second->bottom[iter_bot]);
+				dst0->bottomShape.push_back(it->second->bottomShape[iter_bot]);
+
+				string bottom_blob_name = it->second->bottom[iter_bot].blob->name;
+
+				bottom_blob_it = xgraph_opt->blobs.find(bottom_blob_name);
+
+				for(int iter_b_c=0;iter_b_c<bottom_blob_it->second->consumers.size();iter_b_c++){
+
+					if(bottom_blob_it->second->consumers[iter_b_c].compare(it->second->name)==0){
+						bottom_blob_it->second->consumers[iter_b_c] = fc_layer_name;
+					}
+				}
+
+			}
+
+			dst0->conv_params->M_3d = it->second->fc_params->M;
+			dst0->conv_params->N_3d = it->second->fc_params->N;
+			dst0->conv_params->has_bias_3d = it->second->fc_params->has_bias;
+			dst0->conv_params->weightsPath_3d = it->second->fc_params->weightsPath;
+
+			dst0->conv_params->biasPath_3d = it->second->fc_params->biasPath;
+			dst0->conv_params->weights_3d = it->second->fc_params->weights;
+			dst0->conv_params->bias_3d = it->second->fc_params->bias;
+			dst0->conv_params->weightsDim_3d = it->second->fc_params->weightsDim;
+			dst0->conv_params->biasDim_3d = it->second->fc_params->biasDim;
+
+			dst0->conv_params->ip_bw_3d = it->second->ip_bw;
+			dst0->conv_params->ip_fl_3d = it->second->ip_fl;
+
+			dst0->conv_params->op_bw_3d = it->second->op_bw;
+			dst0->conv_params->op_fl_3d = it->second->op_fl;
+			dst0->conv_params->wt_bw_3d = it->second->wt_bw;
+			dst0->conv_params->wt_fl_3d = it->second->wt_fl;
+
+			dst0->conv_params->th_layer_in_3d = it->second->th_layer_in;
+			dst0->conv_params->th_layer_out_3d = it->second->th_layer_out;
+			dst0->conv_params->th_params_3d = it->second->th_params;
+
+			dst0->intermediateShape.push_back(it->second->topShape[0]);
+			dst0->opcode = OPCODE_FC2CONV;
+			dst0->conv_params->reluflag=false;
+			dst0->output_file=it->second->output_file;
+			dst0->quantization_scheme = it->second->quantization_scheme;
+			mapStrXLayer::iterator cur_it = it;
+			it++;
+			xgraph_opt->layers.erase(cur_it);
+			fc_cnt++;
+		}else{
+			it++;
+		}
+	}
+	delete fc_layer_type;
+}
+
+void XGraphOpt::opt_pool_conv_fuse(XGraph *xgraph_opt){
+
+	string *relu_layer_type = new string("ReLU");
+
+	string *conv_layer_type = new string("Convolution");
+	string *pool_layer_type = new string("Pooling");
+
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();){
+
+		if(it->second->type.compare(*pool_layer_type)==0){
+
+
+			if(it->second->top.size()==1){
+
+				int tem_3d_relu_flag = 0;
+
+				map < string, XBlob*>::iterator it_top_b = xgraph_opt->blobs.find(it->second->top[0].blob->name);
+
+				if(it_top_b->second->consumers.size()==1){
+
+					map < string, XLayer*>::iterator it_cun_layer = xgraph_opt->layers.find(it_top_b->second->consumers[0]);
+
+					if(it_cun_layer->second->type.compare(*conv_layer_type)==0){
+
+						it_cun_layer->second->conv_params->M_3d = it->second->pool_params->N;
+						it_cun_layer->second->conv_params->N_3d = it->second->pool_params->N;
+						it_cun_layer->second->conv_params->filter_h_3d = it->second->pool_params->kernel_h;
+						it_cun_layer->second->conv_params->filter_w_3d = it->second->pool_params->kernel_w;
+
+						it_cun_layer->second->conv_params->stride_h_3d = it->second->pool_params->stride_h;
+						it_cun_layer->second->conv_params->stride_w_3d = it->second->pool_params->stride_w;
+						it_cun_layer->second->conv_params->pad_h_3d = it->second->pool_params->pad_h;
+						it_cun_layer->second->conv_params->pad_w_3d = it->second->pool_params->pad_w;
+
+						it_cun_layer->second->conv_params->ip_bw_3d = it->second->ip_bw;
+						it_cun_layer->second->conv_params->ip_fl_3d = it->second->ip_fl;
+						it_cun_layer->second->conv_params->op_bw_3d = it->second->op_bw;
+						it_cun_layer->second->conv_params->op_fl_3d = it->second->op_fl;
+
+						it_cun_layer->second->conv_params->th_layer_in_3d = it->second->th_layer_in;
+						it_cun_layer->second->conv_params->th_layer_out_3d = it->second->th_layer_out;
+						it_cun_layer->second->conv_params->th_params_3d = it->second->th_params;
+
+						it_cun_layer->second->opcode=OPCODE_POOL_CONV2CONV;
+
+
+
+						for(int iter_bs=0;iter_bs<it->second->bottomShape.size();iter_bs++){
+							it_cun_layer->second->bottomShape[iter_bs]=it->second->bottomShape[iter_bs];
+						}
+
+						map < string, XBlob*>::iterator bottom_blob = xgraph_opt->blobs.find(it_cun_layer->second->bottom[0].blob->name);
+
+						std::vector<string>::iterator it_str=std::find(it->second->bottom[0].blob->consumers.begin(),it->second->bottom[0].blob->consumers.end(),it->second->name);
+
+						if(it_str!=it->second->bottom[0].blob->consumers.end())
+						{
+							it->second->bottom[0].blob->consumers.erase(it_str);
+						}
+
+						it_cun_layer->second->bottom[0].blob=it->second->bottom[0].blob;
+						it_cun_layer->second->bottom[0].id = it->second->bottom[0].id;
+						it_cun_layer->second->intermediateShape.push_back(it->second->topShape[0]);
+						it->second->bottom[0].blob->consumers.push_back(it_cun_layer->second->name);
+
+						xgraph_opt->blobs.erase(bottom_blob);
+						mapStrXLayer::iterator cur_it = it;
+						it++;
+						xgraph_opt->layers.erase(cur_it);
+
+					}else{
+						it++;
+						continue;
+					}
+				}else{
+
+					if(it_top_b->second->consumers.size()==2){
+
+						int cnt_type =0;
+						int conv_indx=-1;
+						int relu_indx=-1;
+						vector<string> name_layer_vect;
+						string tmp_conv_name ;
+						string tmp_relu_name ;
+						int l_conv_f=0;
+						vector<map < string, XLayer*>::iterator> vect_layer_it;
+
+						for(int iter_c_t=0;iter_c_t<it_top_b->second->consumers.size();iter_c_t++){
+
+							map < string, XLayer*>::iterator cuns_layer_t = xgraph_opt->layers.find(it_top_b->second->consumers[iter_c_t]);
+							vect_layer_it.push_back(cuns_layer_t);
+							if((cuns_layer_t->second->type.compare(*conv_layer_type)==0) &&(l_conv_f==0)){
+								tmp_conv_name = cuns_layer_t->second->name;
+								conv_indx=iter_c_t;
+								l_conv_f=1;
+								cnt_type++;
+
+							}else{
+								if(cuns_layer_t->second->type.compare(*relu_layer_type)==0){
+									tmp_relu_name = cuns_layer_t->second->name;
+									relu_indx=iter_c_t;
+									cnt_type++;
+								}
+							}
+						}
+						if(cnt_type==2){
+
+							vect_layer_it[conv_indx]->second->conv_params->M_3d = it->second->pool_params->N;
+							vect_layer_it[conv_indx]->second->conv_params->N_3d = it->second->pool_params->N;
+							vect_layer_it[conv_indx]->second->conv_params->filter_h_3d = it->second->pool_params->kernel_h;
+							vect_layer_it[conv_indx]->second->conv_params->filter_w_3d = it->second->pool_params->kernel_w;
+
+							vect_layer_it[conv_indx]->second->conv_params->stride_h_3d = it->second->pool_params->stride_h;
+							vect_layer_it[conv_indx]->second->conv_params->stride_w_3d = it->second->pool_params->stride_w;
+							vect_layer_it[conv_indx]->second->conv_params->pad_h_3d = it->second->pool_params->pad_h;
+							vect_layer_it[conv_indx]->second->conv_params->pad_w_3d = it->second->pool_params->pad_w;
+							vect_layer_it[conv_indx]->second->conv_params->reluflag_3d=1;
+							vect_layer_it[conv_indx]->second->conv_params->ip_bw_3d = it->second->ip_bw;
+							vect_layer_it[conv_indx]->second->conv_params->ip_fl_3d = it->second->ip_fl;
+							vect_layer_it[conv_indx]->second->conv_params->op_bw_3d = it->second->op_bw;
+							vect_layer_it[conv_indx]->second->conv_params->op_fl_3d = it->second->op_fl;
+							vect_layer_it[conv_indx]->second->opcode=OPCODE_POOL_CONV2CONV;
+
+							vect_layer_it[conv_indx]->second->conv_params->th_layer_in_3d = it->second->th_layer_in;
+							vect_layer_it[conv_indx]->second->conv_params->th_layer_out_3d = it->second->th_layer_out;
+							vect_layer_it[conv_indx]->second->conv_params->th_params_3d = it->second->th_params;
+
+							for(int iter_bs=0;iter_bs<it->second->bottomShape.size();iter_bs++){
+								vect_layer_it[conv_indx]->second->bottomShape[iter_bs]=it->second->bottomShape[iter_bs];
+							}
+							xgrap_layer_delete(xgraph_opt,vect_layer_it[relu_indx]->second->name);
+
+							map < string, XBlob*>::iterator bottom_blob = xgraph_opt->blobs.find(vect_layer_it[conv_indx]->second->bottom[0].blob->name);
+
+							std::vector<string>::iterator it_str=std::find(it->second->bottom[0].blob->consumers.begin(),it->second->bottom[0].blob->consumers.end(),it->second->name);
+
+							if(it_str!=it->second->bottom[0].blob->consumers.end())
+							{
+								it->second->bottom[0].blob->consumers.erase(it_str);
+							}
+
+							vect_layer_it[conv_indx]->second->bottom[0].blob=it->second->bottom[0].blob;
+							vect_layer_it[conv_indx]->second->bottom[0].id = it->second->bottom[0].id;
+
+							vect_layer_it[conv_indx]->second->intermediateShape.push_back(it->second->topShape[0]);
+							it->second->bottom[0].blob->consumers.push_back(vect_layer_it[conv_indx]->second->name);
+
+							xgraph_opt->blobs.erase(bottom_blob);
+							mapStrXLayer::iterator cur_it = it;
+							it++;
+							xgraph_opt->layers.erase(cur_it);
+
+						}else{
+							it++;
+							continue;
+						}
+					}else{
+						it++;
+					}
+				}
+			}else
+			{
+				cerr << "[BEO001] Current version of the chAIDNN won't support more than one top" << endl;
+				exit(-1);
+			}
+		}else{
+			it++;
+		}
+	}
+}
+
+void XGraphOpt::opt_eltwise(XGraph *xgraph_opt){
 
 	string *eltwise_layer_type = new string("Eltwise");
 
@@ -2974,240 +5466,191 @@ void XGraphOpt::xi_opt_eltwise(XGraph *xgraph_opt){
 			dst0->conv_params->has_bias = 0;
 			dst0->conv_params->reluflag = false;
 
+			dst0->th_layer_in = it->second->th_layer_in;
+			dst0->th_layer_out = it->second->th_layer_out;
+			dst0->th_params = it->second->th_params;
+			dst0->quantization_scheme = it->second->quantization_scheme;
+			dst0->ip_bw = it->second->ip_bw;
+			dst0->op_bw = it->second->op_bw;
+			dst0->ip_fl = it->second->ip_fl;
+			dst0->op_fl = it->second->op_fl;
+			dst0->wt_bw = it->second->wt_bw;
+			dst0->wt_fl = it->second->wt_fl;
+
 			dst0->opcode = OPCODE_ELTWISE;
 			xgraph_opt->layers.erase(it);
 			eltwise_cnt++;
 		}
 	}
+	delete eltwise_layer_type;
 }
 
-void XGraphOpt::xi_opt_relu(XGraph *xgraph_opt){
+
+void XGraphOpt::opt_relu(XGraph *xgraph_opt){
 
 	string *relu_layer_type = new string("ReLU");
 	string *fc_layer_type = new string("InnerProduct");
 	string *conv_layer_type = new string("Convolution");
-	//string *eltwise_layer_type = new string("Eltwise");
-#if O_DEBUG
-	cout<< "[O_DEBUG] xi_opt_relu: blobs loop start" << endl;
-#endif
-	for(map < string, XBlob*>::iterator it = xgraph_opt->blobs.begin();it !=xgraph_opt->blobs.end();){
-
-		int no_inplace=0;
-		for(int index1=0; index1 < it->second->consumers.size();index1++){
+	string *custom_layer_type =   new string("XCustom");
 
 #if O_DEBUG
-			cout<< "[O_DEBUG] xi_opt_relu: specific blob consumers loop start" << endl;
+	cout<< "[O_DEBUG] opt_relu: blobs loop start" << endl;
 #endif
-			string tmp_consumer = it->second->consumers[index1];
-			vector< string > vec_consumer =  it->second->consumers;
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();){
 
-			map < string, XLayer* > ::iterator consumer_layer = xgraph_opt->layers.find(tmp_consumer);
 
-			if(consumer_layer != xgraph_opt->layers.end()){
 
-				if (consumer_layer->second->type.compare(*relu_layer_type)==0){
+		int relu_layer_flage=0;
 
-					if(consumer_layer->second->relu_params->inPlace){
+		if (it->second->type.compare(*relu_layer_type)==0){
+			string output_file = it->second->output_file;
+			map < string, XBlob*>::iterator top_it = xgraph_opt->blobs.find(it->second->top[0].blob->name);
+			relu_layer_flage=1;
+			if(it->second->relu_params->inPlace){
 
-						for(int producers_it =0;producers_it<it->second->producers.size(); producers_it++){
+				mapStrXLayer::iterator cur_it = it;
+
+				it++;
+				xgrap_layer_delete(xgraph_opt,cur_it->second->name);
+
+				for(int producers_it =0;producers_it<top_it->second->producers.size(); producers_it++){
 
 #if O_DEBUG
-							cout<< "[O_DEBUG] xi_opt_relu: find the blob consumer is relu and enabling the relu flag it producer layer " << endl;
+					cout<< "[O_DEBUG] opt_relu: find the blob consumer is relu and enabling the relu flag it producer layer " << endl;
 #endif
-							string tmp_producer = it->second->producers[producers_it];
-							map < string, XLayer* > ::iterator producer_layer = xgraph_opt->layers.find(tmp_producer);
-							string producer_type = producer_layer->second->type;
-							if(producer_type.compare(*relu_layer_type)!=0){
+					string tmp_producer = top_it->second->producers[producers_it];
 
-								if(producer_layer->second->type.compare(*conv_layer_type)==0)
-									producer_layer->second->conv_params->reluflag =1;
-								else if (producer_layer->second->type.compare(*fc_layer_type)==0)
-									producer_layer->second->fc_params->reluflag=1;
-							}
-							else {
-								it->second->producers.erase(it->second->producers.begin() + producers_it);
-							}
-						}
-						xgraph_opt->layers.erase(consumer_layer);
-						it->second->consumers.erase(it->second->consumers.begin()+ index1);
-					}
-					else{
+					map < string, XLayer* > ::iterator producer_layer = xgraph_opt->layers.find(tmp_producer);
 
-						for(int producers_it =0;producers_it<it->second->producers.size(); producers_it++){
+					if(producer_layer->second->type.compare(*conv_layer_type)==0)
+						producer_layer->second->conv_params->reluflag =1;
+					else if (producer_layer->second->type.compare(*fc_layer_type)==0)
+						producer_layer->second->fc_params->reluflag=1;
+					else if (producer_layer->second->type.compare(*custom_layer_type)==0)
+						producer_layer->second->xcustom_params->reluflag=1;
+					producer_layer->second->output_file=output_file;
+				}
+			}else{
+				mapStrXLayer::iterator cur_it = it;
+
+				it++;
+				xgrap_layer_delete(xgraph_opt,cur_it->second->name);
+
+				for(int producers_it =0;producers_it<top_it->second->producers.size(); producers_it++){
 
 #if O_DEBUG
-							cout<< "[O_DEBUG] xi_opt_relu: find the blob consumer is relu and enabling the relu flag it producer layer " << endl;
+					cout<< "[O_DEBUG] opt_relu: find the blob consumer is relu and enabling the relu flag it producer layer " << endl;
 #endif
-							string tmp_producer = it->second->producers[producers_it];
+					string tmp_producer = top_it->second->producers[producers_it];
 
-							map < string, XLayer* > ::iterator producer_layer = xgraph_opt->layers.find(tmp_producer);
+					map < string, XLayer* > ::iterator producer_layer = xgraph_opt->layers.find(tmp_producer);
 
-							string producer_type = producer_layer->second->type;
-							if(producer_type.compare(*relu_layer_type)!=0){
-
-								if(producer_layer->second->type.compare(*conv_layer_type)==0)
-									producer_layer->second->conv_params->reluflag =1;
-								else if (producer_layer->second->type.compare(*fc_layer_type)==0)
-									producer_layer->second->fc_params->reluflag=1;
-
-								XBlob* relu_top_blob = consumer_layer->second->top[0].blob;
-
-								producer_layer->second->top[0] = consumer_layer->second->top[0];
-								relu_top_blob->producers.erase(relu_top_blob->producers.begin() + 0);
-								relu_top_blob->producers.push_back(tmp_producer);
-
-							}
-							else {
-								it->second->producers.erase(it->second->producers.begin() + producers_it);
-							}
-						}
-						map < string, XBlob*>::iterator relu_bottom = it;
-						no_inplace=1;
-						it=it++;
-						xgraph_opt->layers.erase(consumer_layer);
-						xgraph_opt->blobs.erase(relu_bottom);
-					}
+					if(producer_layer->second->type.compare(*conv_layer_type)==0)
+						producer_layer->second->conv_params->reluflag =1;
+					else if (producer_layer->second->type.compare(*fc_layer_type)==0)
+						producer_layer->second->fc_params->reluflag=1;
+					else if (producer_layer->second->type.compare(*custom_layer_type)==0)
+						producer_layer->second->xcustom_params->reluflag=1;
+					producer_layer->second->output_file=output_file;
 				}
 			}
 
 		}
-
-		if(no_inplace!=1)
+		if(relu_layer_flage==0)
 			it++;
+		else{
+
+			relu_layer_flage=0;
+		}
+
 	}
 	delete relu_layer_type;
 	delete fc_layer_type;
 	delete conv_layer_type;
 }
 
-void XGraphOpt::xi_opt_dropout(XGraph *xgraph_opt){
+
+void XGraphOpt::opt_dropout(XGraph *xgraph_opt){
 
 	string *dropout_layer_type = new string("Dropout");
+	int drop_out_flag=0;
 
-	for(map < string, XBlob*>::iterator it = xgraph_opt->blobs.begin();it !=xgraph_opt->blobs.end();it++){
+	//map < string, XLayer*>::iterator cur_it;
 
-		for(int index1=0;index1 < it->second->consumers.size();index1++){
+	for(map < string, XLayer*>::iterator it = xgraph_opt->layers.begin();it !=xgraph_opt->layers.end();){
 
-			string tmp_consumer = it->second->consumers[index1];
-			vector< string > vec_consumer =  it->second->consumers;
+		if (it->second->type.compare(*dropout_layer_type)==0){
+			drop_out_flag=1;
+			map < string, XBlob*>::iterator top_it = xgraph_opt->blobs.find(it->second->top[0].blob->name);
 
-			map < string, XLayer* >::iterator consumer_layer = xgraph_opt->layers.find(tmp_consumer);
+			if(it->second->dropout_params->inPlace){
 
-			if(consumer_layer != xgraph_opt->layers.end()){
+				mapStrXLayer::iterator cur_it = it;
 
-				if (consumer_layer->second->type.compare(*dropout_layer_type)==0){
-#if O_DEBUG
-					cout << "find the Dropout layer" <<endl;
-#endif
-					for(int producers_it =0;producers_it<it->second->producers.size(); producers_it++){
+				it++;
+				xgrap_layer_delete(xgraph_opt,cur_it->second->name);
 
-						map < string, XLayer* >::iterator producer_layer = xgraph_opt->layers.find(it->second->producers[producers_it]);
 
-						if (producer_layer->second->type.compare(*dropout_layer_type)==0)
-						{
-							it->second->producers.erase(it->second->producers.begin()+ producers_it);
-						}
-					}
-					xgraph_opt->layers.erase(consumer_layer);
-					it->second->consumers.erase(it->second->consumers.begin()+ index1);
-				}
+			}else{
+
+				mapStrXLayer::iterator cur_it = it;
+				it++;
+				xgrap_layer_delete(xgraph_opt,cur_it->second->name);
+				it=cur_it;
+
 			}
+
 		}
-		for(int index1=0;index1 < it->second->producers.size();index1++){
+		if(drop_out_flag==0)
+			it++;
+		else{
 
-			string tmp_producer = it->second->producers[index1];
-			vector< string > vec_producer =  it->second->producers;
-
-			map < string, XLayer* >::iterator producer_layer = xgraph_opt->layers.find(tmp_producer);
-
-			if(producer_layer != xgraph_opt->layers.end()){
-
-				if (producer_layer->second->type.compare(*dropout_layer_type)==0){
-					//	cout << "find the Dropout layer" <<endl;
-					xgraph_opt->layers.erase(producer_layer);
-					it->second->producers.erase(it->second->producers.begin() + index1);
-				}
-			}
+			drop_out_flag=0;
 		}
 	}
-
 	delete dropout_layer_type;
 }
 
-void XGraphOpt::xi_opt_concat(XGraph *xgraph_opt){
+
+void XGraphOpt::opt_concat(XGraph *xgraph_opt){
 
 	string *concat_layer_type = new string("Concat");
 
 	string *concat_layer_name = new string();
 	int producers_id =0;
-
+	int concat_flag=0;
 #if O_DEBUG
-	cout<< "[O_DEBUG] xi_opt_concat: layers loop start" << endl;
+	cout<< "[O_DEBUG] opt_concat: layers loop start" << endl;
 #endif
-	for(map < string, XLayer* >::iterator it = xgraph_opt->layers.begin();it != xgraph_opt->layers.end(); it++)
+	for(map < string, XLayer* >::iterator it = xgraph_opt->layers.begin();it != xgraph_opt->layers.end();)
 	{
-
-		//auto concat_layer = xgraph_opt->layers.find( it->second->name);
-
 		if(it->second->type.compare(*concat_layer_type)==0){
 
-#if O_DEBUG
-			cout<< "[O_DEBUG] xi_opt_concat: find the layer type as concat " << endl;
-#endif
-			*concat_layer_name = it->second->name;
-#if O_DEBUG
-			cout << "Concat found" <<endl;
-#endif
-			string concat_top_name = it->second->top[0].blob->name; // TODO we need think and add for multiple top scenarios
-
-#if O_DEBUG
-			cout<< "[O_DEBUG] xi_opt_concat: concat layer is produces for top blob and clearing it first " << endl;
-#endif
-			map < string, XBlob*>::iterator top_blob = xgraph_opt->blobs.find(concat_top_name);
-
-			top_blob->second->producers.erase(top_blob->second->producers.begin() + 0); // concat layer is produces for top blob and clearing it first
-
-			for(int l_bottoms=0;l_bottoms<it->second->bottom.size();l_bottoms++){
-
-				string bottom_name = it->second->bottom[l_bottoms].blob->name;
-
-				map < string, XBlob*>::iterator bottom_blob = xgraph_opt->blobs.find(bottom_name);
-
-				if(bottom_blob->second->producers.size()== 1){ // TODO we need think and add for multiple producers scenarios
-
-					string tmp_producer = bottom_blob->second->producers[0];
-					map < string, XLayer* >::iterator producer_layer = xgraph_opt->layers.find(tmp_producer);
-					producer_layer->second->top[0].blob = it->second->top[0].blob;
-					producer_layer->second->top[0].id = l_bottoms;
-					it->second->top[0].blob->producers.push_back(tmp_producer);
-
-				}
-#if O_DEBUG
-				cout<< "[O_DEBUG] xi_opt_concat: clearing concant layer bottom blobs one by one " << endl;
-#endif
-				xgraph_opt->blobs.erase(bottom_blob);
-			}
+			mapStrXLayer::iterator cur_it = it;
+			it++;
+			xgrap_layer_delete(xgraph_opt,cur_it->second->name);
+			concat_flag=1;
 		}
-		map < string, XLayer* >::iterator concat_layer = xgraph_opt->layers.find( *concat_layer_name);
-		if(concat_layer!=xgraph_opt->layers.end())
-			xgraph_opt->layers.erase(concat_layer);
-	}
+		if(concat_flag==0)
+		{
+			it++;
+		}else{
+			concat_flag=0;
+		}
 
+	}
 	delete concat_layer_type;
 	delete concat_layer_name;
 }
 
-void XGraphOpt::xi_opt_deconv(XGraph *xgraph_opt){
+void XGraphOpt::opt_deconv(XGraph *xgraph_opt){
 
 	string *deconv_layer_type = new string("Deconvolution");
 	string *softmax_layer_type = new string("Softmax");
 	string *argmax_layer_type = new string("Argmax");
-	//string *argmax_layer_type = new string("Softmax");
 
-	string *deconv_layer_name = new string();
 	string *crop_layer_type = new string("Crop");
-	string *softmax_name = new string();
-	XLayer * deconv_layer_obj = new XLayer();
+
 
 	int deconv_opt_flag = 0;
 
@@ -3218,7 +5661,7 @@ void XGraphOpt::xi_opt_deconv(XGraph *xgraph_opt){
 
 
 #if O_DEBUG
-			cout<< "[O_DEBUG] xi_opt_deconv: checking deconv_layer_type " << endl;
+			cout<< "[O_DEBUG] opt_deconv: checking deconv_layer_type " << endl;
 #endif
 			if(it->second->top.size()==1)
 			{
@@ -3307,7 +5750,7 @@ void XGraphOpt::xi_opt_deconv(XGraph *xgraph_opt){
 										crop_b_blob->producers.push_back(it->second->name);
 										it->second->top[0]=dev_top_consumer_layer->second->top[0];
 										it->second->topShape[0] = crop_b_blob->shape;
-
+										it->second->output_file= dev_top_consumer_layer->second->output_file;
 									}
 								}
 								else{
@@ -3333,8 +5776,5 @@ void XGraphOpt::xi_opt_deconv(XGraph *xgraph_opt){
 	delete deconv_layer_type;
 	delete softmax_layer_type;
 	delete argmax_layer_type;
-	delete deconv_layer_name;
 	delete crop_layer_type;
-	delete softmax_name;
-	delete deconv_layer_obj;
 }

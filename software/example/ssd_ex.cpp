@@ -15,12 +15,15 @@ limitations under the License.
 ----------------------------------------------------*/
 
 #include <stdio.h>
-#include <string.h>
+#include <string.h> 
 #include <stdlib.h>
+#include <iterator>
+#include <numeric>
+#include <iostream>
 
 #include "../interface/xi_interface.hpp"
+#include "../interface/xi_readwrite_util.hpp"
 
-#if 1//def __SDSCC__
 #undef __ARM_NEON__
 #undef __ARM_NEON
 #include <opencv2/core/core.hpp>
@@ -28,10 +31,6 @@ limitations under the License.
 #include <opencv2/highgui/highgui.hpp>
 #define __ARM_NEON__
 #define __ARM_NEON
-#else
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#endif
 
 #include <iostream>
 
@@ -49,109 +48,266 @@ long long int clock_start, clock_end, frequency;
 }
 #endif
 
+typedef signed char int8_t;
+
 using namespace std;
 using namespace cv;
 
-int loadImagetoBuffptr(const char *img_path, unsigned char *buff_ptr, int height, int width, int img_channel, int resize_h, int resize_w)
+int main(int argc, char **argv)
 {
-
-	cv::Mat frame;
-
-	frame = imread(img_path, 1);
-	if(!frame.data)
-	{
-		std :: cout << "[ERROR] Image read failed - " << img_path << std :: endl;
-		return -1;
+	if(argc < 5) {
+		std::cout << "Usage : ./vgg_ssd_ex.elf <quant_mode> <bit_width> <img1_path> <img2_path>" << std::endl;
+		std::cout << "quant_mode : Xilinx" << std::endl;		
+		std::cout << "bit_width : 8 / 6" << std::endl;
+		std::cout << "img1_path : Path to the first image" << std::endl;
+		std::cout << "img2_path : Path to the second image" << std::endl;
+		return -1;			
 	}
 
-	int h_off = 0;
-	int w_off = 0;
+	string quant_mode_arg(argv[1]);
+	int bit_width_arg   = atoi(argv[2]);
+	char *img_path1 	= argv[3];
+	char *img_path2 	= argv[4];
+	
+	char *dirpath; 
+	char *caffemodel;
+	char *prototxt;
 
-	cv::Mat cv_img[1], cv_cropped_img[1];
+	int resize_h = 300;
+	int resize_w = 300;
+	bool inp_mode;
+	
+	// Xilinx quantmode 6 bit
+	if(quant_mode_arg == "Xilinx" && bit_width_arg == 6) {
+		dirpath    = "models/VGG_SSD_300/6Bit";
+		caffemodel = "VGGSSD_6Bit_CHaiDNN.caffemodel";
+		prototxt   = "VGGSSD_6Bit_deploy_CHaiDNN.prototxt";
+        inp_mode   = 0;
+	}
+	// Xilinx quantmode 8 bit
+	else if(quant_mode_arg == "Xilinx" && bit_width_arg == 8) {
+		dirpath    = "models/VGG_SSD_300/8Bit";
+		caffemodel = "VGGSSD_8Bit_CHaiDNN.caffemodel";
+		prototxt   = "VGGSSD_8Bit_deploy_CHaiDNN.prototxt";
+        inp_mode   = 0;
+	}
+	else {
+		std::cout << "quant_mode argument should be Xilinx" << std::endl;
+		std::cout << "Usage : ./vgg_ssd_ex.elf <quant_mode> <bit_width> <img1_path> <img2_path>" << std::endl;
+		std::cout << "quant_mode : Xilinx" << std::endl;		
+		std::cout << "bit_width : 8 / 6" << std::endl;
+		std::cout << "img1_path : Path to the first image" << std::endl;
+		std::cout << "img2_path : Path to the second image" << std::endl;
+		return -1;
+	}
+	
+	std :: cout << "[INFOx] Network Path : " << dirpath << std :: endl;
 
-	if((resize_h != frame.rows) || (resize_w != frame.cols))
+	//# start layer in the graph
+	string start_layer = "";
+
+	//# end layer in the graph
+	string end_layer   = "";
+
+	//# Flag indicate layer1 or not
+	//# 1 - if image data is the for first layer input otherwise 0
+	bool is_first_layer = 1;
+
+	//# Number of images to process
+	//# Supported batch size is 2
+	int numImg_to_process = 2;
+
+	//# Struct which holds the input/output layer info
+	io_layer_info io_layer_info_ptr;
+
+	//####### Init call
+	void *chaihandle = xiInit(dirpath, prototxt, caffemodel, &io_layer_info_ptr,
+			numImg_to_process, is_first_layer, start_layer, end_layer);
+
+			
+	float *mean_ptr = (float*)malloc(3*sizeof(float));
+	if(mean_ptr == NULL)
 	{
-		cv::resize(frame, cv_img[0], cv::Size(resize_h, resize_w));
-
-		if(resize_h > height)
-		{
-			h_off = (resize_h - height) / 2;
-			w_off = (resize_w - width) / 2;
-			cv::Rect roi(w_off, h_off, height, width);
-			cv_cropped_img[0] = cv_img[0](roi);
-		}
-		else
-			cv_cropped_img[0] = cv_img[0];
+		fprintf(stderr, "Failed to create mean_ptr memory\n");
+		return -1;
+	}
+		
+	float *var_ptr = (float*)malloc(3*sizeof(float));
+	if(var_ptr == NULL)
+	{
+		fprintf(stderr, "Failed to create var_ptr memory\n");
+		return -1;
+	}
+	
+	//# With input Normalization 
+	if(inp_mode == 1)
+	{
+		mean_ptr[0] = 0.485;
+		mean_ptr[1] = 0.456;
+		mean_ptr[2] = 0.406;
+		var_ptr[0] = 0.229;
+		var_ptr[1] = 0.224;
+		var_ptr[2] = 0.225;
 	}
 	else
 	{
-		frame.copyTo(cv_cropped_img[0]);
+		mean_ptr[0] = 104.0;
+		mean_ptr[1] = 117.0;
+		mean_ptr[2] = 123.0;
 	}
-
-	const uchar* ptr = cv_cropped_img[0].ptr<uchar>(0);
-	for (int ind = 0; ind < height*width*img_channel; ind++)
-	{
-		buff_ptr[ind] = ptr[ind];
-	}
-}
-
-
-int main(int argc, char **argv)
-{
-	//# Create vector for buffer pointers
-	bufPtrs ptrsList;
 	
-	//# Create Job-Queue
-	std::vector<xChangeLayer> jobQueue[NUM_IMG];
+	//# Create buffer to load normalized input
+	vector<void *> normalizeInput;
+	for(int batch_id = 0; batch_id < numImg_to_process; batch_id++)
+	{
+		void *ptr = (int8_t *)malloc(resize_h*resize_w*3*sizeof(int8_t));
+		if(ptr == NULL)
+		{
+			fprintf(stderr, "[ERROR] Failed to create input memory\n");
+			return -1;
+		}
+
+		normalizeInput.push_back(ptr);
+	}
+	
+	int status = inputNormalization(normalizeInput, resize_h, resize_w, img_path1, img_path2,
+			inp_mode, mean_ptr, var_ptr, numImg_to_process, io_layer_info_ptr);
+
+	if(status == -1)
+	{
+		fprintf(stderr,"[ERROR] Image Read fail\n");
+		return -1;
+	}
+	else
+	{
+		fprintf(stderr,"[INFOx] Image Read Done\n");
+	}
+
+	int in_size = io_layer_info_ptr.inlayer_sizebytes;
 
 	//# Create input/output Buffers
-	void *input = malloc(300*300*3*sizeof(char));
-	//# Create memory with max size of output layer
-	void *output = malloc(7308*7*sizeof(float));	
-	
-	//# Get Path
-	char *dirpath    = "/mnt/models/SSD"; 	/* Path to the model directory */
-	char *prototxt   = "deploy.prototxt";	/* Prototxt file name residing in model directory */
-	char *caffemodel = "SSD.caffemodel";	/* caffemodel file name residing in model directory */
-	char *mean_file	 = "mean_file.txt";		/* mean file name residing in model directory */
-	int  mean_type	 = 0;					/* 0 for .txt, 1 for .binaryproto */
+	vector<void *> input;
 
-	char *img_path  = "/mnt/models/SSD/input/ssdinput.jpg";	/* Correct the path accordingly */
-	
-	//# Call Initialization: One time initalization of network params
-	xiInit(dirpath, prototxt, caffemodel, mean_file, mean_type, jobQueue, ptrsList, 300, 300);
-
-	//# The Following function "loadImagetoBuffptr" is used only for example purpose. It takes image path as input.
-	//# If application have video input, please copy frame buffer into input1 & input2 buffers and use them in "xiExec" 
-	loadImagetoBuffptr(img_path, (unsigned char*)input, 300, 300, 3, 300, 300);
-	
-	int inBytes = 1;
-	//# Execute the network for input image
-	TIME_STAMP_INIT
-	xiExec(jobQueue, input, output, inBytes);	/* Call this in a loop for running multiple times with new input */
-	TIME_STAMP
-	
-	//# Total time for the API in Images/Second
-	double tot_time = (((double)(clock_end-clock_start)/(double)frequency)*1000)/(double)NUM_IMG;
-	fprintf(stderr, "\n[PERFM] Performance : %lf Images/second\n", (double)(1000)/tot_time);
-	fprintf(stderr, "\n\n");
-	
-	//# Write file for checking error
-	FILE *out = fopen("/mnt/models/SSD/out/out.txt", "w");
-	
-	int BoxCount = ((int*)output)[0];
-
-	fprintf(stderr, "[OUTWR] NMS Out Box Count : %d\n", BoxCount);
-	
-	//# Write output to a file
-	for(int i = 1; i <= BoxCount*7; ++i)
+	void *ptr;
+	for(int i = 0; i < io_layer_info_ptr.num_in_bufs; i++)
 	{
-		fprintf(out, "%f\n", ((float*)output)[i]);
+		if(io_layer_info_ptr.inlayer_exectype.compare("hardware") == 0)
+		{
+#ifdef __SDSOC
+			ptr = sds_alloc_non_cacheable(in_size);
+#else
+			ptr = malloc(in_size);
+#endif
+		}
+		else
+			ptr = malloc(in_size);
+
+		if(ptr == NULL)
+		{
+			fprintf(stderr, "Failed to create input memory\n");
+			return -1;
+		}
+		input.push_back(ptr);
 	}
-	fclose(out);
+
+	int out_size = io_layer_info_ptr.outlayer_sizebytes;
+	vector<void *> output;
+
+	for(int i = 0; i < io_layer_info_ptr.num_out_bufs; i++)
+	{
+		if(io_layer_info_ptr.outlayer_exectype.compare("hardware") == 0)
+		{
+#ifdef __SDSOC
+			ptr = sds_alloc_non_cacheable(out_size);
+#else
+			ptr = malloc(out_size);
+#endif
+		}
+		else
+			ptr = malloc(out_size);
+
+		if(ptr == NULL)
+		{
+			fprintf(stderr, "Failed to create input memory\n");
+			return -1;
+		}
+		output.push_back(ptr);
+	}
+
+	fprintf(stderr,"[INFOx] Input Read Done\n");
+
+	xiInputRead(normalizeInput, input, numImg_to_process, io_layer_info_ptr);
+
+	int loop_iter = 100;
 	
+#ifdef __SDSOC
+		TIME_STAMP_INIT
+#endif
+
+	//# Run the loop for loop_iter times
+	for(int i = 0; i < loop_iter; i++)
+	{
+		//# Execute the network for input image
+		xiExec(chaihandle, input, output);
+	}
+	
+#ifdef __SDSOC
+		TIME_STAMP
+#endif
+
+#ifdef __SDSOC
+		//# Total time for the API in Images/Second
+	double tot_time = (((double)(clock_end-clock_start)/(double)frequency*1000));
+	fprintf(stderr, "\n[PERFM] Performance with Batching : %lf Images/second\n", ((double)(1000)/tot_time)*XBATCH_SIZE*(loop_iter));
+	fprintf(stderr, "\n\n");
+#endif
+
+	int unpack_out_size = io_layer_info_ptr.outlayer_sizebytes;
+
+	//# Create memory for unpack output data
+	vector<void *> unpack_output;
+	for(int batch_id = 0; batch_id < numImg_to_process; batch_id++)
+	{
+		void *ptr = malloc(unpack_out_size);
+		unpack_output.push_back(ptr);
+	}
+
+	//# Loading required params for unpack function
+	kernel_type_e out_kerType = io_layer_info_ptr.out_kerType;
+	int out_layer_size = io_layer_info_ptr.out_size;
+
+	cout << "[INFOx] Unapack output data" << endl;
+	//# unpacks the output data
+	xiUnpackOutput(output, unpack_output, out_kerType, out_layer_size, numImg_to_process);
+
+	//# Write the output data to txt file
+	outputWrite(dirpath, img_path1, unpack_output, numImg_to_process, io_layer_info_ptr, 0);
+
 	//# Call Release
-	xiRelease(ptrsList); /* Release before exiting application */
-	fprintf(stderr, "[INFOx] Memory Released\n"); 
+	xiRelease(chaihandle); /* Release before exiting application */
+
+	/* Release input/output */
+#ifdef __SDSOC
+	for(int i = 0; i < input.size(); i++)
+		sds_free(input[i]);
+
+	for(int i = 0; i < output.size(); i++)
+		sds_free(output[i]);
+
+#else
+	for(int i = 0; i < input.size(); i++)
+		free(input[i]);
+
+	for(int i = 0; i < output.size(); i++)
+		free(output[i]);
+#endif
+
+	for(int batch_id = 0; batch_id < unpack_output.size(); batch_id++)
+	{
+		free(unpack_output[batch_id]);
+	}
+
+	fprintf(stderr, "[INFOx] Memory Released\n");
+
 	return 0;
 }

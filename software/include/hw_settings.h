@@ -14,51 +14,188 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----------------------------------------------------*/
 
-#ifndef _HW_SETTINGS_H_
-#define _HW_SETTINGS_H_
+#ifndef __HW_SETTINGS_H__
+#define __HW_SETTINGS_H__
 
 #include <string>
 #include <vector>
 
-#define GENERATE_CONSTDATA 1
-#define DATA_IN_BINARY 1
+#if 0//ndef __SDSOC
+#define XI_DIET_CHAI_Z 		0
+#define XI_DIET_CHAI_ZUPLUS	0
+#define __POOL_ENABLE__		1
+#define __DECONV_ENABLE__	0
+#endif
 
+//**** CONFIGURABLE MACROS
+#if XI_DIET_CHAI_Z || XI_DIET_CHAI_ZUPLUS
+#define XI_KER_PROC       	8
+#define XI_PIX_PROC       	8
+#define XI_ISTAGEBUFF_DEPTH 1024
+#define XI_OSTAGEBUFF_DEPTH 1024
+#define XI_WEIGHTBUFF_DEPTH 1024
+#else
+#define XI_KER_PROC       	16
+#define XI_PIX_PROC       	32
+#define XI_ISTAGEBUFF_DEPTH 8192
+#define XI_OSTAGEBUFF_DEPTH 2048
+#define XI_WEIGHTBUFF_DEPTH 2048
+#endif
+
+//**DON'T MODIFY THE BELOW MACROS**//
+#if XI_DIET_CHAI_Z
+#define XI_64BIT_PORT_EN    	1
+#define XI_DISABLE_BN 			1
+#define XI_OSTG_BUFFER_SET 		4
+#define XI_SINGLE_IO_PORT_EN 	0
+#elif XI_DIET_CHAI_ZUPLUS
+#define XI_64BIT_PORT_EN    	0
+#define XI_DISABLE_BN 			1
+#define XI_OSTG_BUFFER_SET 		4
+#define XI_SINGLE_IO_PORT_EN 	1
+#else
+#define XI_64BIT_PORT_EN    	0
+#define XI_SINGLE_IO_PORT_EN 	0
+#define XI_DISABLE_BN 			0
+#define XI_OSTG_BUFFER_SET 		8
+#endif
+
+#define DISABLE_BN          XI_DISABLE_BN
+#define SINGLE_IO_PORT      XI_SINGLE_IO_PORT_EN
+#define PORT_BITWIDTH_64BIT XI_64BIT_PORT_EN
+#define KER_PROC            XI_KER_PROC
+
+//# if 1 use standalone pool otherwise convolution
+#if __POOL_ENABLE__
+#define POOL_KERNEL_EXIST   1
+#else
+#define POOL_KERNEL_EXIST   0
+#endif
+
+#define FC_KERNEL_EXIST     0
+
+#define DEBUG_WEIGHT_EXTRACTION 0
+
+//#define POOL_KERNEL_EXIST 0
+//#define MERGED_FC_KERNEL_EXIST 0
+//# Set to 0 for Caffe ref / Set to 1 for HLS ref comparison
 #define PACKED_INOUT 0
 #define FILE_WRITE 	 0
 
-//# Number of Ports
-#define INPUT_PORTS		5
-#define OUTPUT_PORTS	2
+//# I/O data type - For 8bit specify 8 / For 16bit specify 16
+#define IO_TYPE  8
+
+#if IO_TYPE==16
+
+#define XBATCH_SIZE		1
+#define IO_DATA_TYPE	short
 #define WEIGHT_PORTS	2
+//#define KER_PROC        8  //Make sure for IO_TYPE 16, it is 8
+
+#else
+
+#define XBATCH_SIZE		2
+#define IO_DATA_TYPE	signed char
+
+//# Weight ports
+#if KER_PROC==16
+#define WEIGHT_PORTS	4
+#else
+#if PORT_BITWIDTH_64BIT
+#define WEIGHT_PORTS	4
+#else
+#define WEIGHT_PORTS	2
+#endif  //#if PORT_BITWIDTH_64BIT
+#endif  //#if KER_PROC==16
+
+//# Number of Ports
+#if SINGLE_IO_PORT==0
+#define INPUT_PORTS			5
+#define OUTPUT_PORTS		4
+#define HCONV_OUT_PORTS		2
+#else
+#define INPUT_PORTS			3
+#define OUTPUT_PORTS		2
+#define HCONV_OUT_PORTS 	1
+#endif  //#if SINGLE_IO_PORT==0
+
+#endif  //#if IO_TYPE==16
+
+#define QUANT_PREC_SHIFT	22
 
 //# Scalar parameter size
-#define MAX_PARAM_SIZE	48
+#define MAX_PARAM_SIZE	128
 
 //# Number of images in the Queue
 #define NUM_IMG			1
 
+//# Batch size
+#define BATCH_PACK_SIZE		16
+
 //# Stack size for constant buffers (in bytes)
 #define STACK_SIZE	(64*1024*1024)
 
-//# Convolution kernel parameters
-#define KER_PROC 8
+#define IO_DATA_TYPE1 float
+
+//# Convolution IO port width
+#if PORT_BITWIDTH_64BIT
+#define PORT_WIDTH 128//64
+#else
+#define PORT_WIDTH 128
+#endif
+
+//# Number of IO planes packed
+#define PLANE_PACK ((PORT_WIDTH/IO_TYPE)/XBATCH_SIZE)
+
+#define PACK_ELEMS PLANE_PACK
+
+//# Number of IO planes packed
+#define ALIGN_FACTOR(port_width, data_type) (port_width/data_type)
+
+//#define WEIGHT_PACK_ELEMS 16
+#define CONV3D_WEIGHT_PACK_ELEMS 8
 
 #define HPARAM_TYPE 	int
 
 #define BUF_ADDR_TYPE 	char
 
-//# Convolution data types
-#define HCONV_WGT_TYPE	char
-#define HCONV_BIAS_TYPE	short
-#define HCONV_OUT_TYPE	short
-#define HCONV_IN_TYPE1	short
-#define HCONV_IN_TYPE2	char
+//# Configurable params depend on quant mode
+//#ifdef QUANT_MODE
+#define HCONV_BIAS_TYPE			short
+#define HCONV_BIAS_DATA_WIDTH 	16
+#define HFC_BIAS_TYPE 			short
+#define HFC_BIAS_DATA_WIDTH 	16
+/*
+#else
+#define HCONV_BIAS_TYPE			IO_DATA_TYPE
+#define HCONV_BIAS_DATA_WIDTH 	8
+#define HFC_BIAS_TYPE 			IO_DATA_TYPE
+#define HFC_BIAS_DATA_WIDTH 	16
+#endif
+*/
 
-//# FC data types
-#define HFC_WGT_TYPE 	char
-#define HFC_BIAS_TYPE 	short
-#define HFC_OUT_TYPE	short
-#define HFC_IN_TYPE 	short
+/************ Convolution ********************/
+//# Convolution data types
+#define HCONV_WGT_TYPE	IO_DATA_TYPE
+#define HCONV_IN_TYPE2	IO_DATA_TYPE
+#define HCONV_OUT_TYPE	IO_DATA_TYPE
+#define HCONV_IN_TYPE1	IO_DATA_TYPE
+#define HCONV_BIAS_PORT_WIDTH	64
+
+/************ FC Layer ********************/
+#define HFC_WGT_TYPE 		short
+#define HFC_WGT_DATA_WIDTH 	16
+#define HFC_WGT_PORT_WIDTH	128
+
+#define HFC_BIAS_PORT_WIDTH	64
+
+#define HFC_OUT_PORT_WIDTH	128
+#define HFC_IN_PORT_WIDTH	128
+#define HFC_IN_DATA_WIDTH	8
+
+//# FC I/O data types
+#define HFC_OUT_TYPE	IO_DATA_TYPE
+#define HFC_IN_TYPE 	IO_DATA_TYPE
 
 //# Softmax Data types
 #define HSOFTMAX_IN_TYPE    float
@@ -71,22 +208,31 @@ limitations under the License.
 #define HDECONV_OUT_TYPE	int
 
 //# Normalization data type
+//#if QUANT_MODE
+#define HNORM_GAMMA_FLOAT_TYPE		float
+#define HNORM_SUM_FLOAT_TYPE		float
+//#else
 #define HNORM_GAMMA_TYPE			short
 #define HNORM_SUM_TYPE				int
+//#endif
 
 //# Permute data types
-#define HPERMUTE_OUT_TYPE			float
-#define HPERMUTE_IN_TYPE			short
+#define HPERMUTE_IN_TYPE			IO_DATA_TYPE
+#define HPERMUTE_OUT_TYPE			IO_DATA_TYPE
+
+//# Batch norm mean data type
+#define HMEAN_TYPE	short
 
 //# Software softmax data types
 #define HSWSX_OUT_TYPE				float
-#define HSWSX_IN_TYPE				float
+#define HSWSX_IN_TYPE				IO_DATA_TYPE
 
 //# PriorBox data types
 #define HNMS_PBOX_TYPE				float
 #define HNMS_VAR_TYPE				float
 #define HNMS_OUT_TYPE				int
 
+#define SW_FC_DATA_TYPE float
 
 //# Type of layer (HW/SW)
 enum _layer_type{
@@ -95,47 +241,4 @@ enum _layer_type{
 };
 typedef _layer_type layer_type_e;
 
-
-struct xtract_layer_type
-{
-	std::string layer_name;
-	layer_type_e layer_type;
-};
-
-enum _opcode_num{
-
-	OPCODE_CONV=0,
-	OPCODE_ReLU=0,
-	OPCODE_Concat=0,
-	OPCODE_TMP_BN = 0,
-	OPCODE_TMP_POWER = 0,
-	OPCODE_LRN_INTER_SOS=1,
-	OPCODE_LRN_INTER_PNS=2,
-	OPCODE_POOL=0,
-	OPCODE_TMP_LRN=0,
-	OPCODE_DECONV=0,
-	OPCODE_SOFTMAX=0,
-	OPCODE_ARGMAX=0,
-	OPCODE_FC=0,
-	OPCODE_PERM=0,
-	OPCODE_CROP=0,
-	OPCODE_NMS=0,
-	OPCODE_L2NORM=0,
-	OPCODE_BN = 10,
-	OPCODE_ELTWISE = 11,
-	OPCODE_FUSE_BN_CONV = 12,
-	OPCODE_CRELU = 18
-};
-
-typedef _opcode_num opcode_num_e;
-
-struct xtract_opcode_num
-{
-	std::string layer_name;
-	opcode_num_e opcode;
-};
-
-//void get_hw_and_sw_layer(std::vector <struct xtract_layer_type> &xtract_layer);
-//void get_opcode_xlayer(std::vector < struct xtract_opcode_num> &xlayers_opcode);
-
-#endif // _HW_SETTINGS_H_
+#endif // __HW_SETTINGS_H__

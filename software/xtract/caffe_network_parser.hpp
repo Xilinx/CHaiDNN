@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----------------------------------------------------*/
 
-
 #ifndef __CAFFENETWORKPARSER_HPP__
 #define __CAFFENETWORKPARSER_HPP__
 
@@ -30,14 +29,16 @@ limitations under the License.
 //#include <google/protobuf/text_format.h>
 //#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include "xgraph.hpp"
-// #include "caffeLayerMap.hpp"
-// #include "xi_funcs.hpp"
 
-#define INPUT_BW 16
-#define WEIGHT_BW 8
-#define OUTPUT_BW 16
-#define BATCHNORM_BW 16
-#define SCALE_BW 16
+//#define INPUT_BW 6//16
+//#define WEIGHT_BW 6
+//#define OUTPUT_BW 6//16
+// #define BATCHNORM_BW 6//16
+// #define SCALE_BW 6//16
+
+#define DEFAULT_BW 6
+#define DEFAULT_FL 3
+#define DEFAULT_TH 16.0f
 
 void checkNumberOfTopAndBottom(const caffe::LayerParameter& src, int nB, int nT);
 void readDeployFile(const string& deployFile, caffe::NetParameter* Net); 
@@ -65,6 +66,8 @@ void extractBatchNormTrainedData(XGraph* graph, const string& layerName, const c
                                     const map<string, int>* layerIndex);
 void extractScaleTrainedData(XGraph* graph, const string& layerName, const caffe::NetParameter* Net,
                                     const map<string, int>* layerIndex);
+void extractXCustomTrainedData(XGraph* graph, const string& layerName, const caffe::NetParameter* Net,
+                                    const map<string, int>* layerIndex);
 
 // Function to extract values from Caffe Prototxt files
 void ExtractParameters(const caffe::LayerParameter& src, XGraph& graph);
@@ -89,9 +92,10 @@ void ExtractEltwiseParameters(const caffe::LayerParameter& src, XGraph& graph);
 void ExtractBatchNormParameters(const caffe::LayerParameter& src, XGraph& graph);
 void ExtractScaleParameters(const caffe::LayerParameter& src, XGraph& graph);
 void ExtractPowerParameters(const caffe::LayerParameter& src, XGraph& graph);
+void ExtractXCustomParameters(const caffe::LayerParameter& src, XGraph& graph);
 
 // Function to extract precision parameters
-void ExtractPrecisionParameters(const caffe::LayerParameter& src, XLayer& layer, bool isParamsPrecisionMandatory = true);
+bool ExtractPrecisionParameters(const caffe::LayerParameter& src, XLayer& layer, bool isParamsPrecisionMandatory = true);
 
 // Miscellaneous functions
 vector<float> computePriorBoxes(int layerWidth, int layerHeight, int imageWidth, int imageHeight,
@@ -100,9 +104,13 @@ vector<float> computePriorBoxes(int layerWidth, int layerHeight, int imageWidth,
 void Trim2FixedPoint(vector<float>& data, const int bw, const int fl, RoundingMethod rounding = ROUND_NEAREST );
 
 // IO_format is derived differently for I/O feature maps and weights. So specify IO_format = true for I/O feature maps
-void DynamicFPToHWFormat(const int BW, int r_bw, int r_fl, int& hw_Q, int& hw_F, bool IO_format = true);
+void RistrettoToHWFormat(const int BW, int r_bw, int r_fl, int& hw_Q, int& hw_F, bool IO_format = true);
 
-XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile, const string& caffeMeanFile, FileMode file_mode = FILE_TXT, const string& root_folder="");
+// Load a Caffe Network to XGraph
+// This function allows loading the entire graph or sub-graph
+// start_layer : The starting layer, if empty, input blob of the network is considered
+// end_layer : The end layer (inclusive), if empty, final output blob of the network is considered.
+XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile, const string& start_layer="", const string& end_layer="", const string& root_folder="", const string& caffeMeanFile = "", FileMode file_mode = FILE_TXT);
 
 
 #endif          // __CAFFENETWORKPARSER_HPP__

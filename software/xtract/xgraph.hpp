@@ -1,19 +1,18 @@
 /*----------------------------------------------------
-Copyright 2017 Xilinx, Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-----------------------------------------------------*/
-
+ * Copyright 2017 Xilinx, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * ----------------------------------------------------*/
 
 #ifndef __XGRAPH_HPP__
 #define __XGRAPH_HPP__
@@ -25,9 +24,12 @@ limitations under the License.
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <algorithm>
 #include <memory>
+#include <list>
 
+#include "xblob.hpp"
 #include "xparameter.hpp"
 
 
@@ -42,13 +44,21 @@ public:
     string type;
     vector<nameIndex> bottom;
     vector<nameIndex> top;
+    bool inPlace;                   // Whether topBlob == bottomBlob
 
     string output_file;             // Reference layerwise output filename for debugging
     
+    int total_output_plane; 		// needed this for extended batching case, used as offset in the buffer management
+
     // Replicate bottom & top shapes here for easy-access from xChange
     // TODO : @ARK : Think how you are going to handle the Channels in case of Layer Fusion
     vector< vector<int> > bottomShape;
+    vector< vector<int> > intermediateShape;
     vector< vector<int> > topShape;
+
+    // Vectors to save the trained data
+    vector<vector<float> > params;
+    vector<vector<int> > paramDims;
     
     // device denote where this layer operation takes place
     // Right now, it directly comes from HW_CONFIG file
@@ -80,7 +90,12 @@ public:
     BatchNormParameter* batchnorm_params    ;
     ScaleParameter* scale_params            ;
     PowerParameter* power_params            ;
+    XCustomParameter* xcustom_params        ;
+    XPackParameter* xpack_params                ;
 
+	// Quantization Scheme
+	string quantization_scheme;
+	
     // Precision Parameters that should be passed to Host
     int ip_bw, wt_bw, op_bw;
     int ip_fl, wt_fl, op_fl;
@@ -93,44 +108,27 @@ public:
 
     int scale_gamma_by_std_fl, scale_gamma_by_std_bw;
 
-    // Precision Parameters that comes from user
-    int user_ip_bw, user_wt_bw, user_op_bw;
-    int user_ip_fl, user_wt_fl, user_op_fl;
-
-    int user_bn_mean_fl, user_bn_variance_fl;
-    int user_bn_mean_bw, user_bn_variance_bw;
-
-    int user_scale_gamma_fl, user_scale_beta_fl;
-    int user_scale_gamma_bw, user_scale_beta_bw;
-
-    int user_scale_gamma_by_std_fl, user_scale_gamma_by_std_bw;
-
+    // Offline Quantization Parameters
+    float th_layer_in;
+    float th_layer_out;
+    vector<float> th_params;
+    
+    vector<float> th_bn_mean, th_bn_variance;
+    vector<float> th_scale_gamma, th_scale_beta;
+    vector<float> th_l2n_gamma;
+	
+	
     // HW Params
     int opcode;
 
     // methods
 
     // Constructor 1
-    XLayer() 
-    :ip_bw(0), wt_bw(0), op_bw(0),
-     ip_fl(0), wt_fl(0), op_fl(0),
-     user_ip_bw(0), user_wt_bw(0), user_op_bw(0),
-     user_ip_fl(0), user_wt_fl(0), user_op_fl(0),
-     bn_mean_bw(0), bn_variance_bw(0),
-     user_bn_mean_bw(0), user_bn_variance_bw(0),
-     bn_mean_fl(0), bn_variance_fl(0),
-     user_bn_mean_fl(0), user_bn_variance_fl(0),
-     scale_gamma_bw(0), scale_beta_bw(0),
-     user_scale_gamma_bw(0), user_scale_beta_bw(0),
-     scale_gamma_fl(0), scale_beta_fl(0),
-     user_scale_gamma_fl(0), user_scale_beta_fl(0),
-     user_scale_gamma_by_std_fl(0), user_scale_gamma_by_std_bw(0),
-     scale_gamma_by_std_fl(0), scale_gamma_by_std_bw(0)
-    {}
-    
+    // TODO : ARK : All params pointers should be initialized to NULL
+    XLayer();
 
     // Constructor 2
-    XLayer(string _name, string _type); 
+    XLayer(string _name, string _type, string _top_name=""); 
     
     // Compute the output dimension of this layer and fill it in top->shape
     void computeOutputDim();
@@ -143,10 +141,12 @@ public:
     string str(bool use_user_names = true);
 
     // Function to generate output layer name
-    string generateOutputFilename(const string& dirname = "");
+    string generateOutputFilename(const string& top_name, const string& dirname = "");
 
 private:
     string _getLayerStr();
+    static int UID;
+	void init();
 }; 
 
 
@@ -158,9 +158,11 @@ public:
     map < string, XLayer* > layers;
     map < string, XBlob*> blobs;
     string name;                       // Just name of network
-    nameIndex input_blob;                   // The whole network starts from this blob
-    nameIndex output_blob;                  // and ends with this blob
-
+    string input_blob;                   // The whole network starts from this blob
+    string output_blob;                  // and ends with this blob
+    string start_layer;
+    string end_layer;
+    bool model_last_layer;
     // XXX : ARK : Get rid of this path  once direct read from caffefile is implemented
     string saveDir;
 
@@ -171,9 +173,9 @@ public:
     
     // input transformation params
     TransformationParameter transform_params;
-
-    // counters to create some unique names for blobs/layers
-    int _blobcounter, _layercounter;
+    
+	// vector to keep list of layers missing precision
+    vector<string> precMissLayers;
     
     // METHODS
 
@@ -196,10 +198,15 @@ public:
     // This function is useful to check if bottom is present or top is already defined etc. 
     map<string, XBlob*>::iterator checkIfBlobExists(const string& name, bool exit, bool exit_if);
 
-    // An utility function to generate an unique name for a blob/layer
-    // Use these functions only if you are creating a blob/layer and registering to XGraph
-    string getUniqueBlobName();
-    string getUniqueLayerName();
+    // Prune the XGraph based on user's input_layer and output_layer
+    void prune(const string& start_layer="", const string& end_layer="");
+
+    // Clear any hanging nodes
+    void clearNodes();
+
+    // Check number of input blobs and output blobs
+    vector<string> listOfInputBlobs();
+    vector<string> listOfOutputBlobs();
 
     // Utility functions to get a list of parent/child layers of another layer
     vector<string> getParentLayers(const string& layerName);
@@ -213,6 +220,9 @@ public:
 
     // API function to specify the resize_height & resize_width
     void setResizeShape(int resize_height, int resize_width);
+
+    // Function to dump the XGraph to a dot file
+    void drawGraph(const string& filename, const string& rankdir="TB");
 }; 
 
 

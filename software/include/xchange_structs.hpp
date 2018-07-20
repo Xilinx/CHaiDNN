@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----------------------------------------------------*/
 
-#ifndef _XCHANGE_STRUCTS_HPP_
-#define _XCHANGE_STRUCTS_HPP_
+#ifndef __XCHANGE_STRUCTS_HPP__
+#define __XCHANGE_STRUCTS_HPP__
 
 #include "hw_settings.h"
 
@@ -51,7 +51,11 @@ enum _kernel_type{
 	NORM,
 	PERMUTE,
 	NMS,
-	CROP
+	CROP,
+	ELTWISEADD,
+	XCUSTOM,
+	XPACK,
+	XUNPACK
 };
 typedef _kernel_type kernel_type_e;
 
@@ -62,11 +66,18 @@ class xChangeLayer
 {
 public:
 	kernel_type_e kernType;
+	kernel_type_e prev_kernType;
+	int kernMode;
+	int prev_kernMode;
+	std::string kernexecType;
+	int input_sizebytes;
+	int output_sizebytes;
+	int output_size;
 	void * in_ptrs[INPUT_PORTS];
 	void * out_ptrs[OUTPUT_PORTS];
 	void * wts_ptrs[WEIGHT_PORTS];
 	void * bias_ptr;
-	void * params;
+	void * params; 					// Total : MAX_PARAM_SIZE
 	void * mean;
 	
 	std::vector<void *> xtra_ptrs;
@@ -78,12 +89,32 @@ public:
 	int resize_h;
 	int resize_w;
 	
-	std::vector<float> float_params;
+	std::vector<float> float_params;  //added for NMS
 	std::vector<bool> layer_done;
 	
 	char *ref_path;
 	char *out_path;
 	char *base_path;
+	char *wgt_path;
+	char *bias_path;
+
+	int en_batch_size_one;
+
+	//Custom Layer suppport arguments
+	std::vector<std::vector<int> > input_dims;// Dimesions of input blobs
+	std::vector<std::vector<int> > output_dims;// Dimesions of input blobs
+	std::vector<int> output_dim;         // Output dimension should come from the user
+	std::vector<float> float_args;       // All float, int and boolean args from prototxt will be here
+	std::vector<std::string> string_args;     // All string args from prototxt will be here.
+	std::vector<std::vector<float> > custom_float_params;  // Trained parameters of the layer
+	std::vector<std::vector<int> > params_dims;// dimensions of parameters
+	std::string custom_layer_type;
+	bool custom_reluflag;
+	
+	//layer-wise latency breakup params
+	long long startclk;
+	long long endclk;
+	std::string layername;
 
 	//# Constructor
 	xChangeLayer() {}
@@ -109,4 +140,12 @@ struct _bufPtrs
 };
 typedef _bufPtrs bufPtrs;
 
-#endif//_XCHANGE_STRUCTS_HPP_
+struct chaihandle
+{
+	std::vector<xChangeLayer> JobQueue[NUM_IMG];
+	bufPtrs ptrsList;
+};
+typedef chaihandle chaihandle_t;
+
+
+#endif // __XCHANGE_STRUCTS_HPP__

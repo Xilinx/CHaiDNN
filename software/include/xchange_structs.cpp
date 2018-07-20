@@ -35,6 +35,8 @@ const char* getLayerName(kernel_type_e type)
 	  case NMS: return "NMS";
 	  case PERMUTE: return "Permute";
 	  case CROP: return "Crop";
+	  case XCUSTOM:	return "Custom";
+	  case XPACK: 	return "Pack";
    }
    return "Invalid Layer";
 }
@@ -42,7 +44,9 @@ const char* getLayerName(kernel_type_e type)
 //# Method to display all the scalar parameters for a layer
 void xChangeLayer::DisplayParams(void)
 {
-	std::cout << "Layer Type : " << getLayerName(this->kernType) << std::endl;
+	std::cout << std::endl;
+	std::cout << "Layer Type : " << getLayerName(this->kernType);// << std::endl;
+	std::cout << std::endl;
 	//# TODO: Some other prints can be added later
 	for(uint8_t idx = 0; idx < MAX_PARAM_SIZE; ++idx)	
 		std::cout << ((int*)params)[idx] << " ";

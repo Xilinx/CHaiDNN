@@ -237,6 +237,9 @@ extern PoolingParameterDefaultTypeInternal _PoolingParameter_default_instance_;
 class PowerParameter;
 class PowerParameterDefaultTypeInternal;
 extern PowerParameterDefaultTypeInternal _PowerParameter_default_instance_;
+class PrecisionParameter;
+class PrecisionParameterDefaultTypeInternal;
+extern PrecisionParameterDefaultTypeInternal _PrecisionParameter_default_instance_;
 class PriorBoxParameter;
 class PriorBoxParameterDefaultTypeInternal;
 extern PriorBoxParameterDefaultTypeInternal _PriorBoxParameter_default_instance_;
@@ -306,6 +309,9 @@ extern V1LayerParameterDefaultTypeInternal _V1LayerParameter_default_instance_;
 class WindowDataParameter;
 class WindowDataParameterDefaultTypeInternal;
 extern WindowDataParameterDefaultTypeInternal _WindowDataParameter_default_instance_;
+class XCustomParameter;
+class XCustomParameterDefaultTypeInternal;
+extern XCustomParameterDefaultTypeInternal _XCustomParameter_default_instance_;
 }  // namespace caffe
 
 namespace caffe {
@@ -3790,6 +3796,31 @@ class LayerParameter : public ::google::protobuf::Message /* @@protoc_insertion_
   ::caffe::WindowDataParameter* release_window_data_param();
   void set_allocated_window_data_param(::caffe::WindowDataParameter* window_data_param);
 
+  // optional .caffe.PrecisionParameter precision_param = 997;
+  bool has_precision_param() const;
+  void clear_precision_param();
+  static const int kPrecisionParamFieldNumber = 997;
+  const ::caffe::PrecisionParameter& precision_param() const;
+  ::caffe::PrecisionParameter* mutable_precision_param();
+  ::caffe::PrecisionParameter* release_precision_param();
+  void set_allocated_precision_param(::caffe::PrecisionParameter* precision_param);
+
+  // optional .caffe.XCustomParameter xcustom_param = 998;
+  bool has_xcustom_param() const;
+  void clear_xcustom_param();
+  static const int kXcustomParamFieldNumber = 998;
+  const ::caffe::XCustomParameter& xcustom_param() const;
+  ::caffe::XCustomParameter* mutable_xcustom_param();
+  ::caffe::XCustomParameter* release_xcustom_param();
+  void set_allocated_xcustom_param(::caffe::XCustomParameter* xcustom_param);
+
+  // optional bool user_defined_layer = 999 [default = false];
+  bool has_user_defined_layer() const;
+  void clear_user_defined_layer();
+  static const int kUserDefinedLayerFieldNumber = 999;
+  bool user_defined_layer() const;
+  void set_user_defined_layer(bool value);
+
   // optional .caffe.Phase phase = 10;
   bool has_phase() const;
   void clear_phase();
@@ -3803,6 +3834,8 @@ class LayerParameter : public ::google::protobuf::Message /* @@protoc_insertion_
   void clear_has_name();
   void set_has_type();
   void clear_has_type();
+  void set_has_user_defined_layer();
+  void clear_has_user_defined_layer();
   void set_has_phase();
   void clear_has_phase();
   void set_has_transform_param();
@@ -3909,6 +3942,10 @@ class LayerParameter : public ::google::protobuf::Message /* @@protoc_insertion_
   void clear_has_tile_param();
   void set_has_window_data_param();
   void clear_has_window_data_param();
+  void set_has_precision_param();
+  void clear_has_precision_param();
+  void set_has_xcustom_param();
+  void clear_has_xcustom_param();
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::internal::HasBits<2> _has_bits_;
@@ -3974,20 +4011,23 @@ class LayerParameter : public ::google::protobuf::Message /* @@protoc_insertion_
   ::caffe::ThresholdParameter* threshold_param_;
   ::caffe::TileParameter* tile_param_;
   ::caffe::WindowDataParameter* window_data_param_;
+  ::caffe::PrecisionParameter* precision_param_;
+  ::caffe::XCustomParameter* xcustom_param_;
+  bool user_defined_layer_;
   int phase_;
   mutable int _cached_size_;
   friend struct  protobuf_caffe_2eproto::TableStruct;
 };
 // -------------------------------------------------------------------
 
-class QuantizationParameter : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:caffe.QuantizationParameter) */ {
+class XCustomParameter : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:caffe.XCustomParameter) */ {
  public:
-  QuantizationParameter();
-  virtual ~QuantizationParameter();
+  XCustomParameter();
+  virtual ~XCustomParameter();
 
-  QuantizationParameter(const QuantizationParameter& from);
+  XCustomParameter(const XCustomParameter& from);
 
-  inline QuantizationParameter& operator=(const QuantizationParameter& from) {
+  inline XCustomParameter& operator=(const XCustomParameter& from) {
     CopyFrom(from);
     return *this;
   }
@@ -4001,24 +4041,24 @@ class QuantizationParameter : public ::google::protobuf::Message /* @@protoc_ins
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const QuantizationParameter& default_instance();
+  static const XCustomParameter& default_instance();
 
-  static inline const QuantizationParameter* internal_default_instance() {
-    return reinterpret_cast<const QuantizationParameter*>(
-               &_QuantizationParameter_default_instance_);
+  static inline const XCustomParameter* internal_default_instance() {
+    return reinterpret_cast<const XCustomParameter*>(
+               &_XCustomParameter_default_instance_);
   }
 
-  void Swap(QuantizationParameter* other);
+  void Swap(XCustomParameter* other);
 
   // implements Message ----------------------------------------------
 
-  inline QuantizationParameter* New() const PROTOBUF_FINAL { return New(NULL); }
+  inline XCustomParameter* New() const PROTOBUF_FINAL { return New(NULL); }
 
-  QuantizationParameter* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  XCustomParameter* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
   void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
   void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
-  void CopyFrom(const QuantizationParameter& from);
-  void MergeFrom(const QuantizationParameter& from);
+  void CopyFrom(const XCustomParameter& from);
+  void MergeFrom(const XCustomParameter& from);
   void Clear() PROTOBUF_FINAL;
   bool IsInitialized() const PROTOBUF_FINAL;
 
@@ -4039,7 +4079,7 @@ class QuantizationParameter : public ::google::protobuf::Message /* @@protoc_ins
   void SharedCtor();
   void SharedDtor();
   void SetCachedSize(int size) const PROTOBUF_FINAL;
-  void InternalSwap(QuantizationParameter* other);
+  void InternalSwap(XCustomParameter* other);
   private:
   inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
     return NULL;
@@ -4054,6 +4094,161 @@ class QuantizationParameter : public ::google::protobuf::Message /* @@protoc_ins
   // nested types ----------------------------------------------------
 
   // accessors -------------------------------------------------------
+
+  // repeated float float_args = 2;
+  int float_args_size() const;
+  void clear_float_args();
+  static const int kFloatArgsFieldNumber = 2;
+  float float_args(int index) const;
+  void set_float_args(int index, float value);
+  void add_float_args(float value);
+  const ::google::protobuf::RepeatedField< float >&
+      float_args() const;
+  ::google::protobuf::RepeatedField< float >*
+      mutable_float_args();
+
+  // repeated string string_args = 3;
+  int string_args_size() const;
+  void clear_string_args();
+  static const int kStringArgsFieldNumber = 3;
+  const ::std::string& string_args(int index) const;
+  ::std::string* mutable_string_args(int index);
+  void set_string_args(int index, const ::std::string& value);
+  void set_string_args(int index, const char* value);
+  void set_string_args(int index, const char* value, size_t size);
+  ::std::string* add_string_args();
+  void add_string_args(const ::std::string& value);
+  void add_string_args(const char* value);
+  void add_string_args(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& string_args() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_string_args();
+
+  // repeated uint32 top_dim = 1;
+  int top_dim_size() const;
+  void clear_top_dim();
+  static const int kTopDimFieldNumber = 1;
+  ::google::protobuf::uint32 top_dim(int index) const;
+  void set_top_dim(int index, ::google::protobuf::uint32 value);
+  void add_top_dim(::google::protobuf::uint32 value);
+  const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+      top_dim() const;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+      mutable_top_dim();
+
+  // @@protoc_insertion_point(class_scope:caffe.XCustomParameter)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::HasBits<1> _has_bits_;
+  mutable int _cached_size_;
+  ::google::protobuf::RepeatedField< float > float_args_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> string_args_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > top_dim_;
+  friend struct  protobuf_caffe_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class PrecisionParameter : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:caffe.PrecisionParameter) */ {
+ public:
+  PrecisionParameter();
+  virtual ~PrecisionParameter();
+
+  PrecisionParameter(const PrecisionParameter& from);
+
+  inline PrecisionParameter& operator=(const PrecisionParameter& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const PrecisionParameter& default_instance();
+
+  static inline const PrecisionParameter* internal_default_instance() {
+    return reinterpret_cast<const PrecisionParameter*>(
+               &_PrecisionParameter_default_instance_);
+  }
+
+  void Swap(PrecisionParameter* other);
+
+  // implements Message ----------------------------------------------
+
+  inline PrecisionParameter* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  PrecisionParameter* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const PrecisionParameter& from);
+  void MergeFrom(const PrecisionParameter& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output)
+      const PROTOBUF_FINAL {
+    return InternalSerializeWithCachedSizesToArray(
+        ::google::protobuf::io::CodedOutputStream::IsDefaultSerializationDeterministic(), output);
+  }
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(PrecisionParameter* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated float th_params = 21;
+  int th_params_size() const;
+  void clear_th_params();
+  static const int kThParamsFieldNumber = 21;
+  float th_params(int index) const;
+  void set_th_params(int index, float value);
+  void add_th_params(float value);
+  const ::google::protobuf::RepeatedField< float >&
+      th_params() const;
+  ::google::protobuf::RepeatedField< float >*
+      mutable_th_params();
+
+  // optional string quant_type = 22 [default = "DynamicFixed"];
+  bool has_quant_type() const;
+  void clear_quant_type();
+  static const int kQuantTypeFieldNumber = 22;
+  const ::std::string& quant_type() const;
+  void set_quant_type(const ::std::string& value);
+  #if LANG_CXX11
+  void set_quant_type(::std::string&& value);
+  #endif
+  void set_quant_type(const char* value);
+  void set_quant_type(const char* value, size_t size);
+  ::std::string* mutable_quant_type();
+  ::std::string* release_quant_type();
+  void set_allocated_quant_type(::std::string* quant_type);
 
   // optional uint32 bw_layer_in = 3;
   bool has_bw_layer_in() const;
@@ -4167,6 +4362,317 @@ class QuantizationParameter : public ::google::protobuf::Message /* @@protoc_ins
   ::google::protobuf::int32 scale_gamma_by_std_bw() const;
   void set_scale_gamma_by_std_bw(::google::protobuf::int32 value);
 
+  // optional float th_layer_in = 19;
+  bool has_th_layer_in() const;
+  void clear_th_layer_in();
+  static const int kThLayerInFieldNumber = 19;
+  float th_layer_in() const;
+  void set_th_layer_in(float value);
+
+  // optional float th_layer_out = 20;
+  bool has_th_layer_out() const;
+  void clear_th_layer_out();
+  static const int kThLayerOutFieldNumber = 20;
+  float th_layer_out() const;
+  void set_th_layer_out(float value);
+
+  // @@protoc_insertion_point(class_scope:caffe.PrecisionParameter)
+ private:
+  void set_has_bw_layer_in();
+  void clear_has_bw_layer_in();
+  void set_has_bw_layer_out();
+  void clear_has_bw_layer_out();
+  void set_has_bw_params();
+  void clear_has_bw_params();
+  void set_has_fl_layer_in();
+  void clear_has_fl_layer_in();
+  void set_has_fl_layer_out();
+  void clear_has_fl_layer_out();
+  void set_has_fl_params();
+  void clear_has_fl_params();
+  void set_has_batchnorm_mean_fl();
+  void clear_has_batchnorm_mean_fl();
+  void set_has_batchnorm_variance_fl();
+  void clear_has_batchnorm_variance_fl();
+  void set_has_batchnorm_mean_bw();
+  void clear_has_batchnorm_mean_bw();
+  void set_has_batchnorm_variance_bw();
+  void clear_has_batchnorm_variance_bw();
+  void set_has_scale_gamma_fl();
+  void clear_has_scale_gamma_fl();
+  void set_has_scale_beta_fl();
+  void clear_has_scale_beta_fl();
+  void set_has_scale_gamma_bw();
+  void clear_has_scale_gamma_bw();
+  void set_has_scale_beta_bw();
+  void clear_has_scale_beta_bw();
+  void set_has_scale_gamma_by_std_fl();
+  void clear_has_scale_gamma_by_std_fl();
+  void set_has_scale_gamma_by_std_bw();
+  void clear_has_scale_gamma_by_std_bw();
+  void set_has_quant_type();
+  void clear_has_quant_type();
+  void set_has_th_layer_in();
+  void clear_has_th_layer_in();
+  void set_has_th_layer_out();
+  void clear_has_th_layer_out();
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::HasBits<1> _has_bits_;
+  mutable int _cached_size_;
+  ::google::protobuf::RepeatedField< float > th_params_;
+  static ::google::protobuf::internal::ExplicitlyConstructed< ::std::string> _default_quant_type_;
+  ::google::protobuf::internal::ArenaStringPtr quant_type_;
+  ::google::protobuf::uint32 bw_layer_in_;
+  ::google::protobuf::uint32 bw_layer_out_;
+  ::google::protobuf::uint32 bw_params_;
+  ::google::protobuf::int32 fl_layer_in_;
+  ::google::protobuf::int32 fl_layer_out_;
+  ::google::protobuf::int32 fl_params_;
+  ::google::protobuf::int32 batchnorm_mean_fl_;
+  ::google::protobuf::int32 batchnorm_variance_fl_;
+  ::google::protobuf::int32 batchnorm_mean_bw_;
+  ::google::protobuf::int32 batchnorm_variance_bw_;
+  ::google::protobuf::int32 scale_gamma_fl_;
+  ::google::protobuf::int32 scale_beta_fl_;
+  ::google::protobuf::int32 scale_gamma_bw_;
+  ::google::protobuf::int32 scale_beta_bw_;
+  ::google::protobuf::int32 scale_gamma_by_std_fl_;
+  ::google::protobuf::int32 scale_gamma_by_std_bw_;
+  float th_layer_in_;
+  float th_layer_out_;
+  friend struct  protobuf_caffe_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class QuantizationParameter : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:caffe.QuantizationParameter) */ {
+ public:
+  QuantizationParameter();
+  virtual ~QuantizationParameter();
+
+  QuantizationParameter(const QuantizationParameter& from);
+
+  inline QuantizationParameter& operator=(const QuantizationParameter& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const QuantizationParameter& default_instance();
+
+  static inline const QuantizationParameter* internal_default_instance() {
+    return reinterpret_cast<const QuantizationParameter*>(
+               &_QuantizationParameter_default_instance_);
+  }
+
+  void Swap(QuantizationParameter* other);
+
+  // implements Message ----------------------------------------------
+
+  inline QuantizationParameter* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  QuantizationParameter* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const QuantizationParameter& from);
+  void MergeFrom(const QuantizationParameter& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output)
+      const PROTOBUF_FINAL {
+    return InternalSerializeWithCachedSizesToArray(
+        ::google::protobuf::io::CodedOutputStream::IsDefaultSerializationDeterministic(), output);
+  }
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(QuantizationParameter* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated float th_params = 21;
+  int th_params_size() const;
+  void clear_th_params();
+  static const int kThParamsFieldNumber = 21;
+  float th_params(int index) const;
+  void set_th_params(int index, float value);
+  void add_th_params(float value);
+  const ::google::protobuf::RepeatedField< float >&
+      th_params() const;
+  ::google::protobuf::RepeatedField< float >*
+      mutable_th_params();
+
+  // optional string quant_type = 22 [default = "DynamicFixed"];
+  bool has_quant_type() const;
+  void clear_quant_type();
+  static const int kQuantTypeFieldNumber = 22;
+  const ::std::string& quant_type() const;
+  void set_quant_type(const ::std::string& value);
+  #if LANG_CXX11
+  void set_quant_type(::std::string&& value);
+  #endif
+  void set_quant_type(const char* value);
+  void set_quant_type(const char* value, size_t size);
+  ::std::string* mutable_quant_type();
+  ::std::string* release_quant_type();
+  void set_allocated_quant_type(::std::string* quant_type);
+
+  // optional uint32 bw_layer_in = 3;
+  bool has_bw_layer_in() const;
+  void clear_bw_layer_in();
+  static const int kBwLayerInFieldNumber = 3;
+  ::google::protobuf::uint32 bw_layer_in() const;
+  void set_bw_layer_in(::google::protobuf::uint32 value);
+
+  // optional uint32 bw_layer_out = 4;
+  bool has_bw_layer_out() const;
+  void clear_bw_layer_out();
+  static const int kBwLayerOutFieldNumber = 4;
+  ::google::protobuf::uint32 bw_layer_out() const;
+  void set_bw_layer_out(::google::protobuf::uint32 value);
+
+  // optional uint32 bw_params = 5;
+  bool has_bw_params() const;
+  void clear_bw_params();
+  static const int kBwParamsFieldNumber = 5;
+  ::google::protobuf::uint32 bw_params() const;
+  void set_bw_params(::google::protobuf::uint32 value);
+
+  // optional int32 fl_layer_in = 6;
+  bool has_fl_layer_in() const;
+  void clear_fl_layer_in();
+  static const int kFlLayerInFieldNumber = 6;
+  ::google::protobuf::int32 fl_layer_in() const;
+  void set_fl_layer_in(::google::protobuf::int32 value);
+
+  // optional int32 fl_layer_out = 7;
+  bool has_fl_layer_out() const;
+  void clear_fl_layer_out();
+  static const int kFlLayerOutFieldNumber = 7;
+  ::google::protobuf::int32 fl_layer_out() const;
+  void set_fl_layer_out(::google::protobuf::int32 value);
+
+  // optional int32 fl_params = 8;
+  bool has_fl_params() const;
+  void clear_fl_params();
+  static const int kFlParamsFieldNumber = 8;
+  ::google::protobuf::int32 fl_params() const;
+  void set_fl_params(::google::protobuf::int32 value);
+
+  // optional int32 batchnorm_mean_fl = 9;
+  bool has_batchnorm_mean_fl() const;
+  void clear_batchnorm_mean_fl();
+  static const int kBatchnormMeanFlFieldNumber = 9;
+  ::google::protobuf::int32 batchnorm_mean_fl() const;
+  void set_batchnorm_mean_fl(::google::protobuf::int32 value);
+
+  // optional int32 batchnorm_variance_fl = 10;
+  bool has_batchnorm_variance_fl() const;
+  void clear_batchnorm_variance_fl();
+  static const int kBatchnormVarianceFlFieldNumber = 10;
+  ::google::protobuf::int32 batchnorm_variance_fl() const;
+  void set_batchnorm_variance_fl(::google::protobuf::int32 value);
+
+  // optional int32 batchnorm_mean_bw = 11;
+  bool has_batchnorm_mean_bw() const;
+  void clear_batchnorm_mean_bw();
+  static const int kBatchnormMeanBwFieldNumber = 11;
+  ::google::protobuf::int32 batchnorm_mean_bw() const;
+  void set_batchnorm_mean_bw(::google::protobuf::int32 value);
+
+  // optional int32 batchnorm_variance_bw = 12;
+  bool has_batchnorm_variance_bw() const;
+  void clear_batchnorm_variance_bw();
+  static const int kBatchnormVarianceBwFieldNumber = 12;
+  ::google::protobuf::int32 batchnorm_variance_bw() const;
+  void set_batchnorm_variance_bw(::google::protobuf::int32 value);
+
+  // optional int32 scale_gamma_fl = 13;
+  bool has_scale_gamma_fl() const;
+  void clear_scale_gamma_fl();
+  static const int kScaleGammaFlFieldNumber = 13;
+  ::google::protobuf::int32 scale_gamma_fl() const;
+  void set_scale_gamma_fl(::google::protobuf::int32 value);
+
+  // optional int32 scale_beta_fl = 14;
+  bool has_scale_beta_fl() const;
+  void clear_scale_beta_fl();
+  static const int kScaleBetaFlFieldNumber = 14;
+  ::google::protobuf::int32 scale_beta_fl() const;
+  void set_scale_beta_fl(::google::protobuf::int32 value);
+
+  // optional int32 scale_gamma_bw = 15;
+  bool has_scale_gamma_bw() const;
+  void clear_scale_gamma_bw();
+  static const int kScaleGammaBwFieldNumber = 15;
+  ::google::protobuf::int32 scale_gamma_bw() const;
+  void set_scale_gamma_bw(::google::protobuf::int32 value);
+
+  // optional int32 scale_beta_bw = 16;
+  bool has_scale_beta_bw() const;
+  void clear_scale_beta_bw();
+  static const int kScaleBetaBwFieldNumber = 16;
+  ::google::protobuf::int32 scale_beta_bw() const;
+  void set_scale_beta_bw(::google::protobuf::int32 value);
+
+  // optional int32 scale_gamma_by_std_fl = 17;
+  bool has_scale_gamma_by_std_fl() const;
+  void clear_scale_gamma_by_std_fl();
+  static const int kScaleGammaByStdFlFieldNumber = 17;
+  ::google::protobuf::int32 scale_gamma_by_std_fl() const;
+  void set_scale_gamma_by_std_fl(::google::protobuf::int32 value);
+
+  // optional int32 scale_gamma_by_std_bw = 18;
+  bool has_scale_gamma_by_std_bw() const;
+  void clear_scale_gamma_by_std_bw();
+  static const int kScaleGammaByStdBwFieldNumber = 18;
+  ::google::protobuf::int32 scale_gamma_by_std_bw() const;
+  void set_scale_gamma_by_std_bw(::google::protobuf::int32 value);
+
+  // optional float th_layer_in = 19;
+  bool has_th_layer_in() const;
+  void clear_th_layer_in();
+  static const int kThLayerInFieldNumber = 19;
+  float th_layer_in() const;
+  void set_th_layer_in(float value);
+
+  // optional float th_layer_out = 20;
+  bool has_th_layer_out() const;
+  void clear_th_layer_out();
+  static const int kThLayerOutFieldNumber = 20;
+  float th_layer_out() const;
+  void set_th_layer_out(float value);
+
   // @@protoc_insertion_point(class_scope:caffe.QuantizationParameter)
  private:
   void set_has_bw_layer_in();
@@ -4201,10 +4707,19 @@ class QuantizationParameter : public ::google::protobuf::Message /* @@protoc_ins
   void clear_has_scale_gamma_by_std_fl();
   void set_has_scale_gamma_by_std_bw();
   void clear_has_scale_gamma_by_std_bw();
+  void set_has_quant_type();
+  void clear_has_quant_type();
+  void set_has_th_layer_in();
+  void clear_has_th_layer_in();
+  void set_has_th_layer_out();
+  void clear_has_th_layer_out();
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::internal::HasBits<1> _has_bits_;
   mutable int _cached_size_;
+  ::google::protobuf::RepeatedField< float > th_params_;
+  static ::google::protobuf::internal::ExplicitlyConstructed< ::std::string> _default_quant_type_;
+  ::google::protobuf::internal::ArenaStringPtr quant_type_;
   ::google::protobuf::uint32 bw_layer_in_;
   ::google::protobuf::uint32 bw_layer_out_;
   ::google::protobuf::uint32 bw_params_;
@@ -4221,6 +4736,8 @@ class QuantizationParameter : public ::google::protobuf::Message /* @@protoc_ins
   ::google::protobuf::int32 scale_beta_bw_;
   ::google::protobuf::int32 scale_gamma_by_std_fl_;
   ::google::protobuf::int32 scale_gamma_by_std_bw_;
+  float th_layer_in_;
+  float th_layer_out_;
   friend struct  protobuf_caffe_2eproto::TableStruct;
 };
 // -------------------------------------------------------------------
@@ -16535,15 +17052,39 @@ LayerParameter::mutable_top() {
   return &top_;
 }
 
+// optional bool user_defined_layer = 999 [default = false];
+inline bool LayerParameter::has_user_defined_layer() const {
+  return (_has_bits_[1] & 0x01000000u) != 0;
+}
+inline void LayerParameter::set_has_user_defined_layer() {
+  _has_bits_[1] |= 0x01000000u;
+}
+inline void LayerParameter::clear_has_user_defined_layer() {
+  _has_bits_[1] &= ~0x01000000u;
+}
+inline void LayerParameter::clear_user_defined_layer() {
+  user_defined_layer_ = false;
+  clear_has_user_defined_layer();
+}
+inline bool LayerParameter::user_defined_layer() const {
+  // @@protoc_insertion_point(field_get:caffe.LayerParameter.user_defined_layer)
+  return user_defined_layer_;
+}
+inline void LayerParameter::set_user_defined_layer(bool value) {
+  set_has_user_defined_layer();
+  user_defined_layer_ = value;
+  // @@protoc_insertion_point(field_set:caffe.LayerParameter.user_defined_layer)
+}
+
 // optional .caffe.Phase phase = 10;
 inline bool LayerParameter::has_phase() const {
-  return (_has_bits_[1] & 0x00400000u) != 0;
+  return (_has_bits_[1] & 0x02000000u) != 0;
 }
 inline void LayerParameter::set_has_phase() {
-  _has_bits_[1] |= 0x00400000u;
+  _has_bits_[1] |= 0x02000000u;
 }
 inline void LayerParameter::clear_has_phase() {
-  _has_bits_[1] &= ~0x00400000u;
+  _has_bits_[1] &= ~0x02000000u;
 }
 inline void LayerParameter::clear_phase() {
   phase_ = 0;
@@ -19080,19 +19621,756 @@ inline void LayerParameter::set_allocated_window_data_param(::caffe::WindowDataP
   // @@protoc_insertion_point(field_set_allocated:caffe.LayerParameter.window_data_param)
 }
 
+// optional .caffe.PrecisionParameter precision_param = 997;
+inline bool LayerParameter::has_precision_param() const {
+  return (_has_bits_[1] & 0x00400000u) != 0;
+}
+inline void LayerParameter::set_has_precision_param() {
+  _has_bits_[1] |= 0x00400000u;
+}
+inline void LayerParameter::clear_has_precision_param() {
+  _has_bits_[1] &= ~0x00400000u;
+}
+inline void LayerParameter::clear_precision_param() {
+  if (precision_param_ != NULL) precision_param_->::caffe::PrecisionParameter::Clear();
+  clear_has_precision_param();
+}
+inline const ::caffe::PrecisionParameter& LayerParameter::precision_param() const {
+  // @@protoc_insertion_point(field_get:caffe.LayerParameter.precision_param)
+  return precision_param_ != NULL ? *precision_param_
+                         : *::caffe::PrecisionParameter::internal_default_instance();
+}
+inline ::caffe::PrecisionParameter* LayerParameter::mutable_precision_param() {
+  set_has_precision_param();
+  if (precision_param_ == NULL) {
+    precision_param_ = new ::caffe::PrecisionParameter;
+  }
+  // @@protoc_insertion_point(field_mutable:caffe.LayerParameter.precision_param)
+  return precision_param_;
+}
+inline ::caffe::PrecisionParameter* LayerParameter::release_precision_param() {
+  // @@protoc_insertion_point(field_release:caffe.LayerParameter.precision_param)
+  clear_has_precision_param();
+  ::caffe::PrecisionParameter* temp = precision_param_;
+  precision_param_ = NULL;
+  return temp;
+}
+inline void LayerParameter::set_allocated_precision_param(::caffe::PrecisionParameter* precision_param) {
+  delete precision_param_;
+  precision_param_ = precision_param;
+  if (precision_param) {
+    set_has_precision_param();
+  } else {
+    clear_has_precision_param();
+  }
+  // @@protoc_insertion_point(field_set_allocated:caffe.LayerParameter.precision_param)
+}
+
+// optional .caffe.XCustomParameter xcustom_param = 998;
+inline bool LayerParameter::has_xcustom_param() const {
+  return (_has_bits_[1] & 0x00800000u) != 0;
+}
+inline void LayerParameter::set_has_xcustom_param() {
+  _has_bits_[1] |= 0x00800000u;
+}
+inline void LayerParameter::clear_has_xcustom_param() {
+  _has_bits_[1] &= ~0x00800000u;
+}
+inline void LayerParameter::clear_xcustom_param() {
+  if (xcustom_param_ != NULL) xcustom_param_->::caffe::XCustomParameter::Clear();
+  clear_has_xcustom_param();
+}
+inline const ::caffe::XCustomParameter& LayerParameter::xcustom_param() const {
+  // @@protoc_insertion_point(field_get:caffe.LayerParameter.xcustom_param)
+  return xcustom_param_ != NULL ? *xcustom_param_
+                         : *::caffe::XCustomParameter::internal_default_instance();
+}
+inline ::caffe::XCustomParameter* LayerParameter::mutable_xcustom_param() {
+  set_has_xcustom_param();
+  if (xcustom_param_ == NULL) {
+    xcustom_param_ = new ::caffe::XCustomParameter;
+  }
+  // @@protoc_insertion_point(field_mutable:caffe.LayerParameter.xcustom_param)
+  return xcustom_param_;
+}
+inline ::caffe::XCustomParameter* LayerParameter::release_xcustom_param() {
+  // @@protoc_insertion_point(field_release:caffe.LayerParameter.xcustom_param)
+  clear_has_xcustom_param();
+  ::caffe::XCustomParameter* temp = xcustom_param_;
+  xcustom_param_ = NULL;
+  return temp;
+}
+inline void LayerParameter::set_allocated_xcustom_param(::caffe::XCustomParameter* xcustom_param) {
+  delete xcustom_param_;
+  xcustom_param_ = xcustom_param;
+  if (xcustom_param) {
+    set_has_xcustom_param();
+  } else {
+    clear_has_xcustom_param();
+  }
+  // @@protoc_insertion_point(field_set_allocated:caffe.LayerParameter.xcustom_param)
+}
+
+// -------------------------------------------------------------------
+
+// XCustomParameter
+
+// repeated float float_args = 2;
+inline int XCustomParameter::float_args_size() const {
+  return float_args_.size();
+}
+inline void XCustomParameter::clear_float_args() {
+  float_args_.Clear();
+}
+inline float XCustomParameter::float_args(int index) const {
+  // @@protoc_insertion_point(field_get:caffe.XCustomParameter.float_args)
+  return float_args_.Get(index);
+}
+inline void XCustomParameter::set_float_args(int index, float value) {
+  float_args_.Set(index, value);
+  // @@protoc_insertion_point(field_set:caffe.XCustomParameter.float_args)
+}
+inline void XCustomParameter::add_float_args(float value) {
+  float_args_.Add(value);
+  // @@protoc_insertion_point(field_add:caffe.XCustomParameter.float_args)
+}
+inline const ::google::protobuf::RepeatedField< float >&
+XCustomParameter::float_args() const {
+  // @@protoc_insertion_point(field_list:caffe.XCustomParameter.float_args)
+  return float_args_;
+}
+inline ::google::protobuf::RepeatedField< float >*
+XCustomParameter::mutable_float_args() {
+  // @@protoc_insertion_point(field_mutable_list:caffe.XCustomParameter.float_args)
+  return &float_args_;
+}
+
+// repeated string string_args = 3;
+inline int XCustomParameter::string_args_size() const {
+  return string_args_.size();
+}
+inline void XCustomParameter::clear_string_args() {
+  string_args_.Clear();
+}
+inline const ::std::string& XCustomParameter::string_args(int index) const {
+  // @@protoc_insertion_point(field_get:caffe.XCustomParameter.string_args)
+  return string_args_.Get(index);
+}
+inline ::std::string* XCustomParameter::mutable_string_args(int index) {
+  // @@protoc_insertion_point(field_mutable:caffe.XCustomParameter.string_args)
+  return string_args_.Mutable(index);
+}
+inline void XCustomParameter::set_string_args(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:caffe.XCustomParameter.string_args)
+  string_args_.Mutable(index)->assign(value);
+}
+inline void XCustomParameter::set_string_args(int index, const char* value) {
+  string_args_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:caffe.XCustomParameter.string_args)
+}
+inline void XCustomParameter::set_string_args(int index, const char* value, size_t size) {
+  string_args_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:caffe.XCustomParameter.string_args)
+}
+inline ::std::string* XCustomParameter::add_string_args() {
+  // @@protoc_insertion_point(field_add_mutable:caffe.XCustomParameter.string_args)
+  return string_args_.Add();
+}
+inline void XCustomParameter::add_string_args(const ::std::string& value) {
+  string_args_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:caffe.XCustomParameter.string_args)
+}
+inline void XCustomParameter::add_string_args(const char* value) {
+  string_args_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:caffe.XCustomParameter.string_args)
+}
+inline void XCustomParameter::add_string_args(const char* value, size_t size) {
+  string_args_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:caffe.XCustomParameter.string_args)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+XCustomParameter::string_args() const {
+  // @@protoc_insertion_point(field_list:caffe.XCustomParameter.string_args)
+  return string_args_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+XCustomParameter::mutable_string_args() {
+  // @@protoc_insertion_point(field_mutable_list:caffe.XCustomParameter.string_args)
+  return &string_args_;
+}
+
+// repeated uint32 top_dim = 1;
+inline int XCustomParameter::top_dim_size() const {
+  return top_dim_.size();
+}
+inline void XCustomParameter::clear_top_dim() {
+  top_dim_.Clear();
+}
+inline ::google::protobuf::uint32 XCustomParameter::top_dim(int index) const {
+  // @@protoc_insertion_point(field_get:caffe.XCustomParameter.top_dim)
+  return top_dim_.Get(index);
+}
+inline void XCustomParameter::set_top_dim(int index, ::google::protobuf::uint32 value) {
+  top_dim_.Set(index, value);
+  // @@protoc_insertion_point(field_set:caffe.XCustomParameter.top_dim)
+}
+inline void XCustomParameter::add_top_dim(::google::protobuf::uint32 value) {
+  top_dim_.Add(value);
+  // @@protoc_insertion_point(field_add:caffe.XCustomParameter.top_dim)
+}
+inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+XCustomParameter::top_dim() const {
+  // @@protoc_insertion_point(field_list:caffe.XCustomParameter.top_dim)
+  return top_dim_;
+}
+inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+XCustomParameter::mutable_top_dim() {
+  // @@protoc_insertion_point(field_mutable_list:caffe.XCustomParameter.top_dim)
+  return &top_dim_;
+}
+
+// -------------------------------------------------------------------
+
+// PrecisionParameter
+
+// optional uint32 bw_layer_in = 3;
+inline bool PrecisionParameter::has_bw_layer_in() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void PrecisionParameter::set_has_bw_layer_in() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void PrecisionParameter::clear_has_bw_layer_in() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void PrecisionParameter::clear_bw_layer_in() {
+  bw_layer_in_ = 0u;
+  clear_has_bw_layer_in();
+}
+inline ::google::protobuf::uint32 PrecisionParameter::bw_layer_in() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.bw_layer_in)
+  return bw_layer_in_;
+}
+inline void PrecisionParameter::set_bw_layer_in(::google::protobuf::uint32 value) {
+  set_has_bw_layer_in();
+  bw_layer_in_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.bw_layer_in)
+}
+
+// optional uint32 bw_layer_out = 4;
+inline bool PrecisionParameter::has_bw_layer_out() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void PrecisionParameter::set_has_bw_layer_out() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void PrecisionParameter::clear_has_bw_layer_out() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void PrecisionParameter::clear_bw_layer_out() {
+  bw_layer_out_ = 0u;
+  clear_has_bw_layer_out();
+}
+inline ::google::protobuf::uint32 PrecisionParameter::bw_layer_out() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.bw_layer_out)
+  return bw_layer_out_;
+}
+inline void PrecisionParameter::set_bw_layer_out(::google::protobuf::uint32 value) {
+  set_has_bw_layer_out();
+  bw_layer_out_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.bw_layer_out)
+}
+
+// optional uint32 bw_params = 5;
+inline bool PrecisionParameter::has_bw_params() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void PrecisionParameter::set_has_bw_params() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void PrecisionParameter::clear_has_bw_params() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void PrecisionParameter::clear_bw_params() {
+  bw_params_ = 0u;
+  clear_has_bw_params();
+}
+inline ::google::protobuf::uint32 PrecisionParameter::bw_params() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.bw_params)
+  return bw_params_;
+}
+inline void PrecisionParameter::set_bw_params(::google::protobuf::uint32 value) {
+  set_has_bw_params();
+  bw_params_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.bw_params)
+}
+
+// optional int32 fl_layer_in = 6;
+inline bool PrecisionParameter::has_fl_layer_in() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void PrecisionParameter::set_has_fl_layer_in() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void PrecisionParameter::clear_has_fl_layer_in() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void PrecisionParameter::clear_fl_layer_in() {
+  fl_layer_in_ = 0;
+  clear_has_fl_layer_in();
+}
+inline ::google::protobuf::int32 PrecisionParameter::fl_layer_in() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.fl_layer_in)
+  return fl_layer_in_;
+}
+inline void PrecisionParameter::set_fl_layer_in(::google::protobuf::int32 value) {
+  set_has_fl_layer_in();
+  fl_layer_in_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.fl_layer_in)
+}
+
+// optional int32 fl_layer_out = 7;
+inline bool PrecisionParameter::has_fl_layer_out() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void PrecisionParameter::set_has_fl_layer_out() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void PrecisionParameter::clear_has_fl_layer_out() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void PrecisionParameter::clear_fl_layer_out() {
+  fl_layer_out_ = 0;
+  clear_has_fl_layer_out();
+}
+inline ::google::protobuf::int32 PrecisionParameter::fl_layer_out() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.fl_layer_out)
+  return fl_layer_out_;
+}
+inline void PrecisionParameter::set_fl_layer_out(::google::protobuf::int32 value) {
+  set_has_fl_layer_out();
+  fl_layer_out_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.fl_layer_out)
+}
+
+// optional int32 fl_params = 8;
+inline bool PrecisionParameter::has_fl_params() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void PrecisionParameter::set_has_fl_params() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void PrecisionParameter::clear_has_fl_params() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void PrecisionParameter::clear_fl_params() {
+  fl_params_ = 0;
+  clear_has_fl_params();
+}
+inline ::google::protobuf::int32 PrecisionParameter::fl_params() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.fl_params)
+  return fl_params_;
+}
+inline void PrecisionParameter::set_fl_params(::google::protobuf::int32 value) {
+  set_has_fl_params();
+  fl_params_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.fl_params)
+}
+
+// optional int32 batchnorm_mean_fl = 9;
+inline bool PrecisionParameter::has_batchnorm_mean_fl() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void PrecisionParameter::set_has_batchnorm_mean_fl() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void PrecisionParameter::clear_has_batchnorm_mean_fl() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void PrecisionParameter::clear_batchnorm_mean_fl() {
+  batchnorm_mean_fl_ = 0;
+  clear_has_batchnorm_mean_fl();
+}
+inline ::google::protobuf::int32 PrecisionParameter::batchnorm_mean_fl() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.batchnorm_mean_fl)
+  return batchnorm_mean_fl_;
+}
+inline void PrecisionParameter::set_batchnorm_mean_fl(::google::protobuf::int32 value) {
+  set_has_batchnorm_mean_fl();
+  batchnorm_mean_fl_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.batchnorm_mean_fl)
+}
+
+// optional int32 batchnorm_variance_fl = 10;
+inline bool PrecisionParameter::has_batchnorm_variance_fl() const {
+  return (_has_bits_[0] & 0x00000100u) != 0;
+}
+inline void PrecisionParameter::set_has_batchnorm_variance_fl() {
+  _has_bits_[0] |= 0x00000100u;
+}
+inline void PrecisionParameter::clear_has_batchnorm_variance_fl() {
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline void PrecisionParameter::clear_batchnorm_variance_fl() {
+  batchnorm_variance_fl_ = 0;
+  clear_has_batchnorm_variance_fl();
+}
+inline ::google::protobuf::int32 PrecisionParameter::batchnorm_variance_fl() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.batchnorm_variance_fl)
+  return batchnorm_variance_fl_;
+}
+inline void PrecisionParameter::set_batchnorm_variance_fl(::google::protobuf::int32 value) {
+  set_has_batchnorm_variance_fl();
+  batchnorm_variance_fl_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.batchnorm_variance_fl)
+}
+
+// optional int32 batchnorm_mean_bw = 11;
+inline bool PrecisionParameter::has_batchnorm_mean_bw() const {
+  return (_has_bits_[0] & 0x00000200u) != 0;
+}
+inline void PrecisionParameter::set_has_batchnorm_mean_bw() {
+  _has_bits_[0] |= 0x00000200u;
+}
+inline void PrecisionParameter::clear_has_batchnorm_mean_bw() {
+  _has_bits_[0] &= ~0x00000200u;
+}
+inline void PrecisionParameter::clear_batchnorm_mean_bw() {
+  batchnorm_mean_bw_ = 0;
+  clear_has_batchnorm_mean_bw();
+}
+inline ::google::protobuf::int32 PrecisionParameter::batchnorm_mean_bw() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.batchnorm_mean_bw)
+  return batchnorm_mean_bw_;
+}
+inline void PrecisionParameter::set_batchnorm_mean_bw(::google::protobuf::int32 value) {
+  set_has_batchnorm_mean_bw();
+  batchnorm_mean_bw_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.batchnorm_mean_bw)
+}
+
+// optional int32 batchnorm_variance_bw = 12;
+inline bool PrecisionParameter::has_batchnorm_variance_bw() const {
+  return (_has_bits_[0] & 0x00000400u) != 0;
+}
+inline void PrecisionParameter::set_has_batchnorm_variance_bw() {
+  _has_bits_[0] |= 0x00000400u;
+}
+inline void PrecisionParameter::clear_has_batchnorm_variance_bw() {
+  _has_bits_[0] &= ~0x00000400u;
+}
+inline void PrecisionParameter::clear_batchnorm_variance_bw() {
+  batchnorm_variance_bw_ = 0;
+  clear_has_batchnorm_variance_bw();
+}
+inline ::google::protobuf::int32 PrecisionParameter::batchnorm_variance_bw() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.batchnorm_variance_bw)
+  return batchnorm_variance_bw_;
+}
+inline void PrecisionParameter::set_batchnorm_variance_bw(::google::protobuf::int32 value) {
+  set_has_batchnorm_variance_bw();
+  batchnorm_variance_bw_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.batchnorm_variance_bw)
+}
+
+// optional int32 scale_gamma_fl = 13;
+inline bool PrecisionParameter::has_scale_gamma_fl() const {
+  return (_has_bits_[0] & 0x00000800u) != 0;
+}
+inline void PrecisionParameter::set_has_scale_gamma_fl() {
+  _has_bits_[0] |= 0x00000800u;
+}
+inline void PrecisionParameter::clear_has_scale_gamma_fl() {
+  _has_bits_[0] &= ~0x00000800u;
+}
+inline void PrecisionParameter::clear_scale_gamma_fl() {
+  scale_gamma_fl_ = 0;
+  clear_has_scale_gamma_fl();
+}
+inline ::google::protobuf::int32 PrecisionParameter::scale_gamma_fl() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.scale_gamma_fl)
+  return scale_gamma_fl_;
+}
+inline void PrecisionParameter::set_scale_gamma_fl(::google::protobuf::int32 value) {
+  set_has_scale_gamma_fl();
+  scale_gamma_fl_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.scale_gamma_fl)
+}
+
+// optional int32 scale_beta_fl = 14;
+inline bool PrecisionParameter::has_scale_beta_fl() const {
+  return (_has_bits_[0] & 0x00001000u) != 0;
+}
+inline void PrecisionParameter::set_has_scale_beta_fl() {
+  _has_bits_[0] |= 0x00001000u;
+}
+inline void PrecisionParameter::clear_has_scale_beta_fl() {
+  _has_bits_[0] &= ~0x00001000u;
+}
+inline void PrecisionParameter::clear_scale_beta_fl() {
+  scale_beta_fl_ = 0;
+  clear_has_scale_beta_fl();
+}
+inline ::google::protobuf::int32 PrecisionParameter::scale_beta_fl() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.scale_beta_fl)
+  return scale_beta_fl_;
+}
+inline void PrecisionParameter::set_scale_beta_fl(::google::protobuf::int32 value) {
+  set_has_scale_beta_fl();
+  scale_beta_fl_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.scale_beta_fl)
+}
+
+// optional int32 scale_gamma_bw = 15;
+inline bool PrecisionParameter::has_scale_gamma_bw() const {
+  return (_has_bits_[0] & 0x00002000u) != 0;
+}
+inline void PrecisionParameter::set_has_scale_gamma_bw() {
+  _has_bits_[0] |= 0x00002000u;
+}
+inline void PrecisionParameter::clear_has_scale_gamma_bw() {
+  _has_bits_[0] &= ~0x00002000u;
+}
+inline void PrecisionParameter::clear_scale_gamma_bw() {
+  scale_gamma_bw_ = 0;
+  clear_has_scale_gamma_bw();
+}
+inline ::google::protobuf::int32 PrecisionParameter::scale_gamma_bw() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.scale_gamma_bw)
+  return scale_gamma_bw_;
+}
+inline void PrecisionParameter::set_scale_gamma_bw(::google::protobuf::int32 value) {
+  set_has_scale_gamma_bw();
+  scale_gamma_bw_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.scale_gamma_bw)
+}
+
+// optional int32 scale_beta_bw = 16;
+inline bool PrecisionParameter::has_scale_beta_bw() const {
+  return (_has_bits_[0] & 0x00004000u) != 0;
+}
+inline void PrecisionParameter::set_has_scale_beta_bw() {
+  _has_bits_[0] |= 0x00004000u;
+}
+inline void PrecisionParameter::clear_has_scale_beta_bw() {
+  _has_bits_[0] &= ~0x00004000u;
+}
+inline void PrecisionParameter::clear_scale_beta_bw() {
+  scale_beta_bw_ = 0;
+  clear_has_scale_beta_bw();
+}
+inline ::google::protobuf::int32 PrecisionParameter::scale_beta_bw() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.scale_beta_bw)
+  return scale_beta_bw_;
+}
+inline void PrecisionParameter::set_scale_beta_bw(::google::protobuf::int32 value) {
+  set_has_scale_beta_bw();
+  scale_beta_bw_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.scale_beta_bw)
+}
+
+// optional int32 scale_gamma_by_std_fl = 17;
+inline bool PrecisionParameter::has_scale_gamma_by_std_fl() const {
+  return (_has_bits_[0] & 0x00008000u) != 0;
+}
+inline void PrecisionParameter::set_has_scale_gamma_by_std_fl() {
+  _has_bits_[0] |= 0x00008000u;
+}
+inline void PrecisionParameter::clear_has_scale_gamma_by_std_fl() {
+  _has_bits_[0] &= ~0x00008000u;
+}
+inline void PrecisionParameter::clear_scale_gamma_by_std_fl() {
+  scale_gamma_by_std_fl_ = 0;
+  clear_has_scale_gamma_by_std_fl();
+}
+inline ::google::protobuf::int32 PrecisionParameter::scale_gamma_by_std_fl() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.scale_gamma_by_std_fl)
+  return scale_gamma_by_std_fl_;
+}
+inline void PrecisionParameter::set_scale_gamma_by_std_fl(::google::protobuf::int32 value) {
+  set_has_scale_gamma_by_std_fl();
+  scale_gamma_by_std_fl_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.scale_gamma_by_std_fl)
+}
+
+// optional int32 scale_gamma_by_std_bw = 18;
+inline bool PrecisionParameter::has_scale_gamma_by_std_bw() const {
+  return (_has_bits_[0] & 0x00010000u) != 0;
+}
+inline void PrecisionParameter::set_has_scale_gamma_by_std_bw() {
+  _has_bits_[0] |= 0x00010000u;
+}
+inline void PrecisionParameter::clear_has_scale_gamma_by_std_bw() {
+  _has_bits_[0] &= ~0x00010000u;
+}
+inline void PrecisionParameter::clear_scale_gamma_by_std_bw() {
+  scale_gamma_by_std_bw_ = 0;
+  clear_has_scale_gamma_by_std_bw();
+}
+inline ::google::protobuf::int32 PrecisionParameter::scale_gamma_by_std_bw() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.scale_gamma_by_std_bw)
+  return scale_gamma_by_std_bw_;
+}
+inline void PrecisionParameter::set_scale_gamma_by_std_bw(::google::protobuf::int32 value) {
+  set_has_scale_gamma_by_std_bw();
+  scale_gamma_by_std_bw_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.scale_gamma_by_std_bw)
+}
+
+// optional string quant_type = 22 [default = "DynamicFixed"];
+inline bool PrecisionParameter::has_quant_type() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void PrecisionParameter::set_has_quant_type() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void PrecisionParameter::clear_has_quant_type() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void PrecisionParameter::clear_quant_type() {
+  quant_type_.ClearToDefaultNoArena(&PrecisionParameter::_default_quant_type_.get());
+  clear_has_quant_type();
+}
+inline const ::std::string& PrecisionParameter::quant_type() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.quant_type)
+  return quant_type_.GetNoArena();
+}
+inline void PrecisionParameter::set_quant_type(const ::std::string& value) {
+  set_has_quant_type();
+  quant_type_.SetNoArena(&PrecisionParameter::_default_quant_type_.get(), value);
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.quant_type)
+}
+#if LANG_CXX11
+inline void PrecisionParameter::set_quant_type(::std::string&& value) {
+  set_has_quant_type();
+  quant_type_.SetNoArena(
+    &PrecisionParameter::_default_quant_type_.get(), std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:caffe.PrecisionParameter.quant_type)
+}
+#endif
+inline void PrecisionParameter::set_quant_type(const char* value) {
+  set_has_quant_type();
+  quant_type_.SetNoArena(&PrecisionParameter::_default_quant_type_.get(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:caffe.PrecisionParameter.quant_type)
+}
+inline void PrecisionParameter::set_quant_type(const char* value, size_t size) {
+  set_has_quant_type();
+  quant_type_.SetNoArena(&PrecisionParameter::_default_quant_type_.get(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:caffe.PrecisionParameter.quant_type)
+}
+inline ::std::string* PrecisionParameter::mutable_quant_type() {
+  set_has_quant_type();
+  // @@protoc_insertion_point(field_mutable:caffe.PrecisionParameter.quant_type)
+  return quant_type_.MutableNoArena(&PrecisionParameter::_default_quant_type_.get());
+}
+inline ::std::string* PrecisionParameter::release_quant_type() {
+  // @@protoc_insertion_point(field_release:caffe.PrecisionParameter.quant_type)
+  clear_has_quant_type();
+  return quant_type_.ReleaseNoArena(&PrecisionParameter::_default_quant_type_.get());
+}
+inline void PrecisionParameter::set_allocated_quant_type(::std::string* quant_type) {
+  if (quant_type != NULL) {
+    set_has_quant_type();
+  } else {
+    clear_has_quant_type();
+  }
+  quant_type_.SetAllocatedNoArena(&PrecisionParameter::_default_quant_type_.get(), quant_type);
+  // @@protoc_insertion_point(field_set_allocated:caffe.PrecisionParameter.quant_type)
+}
+
+// optional float th_layer_in = 19;
+inline bool PrecisionParameter::has_th_layer_in() const {
+  return (_has_bits_[0] & 0x00020000u) != 0;
+}
+inline void PrecisionParameter::set_has_th_layer_in() {
+  _has_bits_[0] |= 0x00020000u;
+}
+inline void PrecisionParameter::clear_has_th_layer_in() {
+  _has_bits_[0] &= ~0x00020000u;
+}
+inline void PrecisionParameter::clear_th_layer_in() {
+  th_layer_in_ = 0;
+  clear_has_th_layer_in();
+}
+inline float PrecisionParameter::th_layer_in() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.th_layer_in)
+  return th_layer_in_;
+}
+inline void PrecisionParameter::set_th_layer_in(float value) {
+  set_has_th_layer_in();
+  th_layer_in_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.th_layer_in)
+}
+
+// optional float th_layer_out = 20;
+inline bool PrecisionParameter::has_th_layer_out() const {
+  return (_has_bits_[0] & 0x00040000u) != 0;
+}
+inline void PrecisionParameter::set_has_th_layer_out() {
+  _has_bits_[0] |= 0x00040000u;
+}
+inline void PrecisionParameter::clear_has_th_layer_out() {
+  _has_bits_[0] &= ~0x00040000u;
+}
+inline void PrecisionParameter::clear_th_layer_out() {
+  th_layer_out_ = 0;
+  clear_has_th_layer_out();
+}
+inline float PrecisionParameter::th_layer_out() const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.th_layer_out)
+  return th_layer_out_;
+}
+inline void PrecisionParameter::set_th_layer_out(float value) {
+  set_has_th_layer_out();
+  th_layer_out_ = value;
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.th_layer_out)
+}
+
+// repeated float th_params = 21;
+inline int PrecisionParameter::th_params_size() const {
+  return th_params_.size();
+}
+inline void PrecisionParameter::clear_th_params() {
+  th_params_.Clear();
+}
+inline float PrecisionParameter::th_params(int index) const {
+  // @@protoc_insertion_point(field_get:caffe.PrecisionParameter.th_params)
+  return th_params_.Get(index);
+}
+inline void PrecisionParameter::set_th_params(int index, float value) {
+  th_params_.Set(index, value);
+  // @@protoc_insertion_point(field_set:caffe.PrecisionParameter.th_params)
+}
+inline void PrecisionParameter::add_th_params(float value) {
+  th_params_.Add(value);
+  // @@protoc_insertion_point(field_add:caffe.PrecisionParameter.th_params)
+}
+inline const ::google::protobuf::RepeatedField< float >&
+PrecisionParameter::th_params() const {
+  // @@protoc_insertion_point(field_list:caffe.PrecisionParameter.th_params)
+  return th_params_;
+}
+inline ::google::protobuf::RepeatedField< float >*
+PrecisionParameter::mutable_th_params() {
+  // @@protoc_insertion_point(field_mutable_list:caffe.PrecisionParameter.th_params)
+  return &th_params_;
+}
+
 // -------------------------------------------------------------------
 
 // QuantizationParameter
 
 // optional uint32 bw_layer_in = 3;
 inline bool QuantizationParameter::has_bw_layer_in() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
+  return (_has_bits_[0] & 0x00000002u) != 0;
 }
 inline void QuantizationParameter::set_has_bw_layer_in() {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000002u;
 }
 inline void QuantizationParameter::clear_has_bw_layer_in() {
-  _has_bits_[0] &= ~0x00000001u;
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void QuantizationParameter::clear_bw_layer_in() {
   bw_layer_in_ = 0u;
@@ -19110,13 +20388,13 @@ inline void QuantizationParameter::set_bw_layer_in(::google::protobuf::uint32 va
 
 // optional uint32 bw_layer_out = 4;
 inline bool QuantizationParameter::has_bw_layer_out() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
+  return (_has_bits_[0] & 0x00000004u) != 0;
 }
 inline void QuantizationParameter::set_has_bw_layer_out() {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
 }
 inline void QuantizationParameter::clear_has_bw_layer_out() {
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void QuantizationParameter::clear_bw_layer_out() {
   bw_layer_out_ = 0u;
@@ -19134,13 +20412,13 @@ inline void QuantizationParameter::set_bw_layer_out(::google::protobuf::uint32 v
 
 // optional uint32 bw_params = 5;
 inline bool QuantizationParameter::has_bw_params() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+  return (_has_bits_[0] & 0x00000008u) != 0;
 }
 inline void QuantizationParameter::set_has_bw_params() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
 }
 inline void QuantizationParameter::clear_has_bw_params() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline void QuantizationParameter::clear_bw_params() {
   bw_params_ = 0u;
@@ -19158,13 +20436,13 @@ inline void QuantizationParameter::set_bw_params(::google::protobuf::uint32 valu
 
 // optional int32 fl_layer_in = 6;
 inline bool QuantizationParameter::has_fl_layer_in() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
+  return (_has_bits_[0] & 0x00000010u) != 0;
 }
 inline void QuantizationParameter::set_has_fl_layer_in() {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
 }
 inline void QuantizationParameter::clear_has_fl_layer_in() {
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline void QuantizationParameter::clear_fl_layer_in() {
   fl_layer_in_ = 0;
@@ -19182,13 +20460,13 @@ inline void QuantizationParameter::set_fl_layer_in(::google::protobuf::int32 val
 
 // optional int32 fl_layer_out = 7;
 inline bool QuantizationParameter::has_fl_layer_out() const {
-  return (_has_bits_[0] & 0x00000010u) != 0;
+  return (_has_bits_[0] & 0x00000020u) != 0;
 }
 inline void QuantizationParameter::set_has_fl_layer_out() {
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000020u;
 }
 inline void QuantizationParameter::clear_has_fl_layer_out() {
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline void QuantizationParameter::clear_fl_layer_out() {
   fl_layer_out_ = 0;
@@ -19206,13 +20484,13 @@ inline void QuantizationParameter::set_fl_layer_out(::google::protobuf::int32 va
 
 // optional int32 fl_params = 8;
 inline bool QuantizationParameter::has_fl_params() const {
-  return (_has_bits_[0] & 0x00000020u) != 0;
+  return (_has_bits_[0] & 0x00000040u) != 0;
 }
 inline void QuantizationParameter::set_has_fl_params() {
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000040u;
 }
 inline void QuantizationParameter::clear_has_fl_params() {
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000040u;
 }
 inline void QuantizationParameter::clear_fl_params() {
   fl_params_ = 0;
@@ -19230,13 +20508,13 @@ inline void QuantizationParameter::set_fl_params(::google::protobuf::int32 value
 
 // optional int32 batchnorm_mean_fl = 9;
 inline bool QuantizationParameter::has_batchnorm_mean_fl() const {
-  return (_has_bits_[0] & 0x00000040u) != 0;
+  return (_has_bits_[0] & 0x00000080u) != 0;
 }
 inline void QuantizationParameter::set_has_batchnorm_mean_fl() {
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000080u;
 }
 inline void QuantizationParameter::clear_has_batchnorm_mean_fl() {
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline void QuantizationParameter::clear_batchnorm_mean_fl() {
   batchnorm_mean_fl_ = 0;
@@ -19254,13 +20532,13 @@ inline void QuantizationParameter::set_batchnorm_mean_fl(::google::protobuf::int
 
 // optional int32 batchnorm_variance_fl = 10;
 inline bool QuantizationParameter::has_batchnorm_variance_fl() const {
-  return (_has_bits_[0] & 0x00000080u) != 0;
+  return (_has_bits_[0] & 0x00000100u) != 0;
 }
 inline void QuantizationParameter::set_has_batchnorm_variance_fl() {
-  _has_bits_[0] |= 0x00000080u;
+  _has_bits_[0] |= 0x00000100u;
 }
 inline void QuantizationParameter::clear_has_batchnorm_variance_fl() {
-  _has_bits_[0] &= ~0x00000080u;
+  _has_bits_[0] &= ~0x00000100u;
 }
 inline void QuantizationParameter::clear_batchnorm_variance_fl() {
   batchnorm_variance_fl_ = 0;
@@ -19278,13 +20556,13 @@ inline void QuantizationParameter::set_batchnorm_variance_fl(::google::protobuf:
 
 // optional int32 batchnorm_mean_bw = 11;
 inline bool QuantizationParameter::has_batchnorm_mean_bw() const {
-  return (_has_bits_[0] & 0x00000100u) != 0;
+  return (_has_bits_[0] & 0x00000200u) != 0;
 }
 inline void QuantizationParameter::set_has_batchnorm_mean_bw() {
-  _has_bits_[0] |= 0x00000100u;
+  _has_bits_[0] |= 0x00000200u;
 }
 inline void QuantizationParameter::clear_has_batchnorm_mean_bw() {
-  _has_bits_[0] &= ~0x00000100u;
+  _has_bits_[0] &= ~0x00000200u;
 }
 inline void QuantizationParameter::clear_batchnorm_mean_bw() {
   batchnorm_mean_bw_ = 0;
@@ -19302,13 +20580,13 @@ inline void QuantizationParameter::set_batchnorm_mean_bw(::google::protobuf::int
 
 // optional int32 batchnorm_variance_bw = 12;
 inline bool QuantizationParameter::has_batchnorm_variance_bw() const {
-  return (_has_bits_[0] & 0x00000200u) != 0;
+  return (_has_bits_[0] & 0x00000400u) != 0;
 }
 inline void QuantizationParameter::set_has_batchnorm_variance_bw() {
-  _has_bits_[0] |= 0x00000200u;
+  _has_bits_[0] |= 0x00000400u;
 }
 inline void QuantizationParameter::clear_has_batchnorm_variance_bw() {
-  _has_bits_[0] &= ~0x00000200u;
+  _has_bits_[0] &= ~0x00000400u;
 }
 inline void QuantizationParameter::clear_batchnorm_variance_bw() {
   batchnorm_variance_bw_ = 0;
@@ -19326,13 +20604,13 @@ inline void QuantizationParameter::set_batchnorm_variance_bw(::google::protobuf:
 
 // optional int32 scale_gamma_fl = 13;
 inline bool QuantizationParameter::has_scale_gamma_fl() const {
-  return (_has_bits_[0] & 0x00000400u) != 0;
+  return (_has_bits_[0] & 0x00000800u) != 0;
 }
 inline void QuantizationParameter::set_has_scale_gamma_fl() {
-  _has_bits_[0] |= 0x00000400u;
+  _has_bits_[0] |= 0x00000800u;
 }
 inline void QuantizationParameter::clear_has_scale_gamma_fl() {
-  _has_bits_[0] &= ~0x00000400u;
+  _has_bits_[0] &= ~0x00000800u;
 }
 inline void QuantizationParameter::clear_scale_gamma_fl() {
   scale_gamma_fl_ = 0;
@@ -19350,13 +20628,13 @@ inline void QuantizationParameter::set_scale_gamma_fl(::google::protobuf::int32 
 
 // optional int32 scale_beta_fl = 14;
 inline bool QuantizationParameter::has_scale_beta_fl() const {
-  return (_has_bits_[0] & 0x00000800u) != 0;
+  return (_has_bits_[0] & 0x00001000u) != 0;
 }
 inline void QuantizationParameter::set_has_scale_beta_fl() {
-  _has_bits_[0] |= 0x00000800u;
+  _has_bits_[0] |= 0x00001000u;
 }
 inline void QuantizationParameter::clear_has_scale_beta_fl() {
-  _has_bits_[0] &= ~0x00000800u;
+  _has_bits_[0] &= ~0x00001000u;
 }
 inline void QuantizationParameter::clear_scale_beta_fl() {
   scale_beta_fl_ = 0;
@@ -19374,13 +20652,13 @@ inline void QuantizationParameter::set_scale_beta_fl(::google::protobuf::int32 v
 
 // optional int32 scale_gamma_bw = 15;
 inline bool QuantizationParameter::has_scale_gamma_bw() const {
-  return (_has_bits_[0] & 0x00001000u) != 0;
+  return (_has_bits_[0] & 0x00002000u) != 0;
 }
 inline void QuantizationParameter::set_has_scale_gamma_bw() {
-  _has_bits_[0] |= 0x00001000u;
+  _has_bits_[0] |= 0x00002000u;
 }
 inline void QuantizationParameter::clear_has_scale_gamma_bw() {
-  _has_bits_[0] &= ~0x00001000u;
+  _has_bits_[0] &= ~0x00002000u;
 }
 inline void QuantizationParameter::clear_scale_gamma_bw() {
   scale_gamma_bw_ = 0;
@@ -19398,13 +20676,13 @@ inline void QuantizationParameter::set_scale_gamma_bw(::google::protobuf::int32 
 
 // optional int32 scale_beta_bw = 16;
 inline bool QuantizationParameter::has_scale_beta_bw() const {
-  return (_has_bits_[0] & 0x00002000u) != 0;
+  return (_has_bits_[0] & 0x00004000u) != 0;
 }
 inline void QuantizationParameter::set_has_scale_beta_bw() {
-  _has_bits_[0] |= 0x00002000u;
+  _has_bits_[0] |= 0x00004000u;
 }
 inline void QuantizationParameter::clear_has_scale_beta_bw() {
-  _has_bits_[0] &= ~0x00002000u;
+  _has_bits_[0] &= ~0x00004000u;
 }
 inline void QuantizationParameter::clear_scale_beta_bw() {
   scale_beta_bw_ = 0;
@@ -19422,13 +20700,13 @@ inline void QuantizationParameter::set_scale_beta_bw(::google::protobuf::int32 v
 
 // optional int32 scale_gamma_by_std_fl = 17;
 inline bool QuantizationParameter::has_scale_gamma_by_std_fl() const {
-  return (_has_bits_[0] & 0x00004000u) != 0;
+  return (_has_bits_[0] & 0x00008000u) != 0;
 }
 inline void QuantizationParameter::set_has_scale_gamma_by_std_fl() {
-  _has_bits_[0] |= 0x00004000u;
+  _has_bits_[0] |= 0x00008000u;
 }
 inline void QuantizationParameter::clear_has_scale_gamma_by_std_fl() {
-  _has_bits_[0] &= ~0x00004000u;
+  _has_bits_[0] &= ~0x00008000u;
 }
 inline void QuantizationParameter::clear_scale_gamma_by_std_fl() {
   scale_gamma_by_std_fl_ = 0;
@@ -19446,13 +20724,13 @@ inline void QuantizationParameter::set_scale_gamma_by_std_fl(::google::protobuf:
 
 // optional int32 scale_gamma_by_std_bw = 18;
 inline bool QuantizationParameter::has_scale_gamma_by_std_bw() const {
-  return (_has_bits_[0] & 0x00008000u) != 0;
+  return (_has_bits_[0] & 0x00010000u) != 0;
 }
 inline void QuantizationParameter::set_has_scale_gamma_by_std_bw() {
-  _has_bits_[0] |= 0x00008000u;
+  _has_bits_[0] |= 0x00010000u;
 }
 inline void QuantizationParameter::clear_has_scale_gamma_by_std_bw() {
-  _has_bits_[0] &= ~0x00008000u;
+  _has_bits_[0] &= ~0x00010000u;
 }
 inline void QuantizationParameter::clear_scale_gamma_by_std_bw() {
   scale_gamma_by_std_bw_ = 0;
@@ -19466,6 +20744,146 @@ inline void QuantizationParameter::set_scale_gamma_by_std_bw(::google::protobuf:
   set_has_scale_gamma_by_std_bw();
   scale_gamma_by_std_bw_ = value;
   // @@protoc_insertion_point(field_set:caffe.QuantizationParameter.scale_gamma_by_std_bw)
+}
+
+// optional string quant_type = 22 [default = "DynamicFixed"];
+inline bool QuantizationParameter::has_quant_type() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void QuantizationParameter::set_has_quant_type() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void QuantizationParameter::clear_has_quant_type() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void QuantizationParameter::clear_quant_type() {
+  quant_type_.ClearToDefaultNoArena(&QuantizationParameter::_default_quant_type_.get());
+  clear_has_quant_type();
+}
+inline const ::std::string& QuantizationParameter::quant_type() const {
+  // @@protoc_insertion_point(field_get:caffe.QuantizationParameter.quant_type)
+  return quant_type_.GetNoArena();
+}
+inline void QuantizationParameter::set_quant_type(const ::std::string& value) {
+  set_has_quant_type();
+  quant_type_.SetNoArena(&QuantizationParameter::_default_quant_type_.get(), value);
+  // @@protoc_insertion_point(field_set:caffe.QuantizationParameter.quant_type)
+}
+#if LANG_CXX11
+inline void QuantizationParameter::set_quant_type(::std::string&& value) {
+  set_has_quant_type();
+  quant_type_.SetNoArena(
+    &QuantizationParameter::_default_quant_type_.get(), std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:caffe.QuantizationParameter.quant_type)
+}
+#endif
+inline void QuantizationParameter::set_quant_type(const char* value) {
+  set_has_quant_type();
+  quant_type_.SetNoArena(&QuantizationParameter::_default_quant_type_.get(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:caffe.QuantizationParameter.quant_type)
+}
+inline void QuantizationParameter::set_quant_type(const char* value, size_t size) {
+  set_has_quant_type();
+  quant_type_.SetNoArena(&QuantizationParameter::_default_quant_type_.get(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:caffe.QuantizationParameter.quant_type)
+}
+inline ::std::string* QuantizationParameter::mutable_quant_type() {
+  set_has_quant_type();
+  // @@protoc_insertion_point(field_mutable:caffe.QuantizationParameter.quant_type)
+  return quant_type_.MutableNoArena(&QuantizationParameter::_default_quant_type_.get());
+}
+inline ::std::string* QuantizationParameter::release_quant_type() {
+  // @@protoc_insertion_point(field_release:caffe.QuantizationParameter.quant_type)
+  clear_has_quant_type();
+  return quant_type_.ReleaseNoArena(&QuantizationParameter::_default_quant_type_.get());
+}
+inline void QuantizationParameter::set_allocated_quant_type(::std::string* quant_type) {
+  if (quant_type != NULL) {
+    set_has_quant_type();
+  } else {
+    clear_has_quant_type();
+  }
+  quant_type_.SetAllocatedNoArena(&QuantizationParameter::_default_quant_type_.get(), quant_type);
+  // @@protoc_insertion_point(field_set_allocated:caffe.QuantizationParameter.quant_type)
+}
+
+// optional float th_layer_in = 19;
+inline bool QuantizationParameter::has_th_layer_in() const {
+  return (_has_bits_[0] & 0x00020000u) != 0;
+}
+inline void QuantizationParameter::set_has_th_layer_in() {
+  _has_bits_[0] |= 0x00020000u;
+}
+inline void QuantizationParameter::clear_has_th_layer_in() {
+  _has_bits_[0] &= ~0x00020000u;
+}
+inline void QuantizationParameter::clear_th_layer_in() {
+  th_layer_in_ = 0;
+  clear_has_th_layer_in();
+}
+inline float QuantizationParameter::th_layer_in() const {
+  // @@protoc_insertion_point(field_get:caffe.QuantizationParameter.th_layer_in)
+  return th_layer_in_;
+}
+inline void QuantizationParameter::set_th_layer_in(float value) {
+  set_has_th_layer_in();
+  th_layer_in_ = value;
+  // @@protoc_insertion_point(field_set:caffe.QuantizationParameter.th_layer_in)
+}
+
+// optional float th_layer_out = 20;
+inline bool QuantizationParameter::has_th_layer_out() const {
+  return (_has_bits_[0] & 0x00040000u) != 0;
+}
+inline void QuantizationParameter::set_has_th_layer_out() {
+  _has_bits_[0] |= 0x00040000u;
+}
+inline void QuantizationParameter::clear_has_th_layer_out() {
+  _has_bits_[0] &= ~0x00040000u;
+}
+inline void QuantizationParameter::clear_th_layer_out() {
+  th_layer_out_ = 0;
+  clear_has_th_layer_out();
+}
+inline float QuantizationParameter::th_layer_out() const {
+  // @@protoc_insertion_point(field_get:caffe.QuantizationParameter.th_layer_out)
+  return th_layer_out_;
+}
+inline void QuantizationParameter::set_th_layer_out(float value) {
+  set_has_th_layer_out();
+  th_layer_out_ = value;
+  // @@protoc_insertion_point(field_set:caffe.QuantizationParameter.th_layer_out)
+}
+
+// repeated float th_params = 21;
+inline int QuantizationParameter::th_params_size() const {
+  return th_params_.size();
+}
+inline void QuantizationParameter::clear_th_params() {
+  th_params_.Clear();
+}
+inline float QuantizationParameter::th_params(int index) const {
+  // @@protoc_insertion_point(field_get:caffe.QuantizationParameter.th_params)
+  return th_params_.Get(index);
+}
+inline void QuantizationParameter::set_th_params(int index, float value) {
+  th_params_.Set(index, value);
+  // @@protoc_insertion_point(field_set:caffe.QuantizationParameter.th_params)
+}
+inline void QuantizationParameter::add_th_params(float value) {
+  th_params_.Add(value);
+  // @@protoc_insertion_point(field_add:caffe.QuantizationParameter.th_params)
+}
+inline const ::google::protobuf::RepeatedField< float >&
+QuantizationParameter::th_params() const {
+  // @@protoc_insertion_point(field_list:caffe.QuantizationParameter.th_params)
+  return th_params_;
+}
+inline ::google::protobuf::RepeatedField< float >*
+QuantizationParameter::mutable_th_params() {
+  // @@protoc_insertion_point(field_mutable_list:caffe.QuantizationParameter.th_params)
+  return &th_params_;
 }
 
 // -------------------------------------------------------------------
@@ -29695,6 +31113,10 @@ inline void PReLUParameter::set_channel_shared(bool value) {
 }
 
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

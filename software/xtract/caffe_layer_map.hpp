@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----------------------------------------------------*/
 
-
 #ifndef __CAFFELAYERMAP_HPP__
 #define __CAFFELAYERMAP_HPP__
 
 #include <map>
+#include <set>
 
 typedef map<string, string> mapStrStr;
 // A Mapping from Caffe layer names to anonymoX layer names
@@ -44,7 +44,7 @@ void fillCaffeLayerMap()
     CaffeLayerMap["Normalize"    ]  = "L2Normalize"  ;
     CaffeLayerMap["PriorBox"     ]  = "PriorBox"     ;
     CaffeLayerMap["Reshape"      ]  = "Reshape"      ;
-    CaffeLayerMap["LRN"          ]  = "LRN"          ;
+   // CaffeLayerMap["LRN"          ]  = "LRN"          ;
     CaffeLayerMap["DetectionOutput"]= "NMS"          ;
     CaffeLayerMap["ConvolutionRistretto"  ]  = "Convolution"  ;
     CaffeLayerMap["FcRistretto"  ]  = "InnerProduct";
@@ -52,6 +52,28 @@ void fillCaffeLayerMap()
     CaffeLayerMap["BatchNorm"  ]    = "BatchNorm"   ;
     CaffeLayerMap["Scale"  ]        = "Scale"       ;
     CaffeLayerMap["Power"  ]        = "Power"       ;
+    CaffeLayerMap["EltwiseRistretto"  ]      = "Eltwise"     ;
+    CaffeLayerMap["BatchNormRistretto"  ]    = "BatchNorm"   ;
+    CaffeLayerMap["ScaleRistretto"  ]        = "Scale"       ;
+    CaffeLayerMap["NormalizeRistretto"    ]  = "L2Normalize"  ;
+    CaffeLayerMap["DeconvolutionRistretto"]  = "Deconvolution";
+}
+
+set<string> SWLayerSet; 
+void fillSWLayerSet()
+{
+    SWLayerSet.insert("InnerProduct");
+    SWLayerSet.insert("Softmax");
+    SWLayerSet.insert("Dropout");
+    SWLayerSet.insert("Crop");
+    SWLayerSet.insert("PriorBox");
+    SWLayerSet.insert("NMS");
+    SWLayerSet.insert("Concat");
+    SWLayerSet.insert("Flatten");
+    SWLayerSet.insert("Reshape");
+    SWLayerSet.insert("Argmax");
+    SWLayerSet.insert("Power");
+    SWLayerSet.insert("ReLU");
 }
 
 #endif          //  __CAFFELAYERMAP_HPP__

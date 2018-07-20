@@ -28,13 +28,19 @@ limitations under the License.
 
 #include "../include/xchange_structs.hpp"
 
-#define EN_HISTOGRAM	0
+#define EN_HISTOGRAM	1
+#define EN_FILE_WRITE   1
 
 #define AlignSize(x, y) (x%y == 0) ? x : ((x/y + 1)*y)
 #define ConvertToFP(fVal, iPart, fbits)	((int)((iPart<<fbits) + ((fVal-(float)iPart))*(1<<fbits)))
 
 //# Checks funtionality
 int errorCheck(
+		xChangeLayer inLayer
+);
+
+//# Checks funtionality
+int errorCheck1(
 		xChangeLayer inLayer
 );
 
@@ -47,68 +53,81 @@ int outFileWrite(
 //# Checks Convolution/Pool funtionality
 int cpCheck(
 		xChangeLayer inLayer,
-		const char *ref_path,
-		const char *output_file_path,
-		FILE *&csv_fp
+		FILE *&csv_fp,
+		FILE *&error_fp
 );
 
 //# Checks Convolution/Pool funtionality
 int cpCheck_packed(
-		xChangeLayer inLayer,
-		const char *ref_path,
-		const char *output_file_path
+		xChangeLayer inLayer
 );
 
 //# Checks FC funtionality
 int fcCheck(
 		xChangeLayer inLayer,
-		const char *ref_path,
-		const char *output_file_path,
-		FILE *&csv_fp
+		FILE *&csv_fp,
+		FILE *&error_fp
+);
+
+int swfcCheck(
+		xChangeLayer inLayer,
+		FILE *&csv_fp,
+		FILE *&error_fp
 );
 
 //# Checks softmax funtionality
 int softmaxCheck(
-		xChangeLayer inLayer,
-		const char *ref_path,
-		const char *output_file_path
+		xChangeLayer inLayer
 );
 
 //# Checks NMS functionality
 int nmsCheck(
 		xChangeLayer inLayer,
-		const char *ref_path,
-		const char *output_file_path,
-		FILE *&csv_fp
+		FILE *&csv_fp,
+		FILE *&error_fp
 );
 
 
 //# Checks normalization functionality
 int normCheck(
 		xChangeLayer inLayer,
-		const char *ref_path,
-		const char *output_file_path,
-		FILE *&csv_fp
+		FILE *&csv_fp,
+		FILE *&error_fp
 );
 
 //# Checks Permute functionality
 int permuteCheck(
 		xChangeLayer inLayer,
-		const char *ref_path,
-		const char *output_file_path,
-		FILE *&csv_fp
+		FILE *&csv_fp,
+		FILE *&error_fp
 );
 
 int swSoftmaxCheck(
 		xChangeLayer inLayer,
-		const char *ref_path,
-		const char *output_file_path,
-		FILE *&csv_fp
+		FILE *&csv_fp,
+		FILE *&error_fp
+);
+
+int deconvCheck(
+		xChangeLayer inLayer,
+		FILE *&error_fp
 );
 
 void softmax_outfloatdatawrite1(float *input, int depth, int height, int width, const char *path);
 
+void softmax_outfloatdatawrite2(float *input, int depth, int height, int width, const char *path, int batch_size);
+
+void softmax_outfloatdatawrite3(IO_DATA_TYPE *input, int depth, int height, int width, const char *path, int batch_size, int fp_bits);
+
 void conv_loadinput_split(xChangeLayer inLayer, char *path);
+
+void LoadInputData(xChangeLayer inLayer, char *lay_path);
+
+void LoadInputData_flmode(xChangeLayer inLayer, char *lay_path);
+
+void LoadInputData_singleio(xChangeLayer inLayer, char *lay_path);
+
+void LoadInputData_singleio_flmode(xChangeLayer inLayer, char *lay_path);
 
 void conv_loadinput_pack(xChangeLayer inLayer, char *path);
 
@@ -130,6 +149,10 @@ int nmsWrite(
 );
 
 const char* getFileNameFromPath(char* path);
+void LoadInputData(xChangeLayer inLayer, char *lay_path);
+void LoadInputData_singleio(xChangeLayer inLayer, char *lay_path);
+void LoadInputfcData(xChangeLayer inLayer, char *lay_path);
+void LoadInputNormData(xChangeLayer inLayer, char *lay_path);
 
 
 #endif      // __XI_CHECKERS_HPP__

@@ -47,4 +47,42 @@ void Trim2FixedPoint(float *data, const int bw, const int fl, RoundingMethod rou
 	}
 }
 
+void Trim2FixedPoint_Offline(float *data, const int bw, float threshold)
+{
+	//# Compute scale factor
+	float scaling_factor = threshold / (pow(2, bw-1) - 1);
+
+	//# Clip the data b/w (-threshold, threshold)
+	data[0] = std::max(std::min(data[0], threshold), -threshold);
+
+	if(threshold != 0)
+	{
+		data[0] /= scaling_factor;
+		data[0] = round(data[0]);
+		//data[0] *= scaling_factor;
+	}
+}
+
+void Trim2FixedPointBias_Offline(float *data, const int bw, float threshold)
+{
+	//# Compute scale factor
+	float scaling_factor = threshold / (pow(2, bw-1) - 1);
+
+	//# Clip the data b/w (-threshold, threshold)
+	data[0] = std::max(std::min(data[0], threshold), -threshold);
+
+	if(threshold != 0)
+	{
+		data[0] /= scaling_factor;
+
+		//# Multiply with 2^8 because of 16-bit conversion
+		data[0] = round( data[0] );
+
+		//# Convert to 8.8 for kernel
+		data[0] *= pow(2, 8);
+
+		//data[0] *= scaling_factor;
+	}
+}
+
 #endif //_XCHANGE_INIT_UTILS_HPP_

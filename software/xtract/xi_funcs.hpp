@@ -14,9 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----------------------------------------------------*/
 
-
-#ifndef __XIFUNCS_HPP__
-#define __XIFUNCS_HPP__
+#ifndef __XI_FUNCS_HPP__
+#define __XI_FUNCS_HPP__
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -30,6 +29,8 @@ limitations under the License.
 #include <memory>
 #include <iterator>
 #include <cmath>
+#include <numeric>
+#include <functional>
 #include "../include/hw_settings.h"
 
 using namespace std;
@@ -125,6 +126,9 @@ string TensorDimToString (const vector<T>& src, const string delimiter="x");
 // A function to join/concatenate several strings to a single string
 string stringVectorToString (const vector<string>& src, const string delimiter=", ");
     
+// A function to join/concatenate several strings to a single string
+string floatVectorToString (const vector<float>& src, const string delimiter=", ");
+
 // A function to join multiple blob shapes to a single string
 string dimVectorToString (const vector< vector<int> >& src, const string delimiter=", ");
 
@@ -146,4 +150,32 @@ vector<float> readtxt(const string& filename);
 // A function to read a bin file to a vector<float>
 vector<float> readbin(const string& filename);
 
-#endif      // __XIFUNCS_HPP__
+// A functor to compute absolute max of an array
+template<typename T>
+class absMax {
+public:
+    absMax() {}
+    bool operator() (const T& a, const T& b) {return abs(a) < abs(b);}
+};
+
+template<typename T>
+vector<T> getAbsMaxPerFilter(const vector<T>& src, const vector<int>& dim) {
+    ASSERT(dim.size() > 1, EX100, "getAbsMaxPerFilter : dim should have atleast two elems")
+
+    const int num_out = dim.at(0);
+    const int CHW     = std::accumulate(dim.begin()+1, dim.end(), 1, std::multiplies<int>());
+
+    vector<T> th_params(num_out);
+
+    for(int i=0; i<num_out; ++i) {
+	typename vector<T>::const_iterator abs_max_iter = std::max_element(src.begin() + i * CHW,
+								src.begin() + (i+1)*CHW,
+								absMax<T>());
+	T abs_max_val = std::abs(*abs_max_iter);
+	th_params.at(i) = abs_max_val;
+    }
+
+    return th_params;
+}
+
+#endif      // __XI_FUNCS_HPP__

@@ -28,10 +28,11 @@ int convInputSize(int in_depth, int input_h, int input_w)
 	return(size);
 }
 
-int convBiasSize(int in_depth)
+template<typename T>
+int convBiasSize(int in_depth, int align_factor)
 {
-	int inDepth = AlignSize(in_depth, KER_PROC);
-	int size = inDepth * sizeof(HCONV_BIAS_TYPE);
+	int inDepth = AlignSize(in_depth, align_factor);
+	int size = inDepth * sizeof(T);
 
 	return(size);
 }
@@ -76,7 +77,7 @@ int shapeToSize( vector<vector<int> > shape)
 #endif
 	}
 #if EN_SHAPE2SIZE_PRINT
-		cout << "size : " << size << endl;
+	cout << "size : " << size << endl;
 #endif
 	return size;
 }
@@ -114,7 +115,7 @@ int peersToShape(vector < io_peers > shape)
 			{
 				//# Planes are divided by 2 because of 2x-IO ports
 				int x = AlignSize(off_shape[j], align_bytes);
-				x = x/2;
+				x = x/HCONV_OUT_PORTS;
 				size *= x;
 			}
 			else
@@ -128,10 +129,104 @@ int peersToShape(vector < io_peers > shape)
 #if EN_PEER2SIZE_PRINT
 		cout << endl;
 #endif
-		f_size = f_size + size;
+		//# considering batch size
+		f_size = f_size + (size*XBATCH_SIZE);
 	}
 #if EN_PEER2SIZE_PRINT
 	cout << "final offset : " << f_size << endl;
+#endif
+
+	return f_size;
+
+
+}
+
+//# Computes the offset required for concatenated buffers
+template<typename T, int align_bytes>
+int peersToShapeAlign16(vector < io_peers > shape, int *offset)
+{
+#if EN_PEER2SIZE_PRINT
+	cout << endl;
+	cout << "peersToShape : (dim1 size) - " << shape.size() << endl;
+#endif
+
+	io_peers inPair;
+	int offset0, offset1;
+
+	int f_size = 0;
+	offset[0] = 0;
+	offset[1] = 0;
+
+	int swap_offset_flag = 0;
+
+#if EN_PEER2SIZE_PRINT
+		cout << "shape (size, pos) : " << shape.size() << " " << inPair.pos << endl;
+#endif
+
+	for(unsigned int i = 0; i < shape.size(); i++)
+	{
+		inPair = shape[i];
+
+		vector <int > off_shape = inPair.shape;
+#if EN_PEER2SIZE_PRINT
+		cout << "off_shape (size, pos) : " << off_shape.size() << " " << inPair.pos << endl;
+#endif
+		int size = sizeof(T);
+		int off_shape_size = off_shape.size();
+#if EN_PEER2SIZE_PRINT
+		cout << "(1, d, h, w) : ";
+#endif
+		offset0 = 1;
+		offset1 = 1;
+
+		for(unsigned int j = 0; j < off_shape.size(); j++)
+		{
+			//# Always planes are in pos-1
+			if(j == 1)
+			{
+				//# Planes are divided by 2 because of 2x-IO ports
+				int plane = off_shape[j];
+				int x = AlignSize(plane/2, align_bytes);
+				offset0 *= x;
+				offset1 *= (plane - x);
+
+				x = AlignSize(plane, align_bytes);
+				x = x/2;
+				size *= x;
+			}
+			else
+			{
+				size *= off_shape[j];
+				offset0 *= off_shape[j];
+				offset1 *= off_shape[j];
+			}
+#if EN_PEER2SIZE_PRINT
+			cout << off_shape[j] << " ";
+#endif
+		}
+#if EN_PEER2SIZE_PRINT
+		cout << endl;
+#endif
+		//# considering batch size
+		f_size = f_size + (size*XBATCH_SIZE);
+
+		if((swap_offset_flag != 1) && (offset0 != offset1))
+		{
+			offset[0] = offset[0] + offset1;
+			offset[1] = offset[1] + offset0;
+			swap_offset_flag = 1;
+		}
+		else
+		{
+			offset[0] = offset[0] + offset0;
+			offset[1] = offset[1] + offset1;
+			swap_offset_flag = 0;
+		}
+	}
+#if EN_PEER2SIZE_PRINT
+	cout << "final offset : " << f_size << endl;
+	cout << "offset 0 : " << offset[0] << endl;
+	cout << "offset 1 : " << offset[1] << endl;
 #endif
 
 	return f_size;
@@ -146,7 +241,7 @@ int peersToShapeNoalign(vector < io_peers > shape)
 {
 #if EN_PEER2SIZE_PRINT
 	cout << endl;
-	cout << "peersToShape : (dim1 size) - " << shape.size() << endl;
+	cout << "peersToShapeNoalign : (dim1 size) - " << shape.size() << endl;
 #endif
 
 	io_peers inPair;
@@ -178,7 +273,7 @@ int peersToShapeNoalign(vector < io_peers > shape)
 #if EN_PEER2SIZE_PRINT
 		cout << endl;
 #endif
-		f_size = f_size + size;
+		f_size = f_size + (size*XBATCH_SIZE);
 	}
 #if EN_PEER2SIZE_PRINT
 	cout << "final offset : " << f_size << endl;
@@ -226,7 +321,7 @@ int halfshapeToSize( vector<int> shape)
 {
 #if EN_SHAPE2SIZE_PRINT
 	cout << endl;
-	cout << "maxshapeToSize : size() - " << shape.size() << endl;
+	cout << "halfshapeToSize : size() - " << shape.size() << endl;
 #endif
 
 	int size = sizeof(T);
@@ -236,8 +331,9 @@ int halfshapeToSize( vector<int> shape)
 #endif
 	for(unsigned int j = 0; j < shape.size(); j++)
 	{
-		if(j == 1)
-			size *= AlignSize(shape[j]/2, KER_PROC);
+		if(j == 1){
+			size *= AlignSize(shape[j]/HCONV_OUT_PORTS, KER_PROC);
+		}
 		else
 			size *= shape[j];
 
@@ -283,9 +379,9 @@ int convOutputSize(int out_depth, int output_h, int output_w)
 //# Convolution weights size compute
 int convWeightsSize(int out_depth, int in_depth, int kernel_h, int kernel_w, int group)
 {
-	/*cout << "convWeightsSize (o_d, i_d, k_h, k_w, g) :" << out_depth << " " << in_depth
-			<< " " << kernel_h << " " << kernel_w << " " << group << endl;
-*/
+	//std::cout << "convWeightsSize (o_d, i_d, k_h, k_w, g) :" << out_depth << " " << in_depth
+	//	<< " " << kernel_h << " " << kernel_w << " " << group << std::endl;
+
 
 	int no_kernals_1 = out_depth;
 	int no_planes_in = AlignSize(in_depth, 4);
@@ -327,10 +423,21 @@ int convWeightsSize(int out_depth, int in_depth, int kernel_h, int kernel_w, int
 ///////////////	FC Utils  //////////////////////
 int fcWgtsSize(int output_h, int output_w)
 {
-	int fc_outh = AlignSize(output_h, 32);
-	int fc_outw = AlignSize(output_w, 32);
+	//# Need to fix the alignment factors
+	int fc_outh = AlignSize(output_h, 8);
+	int fc_outw = AlignSize(output_w, 8);
 
 	int size = fc_outh * fc_outw * sizeof(HFC_WGT_TYPE);
+
+	return(size);
+}
+
+template<typename T>
+int fcBiasSize(int output_h, int align_factor)
+{
+	int fc_outh = AlignSize(output_h, align_factor);
+
+	int size = fc_outh * sizeof(T);
 
 	return(size);
 }

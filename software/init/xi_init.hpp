@@ -19,7 +19,7 @@ limitations under the License.
 
 #define EN_DEBUG_INIT_PRINT	 0
 #define EN_CONSOLE_TXT_INIT 0
-#define EN_CONSOLE_TXT_INIT_DBG 1
+#define EN_CONSOLE_TXT_INIT_DBG 0
 
 #include "../xtract/xgraph_opt.hpp"
 #include "../include/xchange_structs.hpp"
@@ -30,6 +30,6 @@ limitations under the License.
 
 void initPrint(std::vector<XlayerData> xlayer_seq, std::vector<xChangeLayer> lay_obj[NUM_IMG]);
 
-void initXChangeHost(char *file_path, std::vector < XlayerData > &xlayer_seq, std::vector<xChangeLayer> (&lay_obj)[NUM_IMG]);
+void initXChangeHost(char *file_path, std::vector < XlayerData > &xlayer_seq, std::vector<xChangeLayer> (&lay_obj)[NUM_IMG], int en_batch_size_one);
 
 #endif //_XCHANGE_INIT_HPP_

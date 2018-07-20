@@ -19,9 +19,9 @@ limitations under the License.
 
 #include <stdio.h>
 #include <fcntl.h>
+#include <string.h>
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <vector>
 #include <algorithm>
 #include <memory>

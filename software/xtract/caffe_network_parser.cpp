@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----------------------------------------------------*/
 
-
 #include "caffe_network_parser.hpp"
 #include <fcntl.h>
 #include <iostream>
@@ -33,14 +32,16 @@ limitations under the License.
 
 
 //-------------------------------------------------------------------------------------------------------------//
-//------------------------------------- FUNCION DEFINTIONS ----------------------------------------------------//
+//------------------------------------- FUNCTION DEFINTIONS ----------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------//
 
-XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile, const string& caffeMeanFile, FileMode file_mode, const string& rootFolder)
+XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile, const string& start_layer, const string& end_layer,
+			    const string& rootFolder, const string& caffeMeanFile, FileMode file_mode)
 {
 
     // ------------------------  GET CAFFE LAYER MAP ---------------------------- //
     fillCaffeLayerMap();
+    fillSWLayerSet();
 
     // ------------------------  LOAD DEPLOY FILE ------------------------------- //
 
@@ -48,15 +49,25 @@ XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile
     caffe::NetParameter *Net = new caffe::NetParameter;
     readDeployFile(deployFile, Net);
 
+    // #. Check if atleast one layer is there in the prototxt
+    ASSERT( Net->layer_size() > 0, EP106, 
+            "Network should contain atleast one layer. No layer is found in " << deployFile )
+
     // ------------------------ START EXTRACTING TO XGRAPH ------------------------- //
 
     // Create a XGraph
     XGraph* graph  = new XGraph();  
     string uniqname, username;
 
-    // XXX : ARK : remove this section once caffe read is ready
-    string tmp_saveDir = rootFolder + "/data/";
-    graph->saveDir = tmp_saveDir;
+    // Setting up the location to save data
+    if(rootFolder.empty())
+        graph->saveDir = "data/";
+    else
+    {
+        bool ends_with_slash = *(rootFolder.end()-1) == '/';
+        string tmp_saveDir = ends_with_slash ? rootFolder + "data/" : rootFolder + "/data/";
+        graph->saveDir = tmp_saveDir;
+    }
 
     // Handle the input layer separately as it can be initialized multiple ways
     // TODO : @ARK : Move this input parsing to a separate function for cleaner look
@@ -103,11 +114,11 @@ XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile
         }
 
         username = Net->input(0);
-        uniqname = graph->getUniqueBlobName();
-        XBlob* tmp = new XBlob(username, uniqname);
+        XBlob* tmp = new XBlob(username);
         tmp->shape = tmpShape;
         graph->blobs[username] = tmp;
-        graph->input_blob = nameIndex(tmp);
+        // graph->input_blob = nameIndex(tmp);
+        graph->input_blob = username;
     }
     else
     {
@@ -133,85 +144,132 @@ XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile
             exit(-1);
         }
 
+	XLayer* dst = new XLayer(iLayer.name(), iLayer.type());
         username = iLayer.top(0);
-        uniqname = graph->getUniqueBlobName();
-        XBlob* tmp = new XBlob(username, uniqname);
+        XBlob* tmp = new XBlob(username);
         for(int i=0; i<blobshape.dim_size(); i++)
         {
             tmp->shape.push_back(blobshape.dim(i));
         }
+	dst->input_params->dim = tmp->shape;
+	graph->layers[dst->name] = dst;
+    
+	dst->top.push_back(nameIndex(tmp));			// Add top to layer top list
+	tmp->producers.push_back(dst->name);                     // Add current layer to top Producers list
+	tmp->producerDim.push_back(tmp->shape);           // Add output blob shape to producerDim
+	dst->topShape.push_back(tmp->shape);                // Replicate top shape in layer also
+
         graph->blobs[username] = tmp;
-        graph->input_blob = nameIndex(tmp);
+        graph->input_blob = username;
 
         // We already finished with first layer. So increment the counter
         layer_start_index++; 
     }
-        
+
+    graph->start_layer = Net->layer(0).name();
+    graph->end_layer = Net->layer(Net->layer_size()-1).name();
+    if((end_layer.compare("")==0) || end_layer.compare(graph->end_layer)==0) 
+	    graph->model_last_layer=true;
+    else
+	    graph->model_last_layer=false;
+    
 
     for(int i=layer_start_index; i<Net->layer_size(); i++)
     {
-        caffe::LayerParameter cLayer = Net->layer(i);
+        const caffe::LayerParameter& cLayer = Net->layer(i);
         
-        cout << "[PARSE] Parsing " << cLayer.name() << endl;
-
-        // #. Check if the Caffe Layer is supported or not
-        mapStrStr::const_iterator it = CaffeLayerMap.find(cLayer.type());
-        if(it == CaffeLayerMap.end())
+        // #. Check if the layer is a train-only layer
+        bool is_layer_train_only = false;
+        for(int j=0; j < cLayer.include_size(); ++j)
         {
-            cerr << "[EP009] Unregistered Layer Type : " << cLayer.type() << endl;
-            exit(-1);
+            if(cLayer.include(j).has_phase() && cLayer.include(j).phase() == caffe::TRAIN)
+            {
+                is_layer_train_only = true;
+            }
         }
+
+        // #. Ignore a train-only layer and parse a test-layer
+        if(is_layer_train_only)
+        {
+            cout << "[PARSE] Ignoring TRAIN-only layer : " << cLayer.name() << endl;
+            continue;
+        }
+        else
+        {
+            cout << "[PARSE] Parsing " << cLayer.name() << endl;
+        }
+
+        // #. Check if it is an user-defined layer
+        bool user_defined_layer = cLayer.user_defined_layer();
+
+        // #. Check if the Layer is supported or not
+        mapStrStr::const_iterator it = CaffeLayerMap.find(cLayer.type());
+
+        // #. If the layer is not an user-defined layer and layer type doesn't 
+        // match with any of the supported layers, EXIT.
+        ELOG(   (!user_defined_layer) && (it == CaffeLayerMap.end()), EP009,
+                "Unregistered Layer Type : " << cLayer.type() )
+
+        // #. If the layer is an user-defined layer, but layer type is already
+        // a supported layer type, EXIT.
+        ELOG(   (user_defined_layer && (it != CaffeLayerMap.end())), EP067,
+                "User-defined layer type: " << cLayer.type() << " is already a registered layer in xfDNN. "
+                << "Please change the type of the layer : " << cLayer.name() )
 
         // #. Check if any other layer with same name already present in the XGraph
-        if(graph->layers.find(cLayer.name()) != graph->layers.end())
-        {
-            cerr << "[EP010] Duplicate layer name detected : " << cLayer.name() << endl;
-            exit(-1);
-        }
+        ELOG(   graph->layers.find(cLayer.name()) != graph->layers.end(), EP010,
+                "[EP010] Duplicate layer name detected : " << cLayer.name() )
     
         // #. If it is supported, parse all the params from Caffe Layer to XLayer in XGraph
         ExtractParameters(cLayer, *graph);
+
+	if(cLayer.top_size() > 0)
+	    graph->output_blob = cLayer.top()[0];
     } 
     
     // -----------------------  LOAD MEAN FILE -------------------------------------- //
 
     // Check if mean file path is provided
-    if(caffeMeanFile.empty())
-    {
-        cerr << "[EP028] Mean file is mandatory. If the mean values are zeros, "
-             << "please keep zeros in a txt file (equal to number of planes in image) and provide the path" << endl;
-        exit(-1);
-    }
+    // if(caffeMeanFile.empty())
+    // {
+    //     cerr << "[EP028] Mean file is mandatory. If the mean values are zeros, "
+    //          << "please keep zeros in a txt file (equal to number of planes in image) and provide the path" << endl;
+    //     exit(-1);
+    // }
 
-    if(file_mode == FILE_BIN)
+    if(!caffeMeanFile.empty())
     {
-        // Create the Blob for Mean Data
-        caffe::BlobProto *blob = new caffe::BlobProto();
-        readMeanBinaryFile(caffeMeanFile, blob);
-
-        // Extract all the trained parameters and fill the fields in xgraph
-        ExtractCaffeMeanData(blob, graph);
-        delete blob;
-    }
-    else
-    {
-        vector<float> mean = readtxt(caffeMeanFile);
-        if(mean.size() == 0)
+        if(file_mode == FILE_BIN)
         {
-            cerr << "[EP029] Atleast 1 mean value should be provided (for grayscale image). Parser couldn't read any data from the file. "
-                 << "Make sure you provided correct TXT file (not binaryproto file) and file_mode = FILE_TXT in the Parser function call. " << endl;
-            exit(-1);
+            // Create the Blob for Mean Data
+            caffe::BlobProto *blob = new caffe::BlobProto();
+            readMeanBinaryFile(caffeMeanFile, blob);
+
+            // Extract all the trained parameters and fill the fields in xgraph
+            ExtractCaffeMeanData(blob, graph);
+            delete blob;
         }
-        graph->meanData = mean;
-        graph->meanShape.resize(4, 1);
-        graph->meanShape.at(3) = graph->meanData.size();
+        else
+        {
+            vector<float> mean = readtxt(caffeMeanFile);
+            if(mean.size() == 0)
+            {
+                cerr << "[EP029] Atleast 1 mean value should be provided (for grayscale image). Parser couldn't read any data from the file. "
+                    << "Make sure you provided correct TXT file (not binaryproto file) and file_mode = FILE_TXT in the Parser function call. " << endl;
+                exit(-1);
+            }
+            graph->meanData = mean;
+            graph->meanShape.resize(4, 1);
+            graph->meanShape.at(3) = graph->meanData.size();
+        }
+#if DEBUG_WEIGHT_EXTRACTION
+        SAVEDATA(graph->meanData, graph->saveDir + "L_mean");
+#endif
     }
 
-    graph->meanFile = graph->saveDir + "L_mean";
+    // ------------------------  PRUNE THE XGRAPH ------------------------------- //
+    graph->prune(start_layer, end_layer);
 
-#if GENERATE_CONSTDATA
-    SAVEDATA(graph->meanData, graph->saveDir + "L_mean");
-#endif
 
     // ------------------------  LOAD CAFFEMODEL FILE ------------------------------- //
 
@@ -219,12 +277,34 @@ XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile
     caffe::NetParameter *binNet = new caffe::NetParameter();
     readModelFile(caffemodelFile, binNet);
 
+    // DEBUG : Print all layer names and types in binary file
+    // for(int i=0; i<binNet->layer_size(); ++i)
+    // {
+    //     cerr << binNet->layer(i).name() << " : " << binNet->layer(i).type() << endl;
+    // }
+
     // Extract all the trained parameters and fill the fields in xgraph
     ExtractTrainedParameters(binNet, graph);
 
+    // ----------------------- PRINT LAYERS WITHOUT PROPER PRECISION ------------------ //
+    if(graph->precMissLayers.size() > 0)
+    {
+        cerr    << endl;
+        cerr    << "[WARNING] Precision Parameters are not specified correctly for some of the layers." << '\n'
+                << "So xfDNN assumes default values for those parameters. It might affect the accuracy of result." << '\n'
+                << "For accurate results, please provide the correct parameters for following layers: " << '\n';
+
+        for(int i=0; i<graph->precMissLayers.size(); ++i)
+        {
+            cerr << "\'" << graph->precMissLayers[i] << "\'" << "\t";
+            if((i+1)%5 == 0)
+                cerr << endl;
+        }
+        cerr << endl;
+    }
 
     // -----------------------  CLEAR ALL MEMORY -------------------------------------- //
-    google::protobuf::ShutdownProtobufLibrary();
+    // google::protobuf::ShutdownProtobufLibrary();
     delete Net;
     delete binNet;
 
@@ -238,7 +318,7 @@ void ExtractTrainedParameters(const caffe::NetParameter* Net, XGraph* graph)
     map<string, int>* modelLayerIndex = new map<string, int>();
     for(int i=0; i<Net->layer_size(); i++)
     {
-        caffe::LayerParameter cLayer = Net->layer(i);
+        const caffe::LayerParameter& cLayer = Net->layer(i);
         (*modelLayerIndex)[cLayer.name()] = i;
     }
 
@@ -269,6 +349,10 @@ void ExtractTrainedParameters(const caffe::NetParameter* Net, XGraph* graph)
         {
             extractScaleTrainedData(graph, xlayer_it->second->name, Net, modelLayerIndex);
         }
+        else if(xlayer_it->second->type == "XCustom")
+        {
+            extractXCustomTrainedData(graph, xlayer_it->second->name, Net, modelLayerIndex);
+        }
         
     }
 
@@ -288,11 +372,12 @@ void extractConvolutionTrainedData(XGraph* graph, const string& layerName, const
     
     // Get the layer from caffemodel
     int loc = modelLayer_it->second;
-    caffe::LayerParameter binLayer  = Net->layer(loc);
+    const caffe::LayerParameter& binLayer  = Net->layer(loc);
     XLayer* tmpXlayer               = graph->layers[layerName];
     string txtFileName;
 
     // Extract the weights, do trimming & rounding before saving to TXT file
+    cerr << "[IG001] Extracting " << tmpXlayer->name << " weights ... " << endl;
     vector<int> weightsShape = getBlobDim(binLayer.blobs(0));
     ELOG(  ((weightsShape.at(0) != tmpXlayer->conv_params->M) || 
             (weightsShape.at(1) != (tmpXlayer->conv_params->N/tmpXlayer->conv_params->group)) ||
@@ -303,12 +388,15 @@ void extractConvolutionTrainedData(XGraph* graph, const string& layerName, const
             << TensorDimToString(weightsShape) << " v/s " << tmpXlayer->conv_params->filterDimToString()
         )
 
+    vector<float> weights = extractBlobToVector(binLayer.blobs(0));
+    tmpXlayer->conv_params->weights.push_back(weights);
+    tmpXlayer->conv_params->weightsDim.push_back(getBlobDim(binLayer.blobs(0)));
+
+#if DEBUG_WEIGHT_EXTRACTION
     string tmpName(tmpXlayer->name); 
     replace(tmpName.begin(), tmpName.end(), '/', '_');
     txtFileName = graph->saveDir + tmpName + "_weights";
     tmpXlayer->conv_params->weightsPath.push_back(txtFileName);
-
-#if GENERATE_CONSTDATA
     int sizeInBytes = getSize(weightsShape) * sizeof(float);
     cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << "\t";
 	if(sizeInBytes > (14*1024*1024))
@@ -316,43 +404,44 @@ void extractConvolutionTrainedData(XGraph* graph, const string& layerName, const
 		cerr << "Parsing large data, this may take a while ...";
 	}
 	cerr << endl;
-    vector<float> weights = extractBlobToVector(binLayer.blobs(0));
-    //Trim2FixedPoint(weights, tmpXlayer->user_wt_bw, tmpXlayer->user_wt_fl, ROUND_NEAREST);
     SAVEDATA(weights, txtFileName);
-
-    tmpXlayer->conv_params->weightsDim.push_back(getBlobDim(binLayer.blobs(0)));
 #endif
     
     // Extract the bias if bias is present, else save a vector filled with zeros
-    txtFileName = graph->saveDir + tmpName + "_bias";
-    tmpXlayer->conv_params->biasPath.push_back(txtFileName);
-
-#if GENERATE_CONSTDATA
+    cerr << "[IG001] Extracting " << tmpXlayer->name << " bias ... " << endl;
+    vector<int> biasShape;
+    vector<float> bias;
     if(tmpXlayer->conv_params->has_bias)
     {
-        vector<int> biasShape = getBlobDim(binLayer.blobs(1));
+        biasShape = getBlobDim(binLayer.blobs(1));
         ELOG( (biasShape.at(0) != tmpXlayer->conv_params->M) , EP031,
               "Deconv Layer: " << tmpXlayer->name << " - mismatch in bias shape. "
                << TensorDimToString(biasShape) << " v/s " << tmpXlayer->conv_params->M )
 
-        int sizeInBytes = getSize(biasShape) * sizeof(float);
-        cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
-        vector<float> bias = extractBlobToVector(binLayer.blobs(1));
-        //Trim2FixedPoint(bias, tmpXlayer->user_wt_bw, tmpXlayer->user_wt_fl, ROUND_NEAREST);
-        SAVEDATA(bias, txtFileName);
-        tmpXlayer->conv_params->biasDim.push_back(biasShape);
+        bias = extractBlobToVector(binLayer.blobs(1));
     }
     else
     {
         int OFM = tmpXlayer->conv_params->M;
-        vector<float> bias(OFM, 0.0);
-        vector<int> dim; dim.push_back(OFM);
-        int sizeInBytes = getSize(dim) * sizeof(float);
-        cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
-        SAVEDATA(bias, txtFileName);
-        tmpXlayer->conv_params->biasDim.push_back(dim);
+        bias = vector<float>(OFM, 0.0);
+        biasShape.push_back(OFM);
     }
+
+    tmpXlayer->conv_params->bias.push_back(bias);
+    tmpXlayer->conv_params->biasDim.push_back(biasShape);
+
+#if DEBUG_WEIGHT_EXTRACTION
+    txtFileName = graph->saveDir + tmpName + "_bias";
+    tmpXlayer->conv_params->biasPath.push_back(txtFileName);
+    sizeInBytes = getSize(biasShape) * sizeof(float);
+    cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
+    SAVEDATA(bias, txtFileName);
 #endif
+
+    // TODO : Move this to different loc
+    // Assign default params
+    if(tmpXlayer->th_params.size() == 0)
+	tmpXlayer->th_params = getAbsMaxPerFilter<float>(tmpXlayer->conv_params->weights[0], tmpXlayer->conv_params->weightsDim[0]);
 }
 
 void extractDeconvolutionTrainedData(XGraph* graph, const string& layerName, const caffe::NetParameter* Net,
@@ -367,11 +456,12 @@ void extractDeconvolutionTrainedData(XGraph* graph, const string& layerName, con
     
     // Get the layer from caffemodel
     int loc = modelLayer_it->second;
-    caffe::LayerParameter binLayer  = Net->layer(loc);
+    const caffe::LayerParameter& binLayer  = Net->layer(loc);
     XLayer* tmpXlayer               = graph->layers[layerName];
     string txtFileName;
 
     // Extract the weights
+    cerr << "[IG001] Extracting " << tmpXlayer->name << " weights ... " << endl;
     vector<int> weightsShape = getBlobDim(binLayer.blobs(0));
     ELOG(  ((weightsShape.at(0) != tmpXlayer->deconv_params->M) || 
             (weightsShape.at(1) != (tmpXlayer->deconv_params->N/tmpXlayer->deconv_params->group)) ||
@@ -382,12 +472,15 @@ void extractDeconvolutionTrainedData(XGraph* graph, const string& layerName, con
             << TensorDimToString(weightsShape) << " v/s " << tmpXlayer->deconv_params->filterDimToString()
         )
 
+    vector<float> weights = extractBlobToVector(binLayer.blobs(0));
+    tmpXlayer->deconv_params->weights.push_back(weights);
+    tmpXlayer->deconv_params->weightsDim.push_back(weightsShape);
+
+#if DEBUG_WEIGHT_EXTRACTION
     string tmpName(tmpXlayer->name); 
     replace(tmpName.begin(), tmpName.end(), '/', '_');
     txtFileName = graph->saveDir + tmpName + "_weights";
     tmpXlayer->deconv_params->weightsPath.push_back(txtFileName);
-
-#if GENERATE_CONSTDATA
     int sizeInBytes = getSize(weightsShape) * sizeof(float);
     cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << "\t";
 	if(sizeInBytes > (14*1024*1024))
@@ -395,40 +488,45 @@ void extractDeconvolutionTrainedData(XGraph* graph, const string& layerName, con
 		cerr << "Parsing large data, this may take a while ...";
 	}
 	cerr << endl;
-
-    saveBlob(binLayer.blobs(0), txtFileName);
-    tmpXlayer->deconv_params->weightsDim.push_back(weightsShape);
+    SAVEDATA(weights, txtFileName);
 #endif
     
     // Extract the bias if bias is present, else save a vector filled with zeros
-    txtFileName = graph->saveDir + tmpName + "_bias";
-    tmpXlayer->deconv_params->biasPath.push_back(txtFileName);
+    cerr << "[IG001] Extracting " << tmpXlayer->name << " weights ... " << endl;
+    vector<float> bias;
+    vector<int> biasShape;
 
-#if GENERATE_CONSTDATA
     if(tmpXlayer->deconv_params->has_bias)
     {
-        vector<int> biasShape = getBlobDim(binLayer.blobs(1));
-        int sizeInBytes = getSize(biasShape) * sizeof(float);
+        biasShape = getBlobDim(binLayer.blobs(1));
         ELOG( (biasShape.at(0) != tmpXlayer->deconv_params->M) , EP034,
               "Deconv Layer: " << tmpXlayer->name << " - mismatch in bias shape. "
                << TensorDimToString(biasShape) << " v/s " << tmpXlayer->deconv_params->M )
-    
-        cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
-        saveBlob(binLayer.blobs(1), txtFileName);
-        tmpXlayer->deconv_params->biasDim.push_back(biasShape);
+
+        bias = extractBlobToVector(binLayer.blobs(1));
     }
     else
     {
         int OFM = tmpXlayer->deconv_params->M;
-        vector<float> bias(OFM, 0.0);
-        vector<int> dim; dim.push_back(OFM);
-        int sizeInBytes = getSize(dim) * sizeof(float);
-        cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
-        SAVEDATA(bias, txtFileName);
-        tmpXlayer->deconv_params->biasDim.push_back(dim);
+        bias = vector<float>(OFM, 0.0);
+        biasShape.push_back(OFM);
     }
+    tmpXlayer->deconv_params->bias.push_back(bias);
+    tmpXlayer->deconv_params->biasDim.push_back(biasShape);
+
+#if DEBUG_WEIGHT_EXTRACTION
+    txtFileName = graph->saveDir + tmpName + "_bias";
+    tmpXlayer->deconv_params->biasPath.push_back(txtFileName);
+    sizeInBytes = getSize(biasShape) * sizeof(float);
+    cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
+    SAVEDATA(bias, txtFileName);
 #endif
+    
+    // Assign default params
+    if(tmpXlayer->quantization_scheme == "Xilinx" &&  tmpXlayer->th_params.size() == 0)
+	tmpXlayer->th_params = getAbsMaxPerFilter<float>(tmpXlayer->deconv_params->weights[0], tmpXlayer->deconv_params->weightsDim[0]);
 }
+
 void extractFCTrainedData(XGraph* graph, const string& layerName, const caffe::NetParameter* Net,
                                     const map<string, int>* layerIndex)
 {
@@ -441,24 +539,28 @@ void extractFCTrainedData(XGraph* graph, const string& layerName, const caffe::N
     
     // Get the layer from caffemodel
     int loc = modelLayer_it->second;
-    caffe::LayerParameter binLayer  = Net->layer(loc);
+    const caffe::LayerParameter& binLayer  = Net->layer(loc);
     XLayer* tmpXlayer               = graph->layers[layerName];
     string txtFileName;
 
     // Extract the weights
 
     // Check if filter shape is matching
+    cerr << "[IG001] Extracting " << tmpXlayer->name << " weights ... " << endl;
     vector<int> weightsShape = getBlobDim(binLayer.blobs(0));
     ELOG( (weightsShape.at(0) != tmpXlayer->fc_params->M) || (weightsShape.at(1) != tmpXlayer->fc_params->N), EP035,
           "FC Layer: " << tmpXlayer->name << " - mismatch in filter shape. " 
            << TensorDimToString(weightsShape) << " v/s " << tmpXlayer->fc_params->M << "x" << tmpXlayer->fc_params->N);
 
+    vector<float> weights = extractBlobToVector(binLayer.blobs(0));
+    tmpXlayer->fc_params->weights.push_back(weights);
+    tmpXlayer->fc_params->weightsDim.push_back(weightsShape);
+
+#if DEBUG_WEIGHT_EXTRACTION
     string tmpName(tmpXlayer->name); 
     replace(tmpName.begin(), tmpName.end(), '/', '_');
     txtFileName = graph->saveDir + tmpName + "_weights";
     tmpXlayer->fc_params->weightsPath.push_back(txtFileName);
-
-#if GENERATE_CONSTDATA
     int sizeInBytes = getSize(weightsShape) * sizeof(float);
     cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << "\t";
 	if(sizeInBytes > (14*1024*1024))
@@ -466,43 +568,38 @@ void extractFCTrainedData(XGraph* graph, const string& layerName, const caffe::N
 		cerr << "Parsing large data, this may take a while ...";
 	}
 	cerr << endl;
-
-    vector<float> weights = extractBlobToVector(binLayer.blobs(0));
-    //Trim2FixedPoint(weights, tmpXlayer->user_wt_bw, tmpXlayer->user_wt_fl, ROUND_NEAREST);
     SAVEDATA(weights, txtFileName);
-    tmpXlayer->fc_params->weightsDim.push_back(weightsShape);
 #endif
     
     // Extract the bias if bias is present, else save a vector filled with zeros
-    txtFileName = graph->saveDir + tmpName + "_bias";
-    tmpXlayer->fc_params->biasPath.push_back(txtFileName);
-
-#if GENERATE_CONSTDATA
+    cerr << "[IG001] Extracting " << tmpXlayer->name << " bias ... " << endl;
+    vector<int> biasShape;
+    vector<float> bias;
     if(tmpXlayer->fc_params->has_bias)
     {
         // Check if bias shape is matching
-        vector<int> biasShape = getBlobDim(binLayer.blobs(1));
-        int sizeInBytes = getSize(biasShape) * sizeof(float);
+        biasShape = getBlobDim(binLayer.blobs(1));
         ELOG( (biasShape.at(0) != tmpXlayer->fc_params->M) , EP036,
               "FC Layer: " << tmpXlayer->name << " - mismatch in bias shape. "
                << TensorDimToString(biasShape) << " v/s " << tmpXlayer->fc_params->M );
 
-        cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
-        vector<float> bias = extractBlobToVector(binLayer.blobs(1));
-        //Trim2FixedPoint(bias, tmpXlayer->user_wt_bw, tmpXlayer->user_wt_fl, ROUND_NEAREST);
-        SAVEDATA(bias, txtFileName);
-        tmpXlayer->fc_params->biasDim.push_back(biasShape);
+        bias = extractBlobToVector(binLayer.blobs(1));
     }
     else
     {
         int OFM = tmpXlayer->fc_params->M;
-        vector<float> bias(OFM, 0.0);
-        vector<int> dim; dim.push_back(OFM);
-        int sizeInBytes = getSize(dim) * sizeof(float);
-        cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
-        SAVEDATA(bias, txtFileName);
-        tmpXlayer->fc_params->biasDim.push_back(dim);
+        bias = vector<float>(OFM, 0.0);
+        biasShape.push_back(OFM);
     }
+    tmpXlayer->fc_params->bias.push_back(bias);
+    tmpXlayer->fc_params->biasDim.push_back(biasShape);
+
+#if DEBUG_WEIGHT_EXTRACTION
+    txtFileName = graph->saveDir + tmpName + "_bias";
+    tmpXlayer->fc_params->biasPath.push_back(txtFileName);
+    sizeInBytes = getSize(biasShape) * sizeof(float);
+    cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
+    SAVEDATA(bias, txtFileName);
 #endif
 }
 
@@ -518,17 +615,12 @@ void extractL2NormalizeTrainedData(XGraph* graph, const string& layerName, const
     
     // Get the layer from caffemodel
     int loc = modelLayer_it->second;
-    caffe::LayerParameter binLayer  = Net->layer(loc);
+    const caffe::LayerParameter& binLayer  = Net->layer(loc);
     XLayer* tmpXlayer               = graph->layers[layerName];
     string txtFileName;
 
     // Extract the weights
-    string tmpName(tmpXlayer->name); 
-    replace(tmpName.begin(), tmpName.end(), '/', '_');
-    txtFileName = graph->saveDir + tmpName + "_weights";
-    tmpXlayer->l2norm_params->gammaFile = txtFileName;
-
-#if GENERATE_CONSTDATA
+    cerr << "[IG001] Extracting " << tmpXlayer->name << " weights ... " << endl;
     int channels = tmpXlayer->topShape.at(0).at(1);               // Number of feature maps
     caffe::BlobProto blob = binLayer.blobs(0);
     
@@ -549,10 +641,21 @@ void extractL2NormalizeTrainedData(XGraph* graph, const string& layerName, const
         tmpXlayer->l2norm_params->gamma.reserve(channels);
         std::copy(blob.data().begin(), blob.data().end(), std::back_inserter(tmpXlayer->l2norm_params->gamma));
     }
+
+#if DEBUG_WEIGHT_EXTRACTION
+    string tmpName(tmpXlayer->name); 
+    replace(tmpName.begin(), tmpName.end(), '/', '_');
+    txtFileName = graph->saveDir + tmpName + "_weights";
+    tmpXlayer->l2norm_params->gammaFile = txtFileName;
     int sizeInBytes = tmpXlayer->l2norm_params->gamma.size() * sizeof(float);
     cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
     SAVEDATA(tmpXlayer->l2norm_params->gamma, txtFileName);
 #endif
+
+    // If th_l2n_gamma not provided set default values
+    if (tmpXlayer->quantization_scheme == "Xilinx" && tmpXlayer->th_l2n_gamma.empty()) {
+	tmpXlayer->th_params = tmpXlayer->l2norm_params->gamma;
+    }
 
 }
 
@@ -568,15 +671,14 @@ void extractBatchNormTrainedData(XGraph* graph, const string& layerName, const c
     
     // Get the layer from caffemodel
     int loc = modelLayer_it->second;
-    caffe::LayerParameter binLayer  = Net->layer(loc);
+    const caffe::LayerParameter& binLayer  = Net->layer(loc);
     XLayer* tmpXlayer               = graph->layers[layerName];
     string txtFileName;
-#if 1  //TODO:ANITHA
+
     // Extract MWA
+    cerr << "[IG001] Extracting " << tmpXlayer->name << " weights ... " << endl;
     vector<float> mwa = extractBlobToVector(binLayer.blobs(2));
     float scaling_factor = mwa[0] == 0 ? 0 : 1.0f/mwa[0];
-    // cout << "Scaling Factor: " << scaling_factor << endl;
-#endif
 
     // Extract the mean, do trimming & rounding before saving to TXT file
     vector<int> weightsShape = getBlobDim(binLayer.blobs(0));
@@ -584,13 +686,17 @@ void extractBatchNormTrainedData(XGraph* graph, const string& layerName, const c
     ASSERT( (weightsShape.at(0) == channels), EP056,
             "BatchNorm Layer: " << tmpXlayer->name << "mismatch in Mean shape : " 
             << TensorDimToString(weightsShape) << " != " << channels)
+    vector<float> weights = extractBlobToVector(binLayer.blobs(0));
+    for(int i=0; i<weights.size(); ++i)
+        weights[i] *= scaling_factor;
+    tmpXlayer->batchnorm_params->mean.push_back(weights);
+    tmpXlayer->batchnorm_params->meanDim.push_back(weightsShape);
 
+#if DEBUG_WEIGHT_EXTRACTION
     string tmpName(tmpXlayer->name); 
     replace(tmpName.begin(), tmpName.end(), '/', '_');
     txtFileName = graph->saveDir + tmpName + "_mean";
     tmpXlayer->batchnorm_params->meanPath.push_back(txtFileName);
-
-#if GENERATE_CONSTDATA
     int sizeInBytes = getSize(weightsShape) * sizeof(float);
     cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << "\t";
 	if(sizeInBytes > (14*1024*1024))
@@ -598,14 +704,7 @@ void extractBatchNormTrainedData(XGraph* graph, const string& layerName, const c
 		cerr << "Parsing large data, this may take a while ...";
 	}
 	cerr << endl;
-    vector<float> weights = extractBlobToVector(binLayer.blobs(0));
-#if 1 //TODO:ANITHA
-    for(int i=0; i<weights.size(); ++i)
-        weights[i] *= scaling_factor;
-#endif
-    //Trim2FixedPoint(weights, BATCHNORM_BW, tmpXlayer->user_bn_mean_fl, ROUND_NEAREST);
     SAVEDATA(weights, txtFileName);
-    tmpXlayer->batchnorm_params->meanDim.push_back(getBlobDim(binLayer.blobs(0)));
 #endif
     
     // Extract the variance, do trimming & rounding before saving to TXT file
@@ -613,11 +712,15 @@ void extractBatchNormTrainedData(XGraph* graph, const string& layerName, const c
     ASSERT( (biasShape.at(0) == channels), EP056,
             "BatchNorm Layer: " << tmpXlayer->name << "mismatch in variance shape : " 
             << TensorDimToString(biasShape) << " != " << channels)
+    vector<float> bias = extractBlobToVector(binLayer.blobs(1));
+    for(int i=0; i<bias.size(); ++i)
+        bias[i] *= scaling_factor;
+    tmpXlayer->batchnorm_params->variance.push_back(bias);
+    tmpXlayer->batchnorm_params->varianceDim.push_back(biasShape);
 
+#if DEBUG_WEIGHT_EXTRACTION
     txtFileName = graph->saveDir + tmpName + "_variance";
     tmpXlayer->batchnorm_params->variancePath.push_back(txtFileName);
-
-#if GENERATE_CONSTDATA
     sizeInBytes = getSize(biasShape) * sizeof(float);
     cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << "\t";
 	if(sizeInBytes > (14*1024*1024))
@@ -625,11 +728,17 @@ void extractBatchNormTrainedData(XGraph* graph, const string& layerName, const c
 		cerr << "Parsing large data, this may take a while ...";
 	}
 	cerr << endl;
-    vector<float> bias = extractBlobToVector(binLayer.blobs(1));
-    //Trim2FixedPoint(bias, BATCHNORM_BW, tmpXlayer->user_bn_variance_fl, ROUND_NEAREST);
     SAVEDATA(bias, txtFileName);
-    tmpXlayer->batchnorm_params->varianceDim.push_back(biasShape);
 #endif
+
+    // If th_bn_mean not provided set default values
+    if (tmpXlayer->quantization_scheme == "Xilinx" && tmpXlayer->th_bn_mean.empty()) {
+	tmpXlayer->th_bn_mean = tmpXlayer->batchnorm_params->mean.at(0);
+    }
+    // If th_bn_variance not provided set default values
+    if (tmpXlayer->quantization_scheme == "Xilinx" && tmpXlayer->th_bn_variance.empty()) {
+	tmpXlayer->th_bn_variance = tmpXlayer->batchnorm_params->variance.at(0);
+    }
 }
 
 void extractScaleTrainedData(XGraph* graph, const string& layerName, const caffe::NetParameter* Net,
@@ -644,11 +753,12 @@ void extractScaleTrainedData(XGraph* graph, const string& layerName, const caffe
     
     // Get the layer from caffemodel
     int loc = modelLayer_it->second;
-    caffe::LayerParameter binLayer  = Net->layer(loc);
+    const caffe::LayerParameter& binLayer  = Net->layer(loc);
     XLayer* tmpXlayer               = graph->layers[layerName];
     string txtFileName;
 
     // Extract gamma 
+    cerr << "[IG001] Extracting " << tmpXlayer->name << " weights ... " << endl;
 
     // Check if filter shape is matching
     vector<int> weightsShape = getBlobDim(binLayer.blobs(0));
@@ -656,13 +766,15 @@ void extractScaleTrainedData(XGraph* graph, const string& layerName, const caffe
     ASSERT( (weightsShape.at(0) == channels), EP057,
             "Scale Layer: " << tmpXlayer->name << "mismatch in Scale shape : " 
             << TensorDimToString(weightsShape) << " != " << channels)
+    vector<float> weights = extractBlobToVector(binLayer.blobs(0));
+    tmpXlayer->scale_params->gamma.push_back(weights);
+    tmpXlayer->scale_params->gammaDim.push_back(weightsShape);
 
+#if DEBUG_WEIGHT_EXTRACTION
     string tmpName(tmpXlayer->name); 
     replace(tmpName.begin(), tmpName.end(), '/', '_');
     txtFileName = graph->saveDir + tmpName + "_gamma";
     tmpXlayer->scale_params->gammaPath.push_back(txtFileName);
-
-#if GENERATE_CONSTDATA
     int sizeInBytes = getSize(weightsShape) * sizeof(float);
     cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << "\t";
 	if(sizeInBytes > (14*1024*1024))
@@ -670,54 +782,97 @@ void extractScaleTrainedData(XGraph* graph, const string& layerName, const caffe
 		cerr << "Parsing large data, this may take a while ...";
 	}
 	cerr << endl;
-
-    vector<float> weights = extractBlobToVector(binLayer.blobs(0));
-    //Trim2FixedPoint(weights, SCALE_BW, tmpXlayer->user_scale_gamma_fl, ROUND_NEAREST);
     SAVEDATA(weights, txtFileName);
-    tmpXlayer->scale_params->gammaDim.push_back(weightsShape);
 #endif
     
     // Extract the beta if beta is present, else save a vector filled with zeros
-    txtFileName = graph->saveDir + tmpName + "_beta";
-    tmpXlayer->scale_params->betaPath.push_back(txtFileName);
+    vector<float> bias;
+    vector<int> biasShape;
 
-#if GENERATE_CONSTDATA
     if(tmpXlayer->scale_params->has_bias)
     {
         // Check if bias shape is matching
         vector<int> biasShape = getBlobDim(binLayer.blobs(1));
-        int sizeInBytes = getSize(biasShape) * sizeof(float);
         ASSERT( (biasShape.at(0) == channels), EP060,
                 "Scale Layer: " << tmpXlayer->name << "mismatch in Bias shape : " 
                 << TensorDimToString(weightsShape) << " != " << channels)
 
-        cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
-        vector<float> bias = extractBlobToVector(binLayer.blobs(1));
-        //Trim2FixedPoint(bias, SCALE_BW, tmpXlayer->user_scale_beta_fl, ROUND_NEAREST);
-        SAVEDATA(bias, txtFileName);
-        tmpXlayer->scale_params->betaDim.push_back(biasShape);
+        bias = extractBlobToVector(binLayer.blobs(1));
     }
     else
     {
         int OFM = channels;
-        vector<float> bias(OFM, 0.0);
-        vector<int> dim; dim.push_back(OFM);
-        int sizeInBytes = getSize(dim) * sizeof(float);
-        cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
-        SAVEDATA(bias, txtFileName);
-        tmpXlayer->scale_params->betaDim.push_back(dim);
+        bias = vector<float>(OFM, 0.0);
+        biasShape.push_back(OFM);
     }
+    tmpXlayer->scale_params->beta.push_back(bias);
+    tmpXlayer->scale_params->betaDim.push_back(biasShape);
+
+#if DEBUG_WEIGHT_EXTRACTION
+    txtFileName = graph->saveDir + tmpName + "_beta";
+    tmpXlayer->scale_params->betaPath.push_back(txtFileName);
+    sizeInBytes = getSize(biasShape) * sizeof(float);
+    cerr << "[IG001] Saving " << txtFileName << " (" << humanReadableSize(sizeInBytes) << ")" << endl;
+    SAVEDATA(bias, txtFileName);
 #endif
+
+    // If th_scale_gamma not provided set default values
+    if (tmpXlayer->quantization_scheme == "Xilinx" && tmpXlayer->th_scale_gamma.empty()) {
+	tmpXlayer->th_scale_gamma = tmpXlayer->scale_params->gamma.at(0);
+    }
+    // If th_bn_variance not provided set default values
+    if (tmpXlayer->quantization_scheme == "Xilinx" && tmpXlayer->th_scale_beta.empty()) {
+	tmpXlayer->th_scale_beta = tmpXlayer->scale_params->beta.at(0);
+    }
 }
 
+void extractXCustomTrainedData(XGraph* graph, const string& layerName, const caffe::NetParameter* Net,
+                                    const map<string, int>* layerIndex)
+{
+    XLayer* tmpXlayer               = graph->layers[layerName];
+    map<string, int>::const_iterator modelLayer_it = layerIndex->find(layerName);
+
+    // If the layer name not found in binFile, 
+    //     If it is a supported layer, throw error
+    //     Else if it is a custom layer, return
+
+    if(modelLayer_it == layerIndex->end())
+    {
+        if(tmpXlayer->type != "XCustom")
+        {
+            cerr << "[EP035] Layer " << layerName << " is not found in the caffemodel file. " << endl;
+            exit(-1);
+        }
+        else
+        {
+            return;
+        }
+    }
+    
+    // All is well, Start extracting
+    // Get the layer from caffemodel
+    int loc = modelLayer_it->second;
+    const caffe::LayerParameter& binLayer  = Net->layer(loc);
+    LOG(   binLayer.type() != tmpXlayer->xcustom_params->type, EP074,
+            "Layer types not matching in deploy file and caffemodel file for user_defined_layer: " 
+            << layerName << " : " << binLayer.type() << " v/s " << tmpXlayer->xcustom_params->type )
+
+    for(int i=0; i<binLayer.blobs_size(); ++i)
+    {
+        tmpXlayer->xcustom_params->params.push_back(extractBlobToVector(binLayer.blobs(i)));
+        tmpXlayer->xcustom_params->params_dims.push_back(getBlobDim(binLayer.blobs(i)));
+    }
+}
 
 // A function to return the dimension of a caffe blob
 vector<int> getBlobDim(const caffe::BlobProto& blob)
 {
     vector<int> dim;                                                                        // To store the dimension
     caffe::BlobShape blobshape = blob.shape();
-    dim.reserve(blobshape.dim_size());
-    copy(blobshape.dim().begin(), blobshape.dim().end(), std::back_inserter(dim));
+    // dim.reserve(blobshape.dim_size());
+    // copy(blobshape.dim().begin(), blobshape.dim().end(), std::back_inserter(dim));
+    ASSERT(blobshape.dim_size() > 0, EP167, "Blob Shape can't be 0")
+    dim.insert(dim.end(), blobshape.dim().begin(), blobshape.dim().end());
     return dim;
 }
 
@@ -727,21 +882,22 @@ void saveBlob(const caffe::BlobProto& blob, const string& filepath)
     vector<float> weights;                                                                      // To store the weights/bias
     weights.reserve(blob.data_size());
 
-    // copy the dimension of the array and the data itself.
+    // copy the data.
     copy(blob.data().begin(), blob.data().end(), std::back_inserter(weights));    
 
-    // Setup the filename
+    // Save data
     SAVEDATA(weights, filepath);
 }
 
-// A function to dump the the caffe blob to a txt file
+// A function to dump the the caffe blob to a vector
 vector<float> extractBlobToVector(const caffe::BlobProto& blob)
 {
     vector<float> weights;                                                                      // To store the weights/bias
-    weights.reserve(blob.data_size());
+    // weights.reserve(blob.data_size());
+    // copy(blob.data().begin(), blob.data().end(), std::back_inserter(weights));    
 
     // copy the  data itself.
-    copy(blob.data().begin(), blob.data().end(), std::back_inserter(weights));    
+    weights.insert(weights.end(), blob.data().begin(), blob.data().end());
 
     return weights;
 }
@@ -752,8 +908,13 @@ vector<float> extractBlobToVector(const caffe::BlobProto& blob)
 void ExtractParameters(const caffe::LayerParameter& src, XGraph& graph)
 {
     mapStrStr::const_iterator map_it = CaffeLayerMap.find(src.type());
+    bool user_defined_layer = src.user_defined_layer();
 
-    if (map_it->second == "Convolution")
+    if (user_defined_layer)
+    {
+        ExtractXCustomParameters(src, graph);
+    }
+    else if (map_it->second == "Convolution")
     {
         ExtractConvolutionParameters(src, graph);
     }
@@ -849,8 +1010,7 @@ void ExtractConvolutionParameters(const caffe::LayerParameter& src, XGraph& grap
     caffe::ConvolutionParameter src_parameter = src.convolution_param();
     mapStrStr::const_iterator map_it = CaffeLayerMap.find(src.type());
     string xlayerType = map_it->second;
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Ensure number of input/output blobs
     checkNumberOfTopAndBottom(src, 1, 1);
@@ -867,45 +1027,93 @@ void ExtractConvolutionParameters(const caffe::LayerParameter& src, XGraph& grap
     }
 
     // Get FILTER SIZE [MANDATORY]
-    // TODO : Currently "kernel_size" is supported. Support "kernel_h/w" in future
-    if (src_parameter.kernel_size_size()>0)
+    if (src_parameter.has_kernel_h() || src_parameter.has_kernel_w())
     {
-        dst->conv_params->filter_h = src_parameter.kernel_size(0);
-        dst->conv_params->filter_w = src_parameter.kernel_size(0);
+        ELOG ( (src_parameter.kernel_size_size() > 0),
+                EP151,
+                "Mention either kernel_size or kernel_h/kernel_w for layer " << src.name() << ". Not both. !!")
+        ASSERT((src_parameter.has_kernel_h() && src_parameter.has_kernel_w()),
+                EP152,
+                "Mention both kernel_h and kernel_w for layer " << src.name() << ". Or use kernel_size.")
+        dst->conv_params->filter_h = src_parameter.kernel_h();
+        dst->conv_params->filter_w = src_parameter.kernel_w();
     }
     else
     {
-        cerr << "[EP013] \"kernel_size\" is not specified in the convolution layer : " << src.name() << endl;
-        exit(-1);
+        ASSERT((src_parameter.kernel_size_size() > 0),
+                EP153, "kernel_size is not specified in the convolution layer : " << src.name()) 
+        dst->conv_params->filter_h = src_parameter.kernel_size(0);
+        dst->conv_params->filter_w = src_parameter.kernel_size(0);
     }
+
+    // Check if filters are not rectangular
+    ASSERT( (dst->conv_params->filter_h == dst->conv_params->filter_w),
+            EP154, "This version supports only square filters for convolution layer: " << src.name() )
     
     // Get PAD [DEFAULT = 0]
-    // TODO : Currently "pad" is supported. Support "pad_h/w" in future
-    dst->conv_params->pad_h = src_parameter.pad_size() > 0 ? src_parameter.pad(0) : 0;
-    dst->conv_params->pad_w = src_parameter.pad_size() > 0 ? src_parameter.pad(0) : 0;
+    if (src_parameter.has_pad_h() || src_parameter.has_pad_w())
+    {
+        ELOG ( (src_parameter.pad_size() > 0),
+                EP155,
+                "Mention either pad or pad_h/pad_w for layer " << src.name() << ". Not both. !!")
+        ASSERT((src_parameter.has_pad_h() && src_parameter.has_pad_w()),
+                EP156,
+                "Mention both pad_h and pad_w for layer " << src.name() << ". Or use pad.")
+        dst->conv_params->pad_h = src_parameter.pad_h();
+        dst->conv_params->pad_w = src_parameter.pad_w();
+    }
+    else
+    {
+        bool pad_specified = src_parameter.pad_size() > 0;
+        dst->conv_params->pad_h = pad_specified ? src_parameter.pad(0) : 0;
+        dst->conv_params->pad_w = pad_specified ? src_parameter.pad(0) : 0;
+    }
+
+    // Check if pad is same in all directions
+    ASSERT( (dst->conv_params->pad_h == dst->conv_params->pad_w),
+            EP157, "This version supports only same pad in all directions for convolution layer: " << src.name() )
 
     // Get STRIDE [DEFAULT = 1]
     // TODO : Currently "stride" is supported. Support "stride_h/w" in future
     dst->conv_params->stride_h = src_parameter.stride_size() > 0 ? src_parameter.stride(0) : 1;
     dst->conv_params->stride_w = src_parameter.stride_size() > 0 ? src_parameter.stride(0) : 1;
 
+    if (src_parameter.has_stride_h() || src_parameter.has_stride_w())
+    {
+        ELOG ( (src_parameter.stride_size() > 0),
+                EP158,
+                "Mention either stride or stride_h/stride_w for layer " << src.name() << ". Not both. !!")
+        ASSERT((src_parameter.has_stride_h() && src_parameter.has_stride_w()),
+                EP159,
+                "Mention both stride_h and stride_w for layer " << src.name() << ". Or use stride.")
+        dst->conv_params->stride_h = src_parameter.stride_h();
+        dst->conv_params->stride_w = src_parameter.stride_w();
+    }
+    else
+    {
+        bool stride_specified = src_parameter.stride_size() > 0;
+        dst->conv_params->stride_h = stride_specified ? src_parameter.stride(0) : 1;
+        dst->conv_params->stride_w = stride_specified ? src_parameter.stride(0) : 1;
+    }
+
+    // Check if stride is same in all directions
+    ASSERT( (dst->conv_params->stride_h == dst->conv_params->stride_w),
+            EP160, "This version supports only same stride in all directions for convolution layer: " << src.name() )
+
     // Get DILATION [DEFAULT = 1]
     // TODO : Currently same dilation is done on all dimensions. But caffe support different dilation in different axis
     dst->conv_params->dilation = src_parameter.dilation_size() > 0 ? src_parameter.dilation(0) : 1;
 
     // Get GROUP[DEFAULT = 1]
-    if (src_parameter.has_group() && (src_parameter.group() > 2))
-    {
-        cerr << "[EP039] Current version doesn't support group>2 for Convolution Layer" << endl;
-        exit(-1);
-    }
     dst->conv_params->group = src_parameter.has_group() ? src_parameter.group() : 1;
 
     // Get HAS_BIAS[DEFAULT = 1]
     dst->conv_params->has_bias = src_parameter.has_bias_term() ? src_parameter.bias_term() : 1;
 
     // Extract Precision Parameters
-    ExtractPrecisionParameters(src, *dst);
+    bool success = ExtractPrecisionParameters(src, *dst);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 
     // Register the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -935,7 +1143,7 @@ void ExtractConvolutionParameters(const caffe::LayerParameter& src, XGraph& grap
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -954,8 +1162,7 @@ void ExtractDeconvolutionParameters(const caffe::LayerParameter& src, XGraph& gr
     caffe::ConvolutionParameter src_parameter = src.convolution_param();
     mapStrStr::const_iterator map_it= CaffeLayerMap.find(src.type());
     string xlayerType = map_it->second;
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Ensure number of input/output blobs
     checkNumberOfTopAndBottom(src, 1, 1);
@@ -972,27 +1179,74 @@ void ExtractDeconvolutionParameters(const caffe::LayerParameter& src, XGraph& gr
     }
 
     // Get FILTER SIZE [MANDATORY]
-    // TODO : Currently "kernel_size" is supported. Support "kernel_h/w" in future
-    if (src_parameter.kernel_size_size()>0)
+    if (src_parameter.has_kernel_h() || src_parameter.has_kernel_w())
     {
-        dst->deconv_params->filter_h = src_parameter.kernel_size(0);
-        dst->deconv_params->filter_w = src_parameter.kernel_size(0);
+        ELOG ( (src_parameter.kernel_size_size() > 0),
+                EP151,
+                "Mention either kernel_size or kernel_h/kernel_w for layer " << src.name() << ". Not both. !!")
+        ASSERT((src_parameter.has_kernel_h() && src_parameter.has_kernel_w()),
+                EP152,
+                "Mention both kernel_h and kernel_w for layer " << src.name() << ". Or use kernel_size.")
+        dst->deconv_params->filter_h = src_parameter.kernel_h();
+        dst->deconv_params->filter_w = src_parameter.kernel_w();
     }
     else
     {
-        cerr << "[EP016] \"kernel_size\" is not specified in the Deconvolution layer : " << src.name() << endl;
-        exit(-1);
+        ASSERT((src_parameter.kernel_size_size() > 0),
+                EP153, "kernel_size is not specified in the Deconvolution layer : " << src.name()) 
+        dst->deconv_params->filter_h = src_parameter.kernel_size(0);
+        dst->deconv_params->filter_w = src_parameter.kernel_size(0);
     }
+
+    // Check if filters are not rectangular
+    ASSERT( (dst->deconv_params->filter_h == dst->deconv_params->filter_w),
+            EP154, "This version supports only square filters for Deconvolution layer: " << src.name() )
     
     // Get PAD [DEFAULT = 0]
-    // TODO : Currently "pad" is supported. Support "pad_h/w" in future
-    dst->deconv_params->pad_h = src_parameter.pad_size() > 0 ? src_parameter.pad(0) : 0;
-    dst->deconv_params->pad_w = src_parameter.pad_size() > 0 ? src_parameter.pad(0) : 0;
+    if (src_parameter.has_pad_h() || src_parameter.has_pad_w())
+    {
+        ELOG ( (src_parameter.pad_size() > 0),
+                EP155,
+                "Mention either pad or pad_h/pad_w for layer " << src.name() << ". Not both. !!")
+        ASSERT((src_parameter.has_pad_h() && src_parameter.has_pad_w()),
+                EP156,
+                "Mention both pad_h and pad_w for layer " << src.name() << ". Or use pad.")
+        dst->deconv_params->pad_h = src_parameter.pad_h();
+        dst->deconv_params->pad_w = src_parameter.pad_w();
+    }
+    else
+    {
+        bool pad_specified = src_parameter.pad_size() > 0;
+        dst->deconv_params->pad_h = pad_specified ? src_parameter.pad(0) : 0;
+        dst->deconv_params->pad_w = pad_specified ? src_parameter.pad(0) : 0;
+    }
+
+    // Check if pad is same in all directions
+    ASSERT( (dst->deconv_params->pad_h == dst->deconv_params->pad_w),
+            EP157, "This version supports only same pad in all directions for Deconvolution layer: " << src.name() )
 
     // Get STRIDE [DEFAULT = 1]
-    // TODO : Currently "stride" is supported. Support "stride_h/w" in future
-    dst->deconv_params->stride_h = src_parameter.stride_size() > 0 ? src_parameter.stride(0) : 1;
-    dst->deconv_params->stride_w = src_parameter.stride_size() > 0 ? src_parameter.stride(0) : 1;
+    if (src_parameter.has_stride_h() || src_parameter.has_stride_w())
+    {
+        ELOG ( (src_parameter.stride_size() > 0),
+                EP158,
+                "Mention either stride or stride_h/stride_w for layer " << src.name() << ". Not both. !!")
+        ASSERT((src_parameter.has_stride_h() && src_parameter.has_stride_w()),
+                EP159,
+                "Mention both stride_h and stride_w for layer " << src.name() << ". Or use stride.")
+        dst->deconv_params->stride_h = src_parameter.stride_h();
+        dst->deconv_params->stride_w = src_parameter.stride_w();
+    }
+    else
+    {
+        bool stride_specified = src_parameter.stride_size() > 0;
+        dst->deconv_params->stride_h = stride_specified ? src_parameter.stride(0) : 1;
+        dst->deconv_params->stride_w = stride_specified ? src_parameter.stride(0) : 1;
+    }
+
+    // Check if stride is same in all directions
+    ASSERT( (dst->deconv_params->stride_h == dst->deconv_params->stride_w),
+            EP160, "This version supports only same stride in all directions for Deconvolution layer: " << src.name() )
 
     // Get DILATION [DEFAULT = 1]
     dst->deconv_params->dilation = src_parameter.dilation_size() > 0 ? src_parameter.dilation(0) : 1;
@@ -1042,7 +1296,7 @@ void ExtractDeconvolutionParameters(const caffe::LayerParameter& src, XGraph& gr
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1054,6 +1308,10 @@ void ExtractDeconvolutionParameters(const caffe::LayerParameter& src, XGraph& gr
     // Finally Register the top blob to graph
     graph.blobs[tmpTop->name] = tmpTop;
     
+    // Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 }
 
 
@@ -1065,17 +1323,22 @@ void ExtractDropoutParameters(const caffe::LayerParameter& src, XGraph& graph)
     string xlayerType = type_it->second;
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Parse the input/output connections
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Check if it is inPlace.
     dst->dropout_params->inPlace = src.bottom(0) == src.top(0) ? true : false; 
+    dst->inPlace = src.bottom(0) == src.top(0) ? true : false; 
 
     // Get Dropout Ratio
     dst->dropout_params->dropout_ratio           =  src_parameter.dropout_ratio();
+
+    // Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -1101,7 +1364,7 @@ void ExtractDropoutParameters(const caffe::LayerParameter& src, XGraph& graph)
         it = graph.checkIfBlobExists(src.top(0), true, true);
 
         // Execution reached here means, top blob doesn't exist, so create.
-        XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+        XBlob* tmpTop = new XBlob(src.top(0));
         dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
         // Update layer "top" info with top name and shape
@@ -1134,14 +1397,19 @@ void ExtractReLUParameters(const caffe::LayerParameter& src, XGraph& graph)
     string xlayerType = type_it->second;
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Parse the input/output connections
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Check if it is inPlace.
     dst->relu_params->inPlace = src.bottom(0) == src.top(0) ? true : false; 
+    dst->inPlace = src.bottom(0) == src.top(0) ? true : false; 
+
+    // Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -1166,7 +1434,7 @@ void ExtractReLUParameters(const caffe::LayerParameter& src, XGraph& graph)
         it = graph.checkIfBlobExists(src.top(0), true, true);
 
         // Execution reached here means, top blob doesn't exist, so create.
-        XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+        XBlob* tmpTop = new XBlob(src.top(0));
         dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
         // Update layer "top" info with top name and shape
@@ -1202,39 +1470,92 @@ void ExtractPoolingParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Get POOLING_TYPE [OPTIONAL, caffe default = MAX]
     dst->pool_params->PoolType = (src_parameter.has_pool()) ? (PoolingType)src_parameter.pool() : MAX;    
 
-    // Get KERNEL_SIZE [MANDATORY]
-    if(src_parameter.has_kernel_size())
+    // Check GLOBAL POOLING
+    bool global_pooling = (src_parameter.has_global_pooling() && src_parameter.global_pooling() == true) ? true : false;
+
+    // Get FILTER SIZE [MANDATORY if it is not a GLOBAL POOLING]
+    if(global_pooling == false)
     {
-        dst->pool_params->kernel_h           =  src_parameter.kernel_size();
-        dst->pool_params->kernel_w           =  src_parameter.kernel_size();
+        if (src_parameter.has_kernel_h() || src_parameter.has_kernel_w())
+        {
+            ELOG ( (src_parameter.has_kernel_size()),
+                    EP161,
+                    "Mention either kernel_size or kernel_h/kernel_w for layer " << src.name() << ". Not both. !!")
+            ASSERT((src_parameter.has_kernel_h() && src_parameter.has_kernel_w()),
+                    EP162,
+                    "Mention both kernel_h and kernel_w for layer " << src.name() << ". Or use kernel_size.")
+            dst->pool_params->kernel_h = src_parameter.kernel_h();
+            dst->pool_params->kernel_w = src_parameter.kernel_w();
+        }
+        else
+        {
+            ASSERT((src_parameter.has_kernel_size()),
+                    EP163, "kernel_size is not specified in the Pooling layer : " << src.name()) 
+            dst->pool_params->kernel_h = src_parameter.kernel_size();
+            dst->pool_params->kernel_w = src_parameter.kernel_size();
+        }
     }
     else
     {
-        // if(!(src_parameter.has_global_pooling() || (src_parameter.global_pooling() == false)))
-        if(src_parameter.global_pooling() == false)
-        {
-            cout << "[EP017] Kernel Size is not mentioned for layer : " << src.name() << endl;
-            exit(-1);
-        }
+        dst->pool_params->kernel_h = 0;
+        dst->pool_params->kernel_w = 0;
     }
 
-    // Get PAD [OPTIONAL; Caffe default = 0]
-    dst->pool_params->pad_h           =  (src_parameter.has_pad()) ? src_parameter.pad() : 0;
-    dst->pool_params->pad_w           =  dst->pool_params->pad_h; 
-    
-    // Get STRIDE [OPTIONAL; Caffe default = 1]
-    dst->pool_params->stride_h           =  src_parameter.has_stride() ? src_parameter.stride() : 1;
-    dst->pool_params->stride_w           =  dst->pool_params->stride_h;
+    // Get PAD [DEFAULT = 0]
+    if (src_parameter.has_pad_h() || src_parameter.has_pad_w())
+    {
+        ELOG ( (src_parameter.has_pad()),
+                EP165,
+                "Mention either pad or pad_h/pad_w for layer " << src.name() << ". Not both. !!")
+        ASSERT((src_parameter.has_pad_h() && src_parameter.has_pad_w()),
+                EP166,
+                "Mention both pad_h and pad_w for layer " << src.name() << ". Or use pad.")
+        dst->pool_params->pad_h = src_parameter.pad_h();
+        dst->pool_params->pad_w = src_parameter.pad_w();
+    }
+    else
+    {
+        bool pad_specified = src_parameter.has_pad();
+        dst->pool_params->pad_h = pad_specified ? src_parameter.pad() : 0;
+        dst->pool_params->pad_w = pad_specified ? src_parameter.pad() : 0;
+    }
+
+    // Check if pad is same in all directions
+    ASSERT( (dst->pool_params->pad_h == dst->pool_params->pad_w),
+            EP167, "This version supports only same pad in all directions for Pooling layer: " << src.name() )
+
+    // Get STRIDE [DEFAULT = 1]
+    if (src_parameter.has_stride_h() || src_parameter.has_stride_w())
+    {
+        ELOG ( (src_parameter.has_stride()),
+                EP168,
+                "Mention either stride or stride_h/stride_w for layer " << src.name() << ". Not both. !!")
+        ASSERT((src_parameter.has_stride_h() && src_parameter.has_stride_w()),
+                EP169,
+                "Mention both stride_h and stride_w for layer " << src.name() << ". Or use stride.")
+        dst->pool_params->stride_h = src_parameter.stride_h();
+        dst->pool_params->stride_w = src_parameter.stride_w();
+    }
+    else
+    {
+        bool stride_specified = src_parameter.has_stride();
+        dst->pool_params->stride_h = stride_specified ? src_parameter.stride() : 1;
+        dst->pool_params->stride_w = stride_specified ? src_parameter.stride() : 1;
+    }
+
+    // Check if stride is same in all directions
+    ASSERT( (dst->pool_params->stride_h == dst->pool_params->stride_w),
+            EP170, "This version supports only same stride in all directions for Pooling layer: " << src.name() )
 
     // Extract Precision Parameters
-    if(dst->pool_params->PoolType == AVE)
-        ExtractPrecisionParameters(src, *dst, false);
+	bool success = ExtractPrecisionParameters(src, *dst, false);
+	if(!success)
+		graph.precMissLayers.push_back(src.name());
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -1253,11 +1574,16 @@ void ExtractPoolingParameters(const caffe::LayerParameter& src, XGraph& graph)
     tmpBottom->consumerDim.push_back(tmpBottom->shape);                         // and consumer uses the full bottom data.
 
     // If global_pooling = true, kernel size is same as the feature map size
-    if(src_parameter.global_pooling() == true)
+    if(global_pooling == true)
     {
         dst->pool_params->kernel_h           =  tmpBottom->shape.at(2);
         dst->pool_params->kernel_w           =  tmpBottom->shape.at(3);
     }
+
+    //TODO:Anitha Commented to test new SSD
+    // Check if filters are not rectangular
+    //ASSERT( (dst->pool_params->kernel_h == dst->pool_params->kernel_w),
+    //        EP164, "This version supports only square filters for Pooling layer: " << src.name() )
 
     dst->pool_params->N                     =   tmpBottom->shape.at(1);
      
@@ -1265,7 +1591,7 @@ void ExtractPoolingParameters(const caffe::LayerParameter& src, XGraph& graph)
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1289,8 +1615,7 @@ void ExtractFCParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Get NUM_OF_OUTPUT [MANDATORY]
     if(src_parameter.has_num_output())
@@ -1309,7 +1634,9 @@ void ExtractFCParameters(const caffe::LayerParameter& src, XGraph& graph)
     // TODO : There are other parameters like 'transpose', 'axis' etc. Currently not supported
 
     // Extract Precision Parameters
-    ExtractPrecisionParameters(src, *dst);
+    bool success = ExtractPrecisionParameters(src, *dst);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -1332,7 +1659,7 @@ void ExtractFCParameters(const caffe::LayerParameter& src, XGraph& graph)
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
 
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
@@ -1357,14 +1684,18 @@ void ExtractArgmaxParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // get TOP_K [OPTIONAL : default = 1]
     dst->argmax_params->top_k = src_parameter.has_top_k() ? src_parameter.top_k() : 1;
     
     // get AXIS [OPTIONAL : default = 1]
     dst->argmax_params->axis = src_parameter.has_axis() ? src_parameter.axis() : 1;
+
+    // Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 
 
     // Finally add the XLayer to graph
@@ -1392,7 +1723,7 @@ void ExtractArgmaxParameters(const caffe::LayerParameter& src, XGraph& graph)
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1416,12 +1747,16 @@ void ExtractSoftmaxParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // get AXIS [OPTIONAL : default = 1]
     dst->softmax_params->axis = src_parameter.has_axis() ? src_parameter.axis() : 1;
 
+    //  Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
+	
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
     
@@ -1447,7 +1782,7 @@ void ExtractSoftmaxParameters(const caffe::LayerParameter& src, XGraph& graph)
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1471,8 +1806,7 @@ void ExtractCropParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 2, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Get AXIS [OPTIONAL, DEFAULT=2]
     // TODO : @ARK : Right now only axis=2 is supported
@@ -1493,6 +1827,11 @@ void ExtractCropParameters(const caffe::LayerParameter& src, XGraph& graph)
     }
     
     dst->crop_params->offset = src_parameter.offset(0);
+
+    // Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -1523,9 +1862,8 @@ void ExtractCropParameters(const caffe::LayerParameter& src, XGraph& graph)
     map<string, XBlob*>::iterator it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
-    dst->topShape.push_back(tmpTop->shape);                           // Replicate bottom shape in Layer also
 
     // Update layer "top" info with top name and shape
     tmpTop->producers.push_back(dst->name);                     // Add current layer to top Producers list
@@ -1555,12 +1893,16 @@ void ExtractConcatParameters(const caffe::LayerParameter& src, XGraph& graph)
     }
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // axis [OPTIONAL : default = 1]
     dst->concat_params->axis = src_parameter.has_axis() ? src_parameter.axis() : 1 ;    
 
+	// Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
+	
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
     
@@ -1585,7 +1927,7 @@ void ExtractConcatParameters(const caffe::LayerParameter& src, XGraph& graph)
     map<string, XBlob*>::iterator it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1609,8 +1951,7 @@ void ExtractFlattenParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // TODO : @ARK : Currently we support flatten with end_axis = -1, but any axis (for support in SSD)
     // And flatten layer will be removed from the graph by BE.
@@ -1623,6 +1964,11 @@ void ExtractFlattenParameters(const caffe::LayerParameter& src, XGraph& graph)
 
     dst->flatten_params->axis = src_parameter.has_axis() ? src_parameter.axis() : 1;
     dst->flatten_params->end_axis = src_parameter.has_end_axis() ? src_parameter.end_axis() : -1;
+
+    //  Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -1644,7 +1990,7 @@ void ExtractFlattenParameters(const caffe::LayerParameter& src, XGraph& graph)
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1668,8 +2014,7 @@ void ExtractPermuteParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Get ORDER [REPEATED]
     vector<int> tmp_order;
@@ -1691,7 +2036,9 @@ void ExtractPermuteParameters(const caffe::LayerParameter& src, XGraph& graph)
     }
 
     // Extract Precision Parameters
-    ExtractPrecisionParameters(src, *dst, false);
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -1713,7 +2060,7 @@ void ExtractPermuteParameters(const caffe::LayerParameter& src, XGraph& graph)
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1738,14 +2085,18 @@ void ExtractLRNParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     dst->lrn_params->lsize              = src_parameter.has_local_size()? src_parameter.local_size(): 5;
     dst->lrn_params->alpha              = src_parameter.has_alpha()     ? src_parameter.alpha()     : 1.0;
     dst->lrn_params->beta               = src_parameter.has_beta()      ? src_parameter.beta()      : 0.75;
     dst->lrn_params->k                  = src_parameter.has_k()         ? src_parameter.k()         : 1.0;
     dst->lrn_params->type               = src_parameter.has_norm_region()? LRNType(src_parameter.norm_region()): ACROSS_CHANNELS;
+
+    //  Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -1767,7 +2118,7 @@ void ExtractLRNParameters(const caffe::LayerParameter& src, XGraph& graph)
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1792,8 +2143,7 @@ void ExtractL2NormalizeParameters(const caffe::LayerParameter& src, XGraph& grap
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // TODO : @ARK : Currently, we support only across_spatial=false right now.
     if(src_parameter.has_across_spatial() && (src_parameter.across_spatial() == true))
@@ -1826,7 +2176,7 @@ void ExtractL2NormalizeParameters(const caffe::LayerParameter& src, XGraph& grap
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1837,6 +2187,11 @@ void ExtractL2NormalizeParameters(const caffe::LayerParameter& src, XGraph& grap
 
     // Finally Register the top blob to graph
     graph.blobs[tmpTop->name] = tmpTop;
+    
+    // Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 }
 
 void ExtractPriorBoxParameters(const caffe::LayerParameter& src, XGraph& graph)
@@ -1850,30 +2205,15 @@ void ExtractPriorBoxParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 2, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // min_size [MANDATORY] TODO : Currently one & only-one value of min_size is allowed
-    if(src_parameter.min_size_size() == 1)
-    {
-        std::copy(src_parameter.min_size().begin(), src_parameter.min_size().end(), std::back_inserter(dst->priorbox_params->min_size));
-    }
-    else
-    {
-        cerr << "[EP043] current version supports exactly one min_size for PriorBox Layer : " << src.name() << endl;
-        exit(-1);
-    }
+    ASSERT( src_parameter.min_size_size() > 0, EP043, "min_size is not specified for PriorBox Layer: " << src.name())
+    std::copy(src_parameter.min_size().begin(), src_parameter.min_size().end(), std::back_inserter(dst->priorbox_params->min_size));
 
-    // max_size [OPIONAL as per SSDv3. MANDATORY as per SSDv4]. What TODO? : Currently maximum one value of max_size is allowed
-    if(src_parameter.max_size_size() <= 1)
-    {
-        std::copy(src_parameter.max_size().begin(), src_parameter.max_size().end(), std::back_inserter(dst->priorbox_params->max_size));
-    }
-    else
-    {
-        cerr << "[EP044] Current version supports maximum one max_size for PriorBox Layer : " << src.name() << endl;
-        exit(-1);
-    }
+    // max_size [OPIONAL as per SSDv3. MANDATORY as per SSDv4]. What TODO? 
+    // ASSERT( src_parameter.max_size_size() > 0, EP044, "max_size is not specified for PriorBox Layer: " << src.name())
+    std::copy(src_parameter.max_size().begin(), src_parameter.max_size().end(), std::back_inserter(dst->priorbox_params->max_size));
     
     // aspect_ratio [OPTIONAL]
     if(src_parameter.aspect_ratio_size() > 0)
@@ -1887,6 +2227,67 @@ void ExtractPriorBoxParameters(const caffe::LayerParameter& src, XGraph& graph)
     // clip [OPTIONAL, default = false]
     dst->priorbox_params->clip = src_parameter.has_clip() ? src_parameter.clip() : false;
 
+    // step [OPTIONAL as per SSDv3]
+    ELOG(   src_parameter.has_step() && (src_parameter.has_step_h() || src_parameter.has_step_w()), EP103,
+            "Please specify either step or step_h/step_w for PriorBox Layer: " << src.name() << ". Not both.")
+    // #. Check if only one of step_h and step_w is provided.
+    ELOG(   (src_parameter.has_step_h() !=  src_parameter.has_step_w()), EP104,
+            "Please specify both step_h and step_w for PriorBox Layer: " << src.name())
+    ELOG(   src_parameter.has_step() && src_parameter.step() <= 0, EP108, "step should be >0 for PriorBox Layer: " << src.name())
+    ELOG(   src_parameter.has_step_h() && src_parameter.step_h() <= 0, EP109, "step_h should be >0 for PriorBox Layer: " << src.name())
+    ELOG(   src_parameter.has_step_w() && src_parameter.step_w() <= 0, EP110, "step_w should be >0 for PriorBox Layer: " << src.name())
+
+    if(src_parameter.has_step())
+    {
+        dst->priorbox_params->step = src_parameter.step();
+        dst->priorbox_params->step_h = src_parameter.step();
+        dst->priorbox_params->step_w = src_parameter.step();
+    }
+    else if(src_parameter.has_step_h() && src_parameter.has_step_w())
+    {
+        dst->priorbox_params->step = 0;
+        dst->priorbox_params->step_h = src_parameter.step_h();
+        dst->priorbox_params->step_w = src_parameter.step_w();
+    }
+    else
+    {
+        dst->priorbox_params->step = 0;
+        dst->priorbox_params->step_h = 0;
+        dst->priorbox_params->step_w = 0;
+    }
+
+    // img_size [OPTIONAL]
+    ELOG(   src_parameter.has_img_size() && (src_parameter.has_img_h() || src_parameter.has_img_w()), EP103,
+            "Please specify either img or img_h/img_w for PriorBox Layer: " << src.name() << ". Not both.")
+    ELOG(   src_parameter.has_img_h() !=  src_parameter.has_img_w(), EP104,
+            "Please specify both img_h and img_w for PriorBox Layer: " << src.name())
+    ELOG(   src_parameter.has_img_size() && src_parameter.img_size() <= 0, EP105, "img_size should be >0 for PriorBox Layer: " << src.name())
+    ELOG(   src_parameter.has_img_h() && src_parameter.img_h() <= 0, EP106, "img_h should be >0 for PriorBox Layer: " << src.name())
+    ELOG(   src_parameter.has_img_w() && src_parameter.img_w() <= 0, EP107, "img_w should be >0 for PriorBox Layer: " << src.name())
+
+    if(src_parameter.has_img_size())
+    {
+        dst->priorbox_params->img_size = src_parameter.img_size();
+        dst->priorbox_params->img_h = src_parameter.img_h();
+        dst->priorbox_params->img_w = src_parameter.img_w();
+    }
+    else if(src_parameter.has_img_h() && src_parameter.has_img_w())
+    {
+        dst->priorbox_params->img_size = 0;
+        dst->priorbox_params->img_h = src_parameter.img_h();
+        dst->priorbox_params->img_w = src_parameter.img_w();
+    }
+    else
+    {
+        dst->priorbox_params->img_size = 0;
+        dst->priorbox_params->img_h = 0;
+        dst->priorbox_params->img_w = 0;
+    }
+
+
+    // offset [OPTIONAL, default = 0.5]
+    dst->priorbox_params->offset = src_parameter.has_offset() ? src_parameter.offset() : 0.5;
+    
     // variance
     int varSize = src_parameter.variance_size();
 
@@ -1951,7 +2352,7 @@ void ExtractPriorBoxParameters(const caffe::LayerParameter& src, XGraph& graph)
     map<string, XBlob*>::iterator it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -1965,8 +2366,8 @@ void ExtractPriorBoxParameters(const caffe::LayerParameter& src, XGraph& graph)
 
     // ---------------------------------  Pre-compute priorbox and variance -------------------- //
 
-    int layerheight= dst->bottomShape.at(0).at(2);
-    int layerwidth = dst->bottomShape.at(0).at(3);
+    int layerheight= dst->priorbox_params->img_h > 0 ? dst->priorbox_params->img_h : dst->bottomShape.at(0).at(2);
+    int layerwidth = dst->priorbox_params->img_w > 0 ? dst->priorbox_params->img_w :dst->bottomShape.at(0).at(3);
     int imageheight= dst->bottomShape.at(1).at(2);
     int imagewidth = dst->bottomShape.at(1).at(3);
     vector<float> ar = dst->priorbox_params->aspect_ratio;
@@ -1975,14 +2376,22 @@ void ExtractPriorBoxParameters(const caffe::LayerParameter& src, XGraph& graph)
     vector<float> var = dst->priorbox_params->variance;
     bool flip = dst->priorbox_params->flip;
     bool clip = dst->priorbox_params->clip;
+    float offset = dst->priorbox_params->offset;
+    float step_h = dst->priorbox_params->step_h;
+    float step_w = dst->priorbox_params->step_w;
 
     dst->priorbox_params->pbox =  computePriorBoxes(layerwidth, layerheight, imagewidth, imageheight, 
-                                                  ar, min_size, max_size, var, flip, clip, 0.0, 0.0, 0.5);
+                                                  ar, min_size, max_size, var, flip, clip, step_h, step_w, offset);
     dst->priorbox_params->pboxShape = dst->topShape.at(0);
 
     // Keep priorboxes in txt files for debug purposes
     // string filename = dst->uname + "_pboxes";
     // savetxt(priorboxes, filename);
+
+    //  Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 }
 
 
@@ -1997,8 +2406,7 @@ void ExtractReshapeParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // shape [MANDATORY]
     if(src_parameter.shape().dim_size() == 0)
@@ -2042,7 +2450,7 @@ void ExtractReshapeParameters(const caffe::LayerParameter& src, XGraph& graph)
     it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
     // Update layer "top" info with top name and shape
@@ -2053,6 +2461,11 @@ void ExtractReshapeParameters(const caffe::LayerParameter& src, XGraph& graph)
 
     // Finally Register the top blob to graph
     graph.blobs[tmpTop->name] = tmpTop;
+
+    //  Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 }
 
 
@@ -2069,8 +2482,7 @@ void ExtractNMSParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 3, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Extract num_classes [MANDATORY]
     if(src_parameter.has_num_classes())
@@ -2157,9 +2569,8 @@ void ExtractNMSParameters(const caffe::LayerParameter& src, XGraph& graph)
     map<string, XBlob*>::iterator it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
-    dst->topShape.push_back(tmpTop->shape);                           // Replicate bottom shape in Layer also
 
     // Update layer "top" info with top name and shape
     tmpTop->producers.push_back(dst->name);                     // Add current layer to top Producers list
@@ -2169,6 +2580,11 @@ void ExtractNMSParameters(const caffe::LayerParameter& src, XGraph& graph)
 
     // Finally Register the top blob to graph
     graph.blobs[tmpTop->name] = tmpTop;
+
+    //  Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 }
 
 void ExtractEltwiseParameters(const caffe::LayerParameter& src, XGraph& graph)
@@ -2182,8 +2598,7 @@ void ExtractEltwiseParameters(const caffe::LayerParameter& src, XGraph& graph)
     checkNumberOfTopAndBottom(src, 2, 1);
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Get Op Type [OPTIONAL, DEFAULT=SUM]
     dst->eltwise_params->type = (src_parameter.has_operation()) ? (EltOpType)src_parameter.operation() : (EltOpType)ELT_SUM;    
@@ -2195,8 +2610,6 @@ void ExtractEltwiseParameters(const caffe::LayerParameter& src, XGraph& graph)
     // Get coeff. TODO : ARK: Currently coeff is not supported
     ASSERT(src_parameter.coeff().size() == 0, EP062, "Coeff for Eltwise layer is not currently supported") 
 
-    // Extract Precision Parameters
-    ExtractPrecisionParameters(src, *dst, false);
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -2222,9 +2635,8 @@ void ExtractEltwiseParameters(const caffe::LayerParameter& src, XGraph& graph)
     map<string, XBlob*>::iterator it = graph.checkIfBlobExists(src.top(0), true, true);
 
     // Execution reached here means, top blob doesn't exist, so create.
-    XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+    XBlob* tmpTop = new XBlob(src.top(0));
     dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
-    dst->topShape.push_back(tmpTop->shape);                           // Replicate bottom shape in Layer also
 
     // Update layer "top" info with top name and shape
     tmpTop->producers.push_back(dst->name);                     // Add current layer to top Producers list
@@ -2234,6 +2646,11 @@ void ExtractEltwiseParameters(const caffe::LayerParameter& src, XGraph& graph)
 
     // Finally Register the top blob to graph
     graph.blobs[tmpTop->name] = tmpTop;
+
+    //  Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 }
 
 void ExtractBatchNormParameters(const caffe::LayerParameter& src, XGraph& graph)
@@ -2244,25 +2661,23 @@ void ExtractBatchNormParameters(const caffe::LayerParameter& src, XGraph& graph)
     string xlayerType = type_it->second;
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Parse the input/output connections
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Check if it is inPlace.
     dst->batchnorm_params->inPlace = src.bottom(0) == src.top(0) ? true : false; 
+    dst->inPlace = src.bottom(0) == src.top(0) ? true : false; 
 
-    // Get use_global_stats [Mandatory]
-    // TODO : Ark : Currently only axis=1 is allowed
-    ASSERT(src_parameter.has_use_global_stats(), EP063, "use_global_stats is not mentioned in BatchNorm Layer : " + src.name())
-    dst->batchnorm_params->global_stats = src_parameter.use_global_stats();
+    // Get use_global_stats [Optional : default : true]
+    dst->batchnorm_params->global_stats = src_parameter.has_use_global_stats() ? src_parameter.use_global_stats() : true;
+    ASSERT( dst->batchnorm_params->global_stats == true, EP163, 
+            "use_global_stats should be true for the batch_norm layer: " << src.name())
 
     // Get eps [default: 1e-5]
     dst->batchnorm_params->eps = src_parameter.has_eps() ? src_parameter.eps() : 0.00001;
 
-    // Extract Precision Parameters
-    ExtractPrecisionParameters(src, *dst, false);
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -2287,7 +2702,7 @@ void ExtractBatchNormParameters(const caffe::LayerParameter& src, XGraph& graph)
         it = graph.checkIfBlobExists(src.top(0), true, true);
 
         // Execution reached here means, top blob doesn't exist, so create.
-        XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+        XBlob* tmpTop = new XBlob(src.top(0));
         dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
         // Update layer "top" info with top name and shape
@@ -2310,6 +2725,11 @@ void ExtractBatchNormParameters(const caffe::LayerParameter& src, XGraph& graph)
         tmpTop->producerDim.push_back(tmpTop->shape);           // Add output blob shape to producerDim
         dst->topShape.push_back(tmpTop->shape);                           // Replicate bottom shape in Layer also
     }
+    
+    // Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 }
 
 void ExtractScaleParameters(const caffe::LayerParameter& src, XGraph& graph)
@@ -2320,14 +2740,14 @@ void ExtractScaleParameters(const caffe::LayerParameter& src, XGraph& graph)
     string xlayerType = type_it->second;
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Parse the input/output connections
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Check if it is inPlace.
     dst->scale_params->inPlace = src.bottom(0) == src.top(0) ? true : false; 
+    dst->inPlace = src.bottom(0) == src.top(0) ? true : false; 
 
     // Check if bias there or not
     dst->scale_params->has_bias = src_parameter.has_bias_term() ? src_parameter.bias_term() : false;
@@ -2341,9 +2761,6 @@ void ExtractScaleParameters(const caffe::LayerParameter& src, XGraph& graph)
     // TODO : Ark : Currently only num_axes=1 is allowed
     dst->scale_params->num_axes = src_parameter.has_num_axes() ? src_parameter.num_axes() : 1;
     ASSERT(dst->scale_params->num_axes == 1, EP063, "Currently, num_axes should be 1 in Scale Layer")
-
-    // Extract Precision Parameters
-    ExtractPrecisionParameters(src, *dst, false);
 
     // Finally add the XLayer to graph
     graph.layers[src.name()] = dst;
@@ -2368,7 +2785,7 @@ void ExtractScaleParameters(const caffe::LayerParameter& src, XGraph& graph)
         it = graph.checkIfBlobExists(src.top(0), true, true);
 
         // Execution reached here means, top blob doesn't exist, so create.
-        XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+        XBlob* tmpTop = new XBlob(src.top(0));
         dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
         // Update layer "top" info with top name and shape
@@ -2391,6 +2808,12 @@ void ExtractScaleParameters(const caffe::LayerParameter& src, XGraph& graph)
         tmpTop->producerDim.push_back(tmpTop->shape);           // Add output blob shape to producerDim
         dst->topShape.push_back(tmpTop->shape);                           // Replicate bottom shape in Layer also
     }
+    
+    // Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
+
 }
 
 
@@ -2402,14 +2825,14 @@ void ExtractPowerParameters(const caffe::LayerParameter& src, XGraph& graph)
     string xlayerType = type_it->second;
 
     // Create new XLayer
-    XLayer* dst = new XLayer(src.name(), xlayerType);
-    dst->uname = graph.getUniqueLayerName();
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
 
     // Parse the input/output connections
     checkNumberOfTopAndBottom(src, 1, 1);
 
     // Check if it is inPlace.
     dst->power_params->inPlace = src.bottom(0) == src.top(0) ? true : false; 
+    dst->inPlace = src.bottom(0) == src.top(0) ? true : false; 
 
     // Get power [default: 1.0]
     // TODO : Ark : Currently only power=1.0 is allowed
@@ -2452,7 +2875,7 @@ void ExtractPowerParameters(const caffe::LayerParameter& src, XGraph& graph)
         it = graph.checkIfBlobExists(src.top(0), true, true);
 
         // Execution reached here means, top blob doesn't exist, so create.
-        XBlob* tmpTop = new XBlob(src.top(0), graph.getUniqueBlobName());
+        XBlob* tmpTop = new XBlob(src.top(0));
         dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
 
         // Update layer "top" info with top name and shape
@@ -2475,6 +2898,104 @@ void ExtractPowerParameters(const caffe::LayerParameter& src, XGraph& graph)
         tmpTop->producerDim.push_back(tmpTop->shape);           // Add output blob shape to producerDim
         dst->topShape.push_back(tmpTop->shape);                           // Replicate bottom shape in Layer also
     }
+
+    //  Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
+}
+
+
+void ExtractXCustomParameters(const caffe::LayerParameter& src, XGraph& graph)
+{
+    // Map the Caffe layer type to anonymoX layer type
+    caffe::XCustomParameter src_parameter = src.xcustom_param();
+    string xlayerType = "XCustom";
+
+    // Create new XLayer
+    XLayer* dst = new XLayer(src.name(), xlayerType, src.top(0));
+    
+    // Assign actual layer type
+    dst->xcustom_params->type = src.type();
+
+    // Check if it is inPlace.
+    int ntops = src.top_size();
+    int nbottoms = src.bottom_size();
+    ASSERT( (ntops > 0) && (nbottoms > 0), EP070, 
+            "There should be minimum one top & bottom blobs for layer " << src.name())
+
+    ASSERT( (nbottoms == 1), EP075, 
+            "Currently only one top blob is supported for user_defined_layer: " << src.name())
+
+    ELOG( (ntops == 1 && nbottoms == 1 && src.bottom(0) == src.top(0)), EP073,
+            "bottom and top blobs should be separate for user_defined_layer : " << src.name() )                        
+
+    // Extract output dimensions [MANDATORY : Atleast one dimension should be given and it should be more than 0]
+    ASSERT(src_parameter.top_dim_size() > 0, EP071,
+            "Output dimension is not mentioned for user_defined_layer : " << src.name())
+
+    dst->xcustom_params->output_dim.insert( dst->xcustom_params->output_dim.end(), 
+                                            src_parameter.top_dim().begin(), src_parameter.top_dim().end());
+
+    ASSERT(getSize(dst->xcustom_params->output_dim) > 0, EP072,
+            "Total dimesion should be greater than 0 for user_defined_layer : " << src.name())
+
+    // Extract all float arguments
+    dst->xcustom_params->float_args.insert( dst->xcustom_params->float_args.end(), 
+                                            src_parameter.float_args().begin(), src_parameter.float_args().end());
+
+    // Extract all string arguments
+    dst->xcustom_params->string_args.insert(dst->xcustom_params->string_args.end(), 
+                                            src_parameter.string_args().begin(), src_parameter.string_args().end());
+
+    // Finally add the XLayer to graph
+    graph.layers[src.name()] = dst;
+
+    // -----------------------------   Setup Blobs and Connections ----------------------- //
+
+
+    // Check bottom first. Make sure it is already registered in the Graph.blobs
+    map<string, XBlob*>::iterator it = graph.checkIfBlobExists(src.bottom(0), true, false);
+
+    for(int i = 0; i<src.bottom_size(); i++)
+    {
+        // Check bottom first. Make sure it is already registered in the Graph.blobs
+        map<string, XBlob*>::iterator it = graph.checkIfBlobExists(src.bottom(i), true, false);
+
+        // Execution here reached means, bottom blob exists in graph. So update its fields
+        XBlob* tmpBottom = it->second;
+        dst->bottom.push_back(nameIndex(tmpBottom));                           // Add bottom to XLayer.bottom
+        dst->bottomShape.push_back(tmpBottom->shape);                           // Replicate bottom shape in Layer also
+        dst->xcustom_params->input_dims.push_back(tmpBottom->shape);
+        tmpBottom->consumers.push_back(dst->name);                                   // Add convolution layer to bottom consumers
+        tmpBottom->consumerDim.push_back(tmpBottom->shape);                     // and consumer uses the full bottom data.
+    }
+     
+    // Here, things are a little different because of the inplace operation
+    for(int i=0; i<src.top_size(); ++i)
+    {
+        // Check top. Make sure it is not registered in the Graph.blobs
+        it = graph.checkIfBlobExists(src.top(0), true, true);
+
+        // Execution reached here means, top blob doesn't exist, so create.
+        XBlob* tmpTop = new XBlob(src.top(0));
+        dst->top.push_back(nameIndex(tmpTop));                // Add top blob to current layer top list
+
+        // Update layer "top" info with top name and shape
+        tmpTop->producers.push_back(dst->name);                     // Add current layer to top Producers list
+        dst->computeOutputDim();                                    // Calculate the output blob shape
+        tmpTop->producerDim.push_back(tmpTop->shape);           // Add output blob shape to producerDim
+        dst->topShape.push_back(tmpTop->shape);                           // Replicate bottom shape in Layer also
+        dst->xcustom_params->output_dims.push_back(tmpTop->shape);
+
+        // Finally Register the top blob to graph
+        graph.blobs[tmpTop->name] = tmpTop;
+    }
+
+    //  Extract Precision Parameters
+    bool success = ExtractPrecisionParameters(src, *dst, false);
+    if(!success)
+        graph.precMissLayers.push_back(src.name());
 }
 
 // This function simply checks the number of tops and bottoms and exit if they don't match with prototxt
@@ -2513,7 +3034,7 @@ void readDeployFile(const string& deployFile, caffe::NetParameter* Net)
     {
         cerr << "[EP002] Couldn't Parse the deploy file : " << deployFile << endl;
         exit(-1);
-    } 
+    }
 
     delete fileInput;
     close(fileDescriptor);
@@ -2584,101 +3105,211 @@ void ExtractCaffeMeanData(const caffe::BlobProto* blob, XGraph* graph)
     }
 }
 
-// Extract FP Precision Parameters
-void ExtractPrecisionParameters(const caffe::LayerParameter& src, XLayer& layer, bool isParamsPrecisionMandatory)
+#define CHECK_PRECISION(condn, variable, true_value, default_value) \
+    if(condn)                                                       \
+    {                                                               \
+        variable = true_value;                                      \
+    }                                                               \
+    else                                                            \
+    {                                                               \
+        variable = default_value;                                   \
+        parsedSuccessfully = false;                                 \
+    }   
+
+// Extract Dynamic Fixed Point Precision parameters
+// Return true if successfully parsed
+template<typename PrecisionType>
+bool ExtractDynamicFixedPointParameters(const PrecisionType& src_params, XLayer& layer, bool isParamsPrecisionMandatory, bool parsedSuccessfully_)
 {
-    caffe::QuantizationParameter src_params;
-
-    // XXX : @ARK : This warning should be a fatal error. For release, just uncomment "exit(-1)" line.
-    if(src.has_quantization_param())
-        src_params = src.quantization_param();
-    else
-    {
-        cerr << "[EP061] Precision parameters are not defined for the layer " << src.name() << ". " << endl;
-        exit(-1);
-    }    
-
+	bool parsedSuccessfully = parsedSuccessfully_;
+	
     // input and output precision parameters are mandatory for every layer.
-    ASSERT((src_params.has_bw_layer_in() && src_params.has_bw_layer_out() && 
-            src_params.has_fl_layer_in() && src_params.has_fl_layer_out()), EP065,
-            "Input and output precision parameters are not specified for the layer " << src.name() << "." )
-
-    layer.user_ip_bw = src_params.bw_layer_in();
-    layer.user_op_bw = src_params.bw_layer_out();
-    layer.user_ip_fl = src_params.fl_layer_in();
-    layer.user_op_fl = src_params.fl_layer_out();
-
-    // Now convert user precision format to HW precision format 
-    DynamicFPToHWFormat(INPUT_BW, layer.user_ip_bw, layer.user_ip_fl, layer.ip_bw, layer.ip_fl, true);
-    DynamicFPToHWFormat(OUTPUT_BW, layer.user_op_bw, layer.user_op_fl, layer.op_bw, layer.op_fl, true);
+    CHECK_PRECISION(src_params.has_bw_layer_in(), layer.ip_bw, src_params.bw_layer_in(), DEFAULT_BW)
+    CHECK_PRECISION(src_params.has_bw_layer_out(), layer.op_bw, src_params.bw_layer_out(), DEFAULT_BW)
+    CHECK_PRECISION(src_params.has_fl_layer_in(), layer.ip_fl, src_params.fl_layer_in(), DEFAULT_FL)
+    CHECK_PRECISION(src_params.has_fl_layer_out(), layer.op_fl, src_params.fl_layer_out(), DEFAULT_FL)
 
     // weights precision is mandatory for [Convolution, FC] layers.
-    ELOG( (isParamsPrecisionMandatory) && ((!src_params.has_bw_params()) || (!src_params.has_fl_params())),
-            EP066, "Parameter Precisions should be mentioned for the layer " << src.name() << "." )
-
-    layer.user_wt_bw = src_params.bw_params();
-    layer.user_wt_fl = src_params.fl_params();
-
-    // weights precision should be always bw=8, fl=7
-    /*ELOG((isParamsPrecisionMandatory) && ((layer.user_wt_bw != WEIGHT_BW) || (layer.user_wt_fl != 7)), EP054,
-            "Parameter Precision should be always: bw_params = 8, fl_params = 7." )*/
-
-    DynamicFPToHWFormat(WEIGHT_BW, layer.user_wt_bw, layer.user_wt_fl, layer.wt_bw, layer.wt_fl, false);
+    if(layer.type == "Convolution" || layer.type == "InnerProduct")
+    {
+        CHECK_PRECISION(src_params.has_bw_params(), layer.wt_bw, src_params.bw_params(), DEFAULT_BW)
+        CHECK_PRECISION(src_params.has_fl_params(), layer.wt_fl, src_params.fl_params(), DEFAULT_BW-1)
+    }
 
     // BatchNorm precision parameters
     if(layer.type == "BatchNorm")
     {
-        ELOG( (layer.type == "BatchNorm") && ( !src_params.has_batchnorm_mean_bw() || !src_params.has_batchnorm_variance_bw() ||
-                    !src_params.has_batchnorm_mean_fl() || !src_params.has_batchnorm_variance_fl() ), 
-                EP067, "Precision Parameters should be mentioned for mean and variance in BatchNorm Layer : " << src.name() )
-
-        layer.user_bn_mean_bw = src_params.batchnorm_mean_bw();
-        layer.user_bn_variance_bw = src_params.batchnorm_variance_bw();
-        layer.user_bn_mean_fl = src_params.batchnorm_mean_fl();
-        layer.user_bn_variance_fl = src_params.batchnorm_variance_fl();
-
-        DynamicFPToHWFormat(BATCHNORM_BW, layer.user_bn_mean_bw, layer.user_bn_mean_fl, layer.bn_mean_bw, layer.bn_mean_fl, false);
-        DynamicFPToHWFormat(BATCHNORM_BW, layer.user_bn_variance_bw, layer.user_bn_variance_fl, layer.bn_variance_bw, layer.bn_variance_fl, false);
+        CHECK_PRECISION(src_params.has_batchnorm_mean_bw(), layer.bn_mean_bw, src_params.batchnorm_mean_bw(), DEFAULT_BW)
+        CHECK_PRECISION(src_params.has_batchnorm_mean_fl(), layer.bn_mean_fl, src_params.batchnorm_mean_fl(), DEFAULT_FL)
+        CHECK_PRECISION(src_params.has_batchnorm_variance_bw(), layer.bn_variance_bw, src_params.batchnorm_variance_bw(), DEFAULT_BW)
+        CHECK_PRECISION(src_params.has_batchnorm_variance_fl(), layer.bn_variance_fl, src_params.batchnorm_variance_fl(), DEFAULT_FL)
     }
 
     // Scale layer precision parameters
     if(layer.type == "Scale")
     {
-        ELOG( (layer.type == "Scale") && (  !src_params.has_scale_gamma_bw() || !src_params.has_scale_beta_bw() ||
-                                            !src_params.has_scale_gamma_fl() || !src_params.has_scale_beta_fl() ||
-                                            !src_params.has_scale_gamma_by_std_fl() || !src_params.has_scale_gamma_by_std_bw() ),
-                EP067, "Precision Parameters should be mentioned for gamma, beta and gamma_by_std in Scale Layer : " << src.name() )
+        CHECK_PRECISION(src_params.has_scale_gamma_bw(), layer.scale_gamma_bw, src_params.scale_gamma_bw(), DEFAULT_BW)
+        CHECK_PRECISION(src_params.has_scale_gamma_fl(), layer.scale_gamma_fl, src_params.scale_gamma_fl(), DEFAULT_FL)
+        CHECK_PRECISION(src_params.has_scale_beta_bw(), layer.scale_beta_bw, src_params.scale_beta_bw(), DEFAULT_BW)
+        CHECK_PRECISION(src_params.has_scale_beta_fl(), layer.scale_beta_fl, src_params.scale_beta_fl(), DEFAULT_FL)
+        CHECK_PRECISION(src_params.has_scale_gamma_by_std_bw(), layer.scale_gamma_by_std_bw, src_params.scale_gamma_by_std_bw(), DEFAULT_BW)
+        CHECK_PRECISION(src_params.has_scale_gamma_by_std_fl(), layer.scale_gamma_by_std_fl, src_params.scale_gamma_by_std_fl(), DEFAULT_FL)
+	}
 
-        layer.user_scale_gamma_bw = src_params.scale_gamma_bw();
-        layer.user_scale_beta_bw = src_params.scale_beta_bw();
-        layer.user_scale_gamma_by_std_bw = src_params.scale_gamma_by_std_bw();
-        layer.user_scale_gamma_fl = src_params.scale_gamma_fl();
-        layer.user_scale_beta_fl = src_params.scale_beta_fl();
-        layer.user_scale_gamma_by_std_fl = src_params.scale_gamma_by_std_fl();
+    return parsedSuccessfully;
+}
 
-        DynamicFPToHWFormat(SCALE_BW, layer.user_scale_gamma_bw, layer.user_scale_gamma_fl, layer.scale_gamma_bw, layer.scale_gamma_fl, false);
-        DynamicFPToHWFormat(SCALE_BW, layer.user_scale_beta_bw, layer.user_scale_beta_fl, layer.scale_beta_bw, layer.scale_beta_fl, false);
-        DynamicFPToHWFormat(SCALE_BW, layer.user_scale_gamma_by_std_bw, layer.user_scale_gamma_by_std_fl, layer.scale_gamma_by_std_bw, layer.scale_gamma_by_std_fl, false);
+template
+bool ExtractDynamicFixedPointParameters(const caffe::PrecisionParameter& src_params, XLayer& layer, bool isParamsPrecisionMandatory, bool parsedSuccessfully_);
+template
+bool ExtractDynamicFixedPointParameters(const caffe::QuantizationParameter& src_params, XLayer& layer, bool isParamsPrecisionMandatory, bool parsedSuccessfully_);
+
+template<typename PrecisionType>
+bool ExtractOfflineQuantizationParameters(const PrecisionType& src_params, XLayer& layer, bool isParamsPrecisionMandatory, bool parsedSuccessfully_) {
+    bool parsedSuccessfully = parsedSuccessfully_;
+
+    // input precision parameters are mandatory for every layer.
+    CHECK_PRECISION(src_params.has_bw_layer_in(), layer.ip_bw, src_params.bw_layer_in(), DEFAULT_BW);
+    CHECK_PRECISION(src_params.has_th_layer_in(), layer.th_layer_in, src_params.th_layer_in(), DEFAULT_TH);
+
+    // Output precision is not mandatory for Softmax, so skip it. (TODO : Have a better scheme)
+    if(layer.type != "Softmax") {
+	CHECK_PRECISION(src_params.has_bw_layer_out(), layer.op_bw, src_params.bw_layer_out(), DEFAULT_BW);
+	CHECK_PRECISION(src_params.has_th_layer_out(), layer.th_layer_out, src_params.th_layer_out(), DEFAULT_TH);
     }
 
-/*    cout << "[DPxxx] " << src.name() << " user : [ " <<  layer.user_ip_bw << ":" << layer.user_ip_fl << " "
-                                            <<  layer.user_op_bw << ":" << layer.user_op_fl << " "
-                                            <<  layer.user_wt_bw << ":" << layer.user_wt_fl << " ]" << endl;;
-    cout << "[DPxxx] " << src.name() << " HW : [ " <<  layer.ip_bw << ":" << layer.ip_fl << " "
-                                            <<  layer.op_bw << ":" << layer.op_fl << " "
-                                            <<  layer.wt_bw << ":" << layer.wt_fl << " ]" << endl;
-    cout << "[DPxxx] " << src.name() << " user BN : [ " << layer.user_bn_mean_bw << ":" << layer.user_bn_mean_fl << " " 
-                                                     << layer.user_bn_variance_bw << ":" << layer.user_bn_variance_fl << endl;
-    cout << "[DPxxx] " << src.name() << " HW BN: [ " << layer.bn_mean_bw << ":" << layer.bn_mean_fl << " " 
-                                                     << layer.bn_variance_bw << ":" << layer.bn_variance_fl << endl;
-    cout << "[DPxxx] " << src.name() << " user SCALE: [ " << layer.user_scale_gamma_bw << ":" << layer.user_scale_gamma_fl << " " 
-                                                     << layer.user_scale_beta_bw << ":" << layer.user_scale_beta_fl << endl;
-    cout << "[DPxxx] " << src.name() << " HW SCALE: [ " << layer.scale_gamma_bw << ":" << layer.scale_gamma_fl << " " 
-                                                     << layer.scale_beta_bw << ":" << layer.scale_beta_fl << endl;
-    cout << "[DPxxx] " << src.name() << " HW STD: [ " << layer.user_scale_gamma_by_std_bw << ":" << layer.user_scale_gamma_by_std_fl << " " 
-                                                     << layer.scale_gamma_by_std_bw << ":" << layer.scale_gamma_by_std_fl<< endl;
-*/
+    // weights precision is mandatory for [Convolution, FC] layers.
+    if(layer.type == "Convolution" || layer.type == "InnerProduct" || layer.type == "Deconvolution")
+    {
+	CHECK_PRECISION(src_params.has_bw_params(), layer.wt_bw, src_params.bw_params(), DEFAULT_BW);
+	if(src_params.th_params_size() > 0) {
+	    layer.th_params.insert(layer.th_params.begin(), src_params.th_params().begin(), src_params.th_params().end());
+	}
+	else {
+	    // layer.th_params = getAbsMaxPerFilter<float>(layer.params[0], layer.paramDims[0]);
+	    parsedSuccessfully = false;
+	}
+    }
+
+    // Batchnorm params [TODO : Assigining default vals now]
+    if(layer.type == "BatchNorm") {
+        // layer.th_bn_mean 
+        // layer.th_bn_variance 
+        parsedSuccessfully = false;
+    }
+	
+    // Scale params [TODO : Assigining default vals now]
+    if(layer.type == "Scale") {
+        // layer.th_scale_gamma
+        // layer.th_scale_beta
+        parsedSuccessfully = false;
+    }
+
+    // Scale params [TODO : Assigining default vals now]
+    if(layer.type == "L2Normalize") {
+	CHECK_PRECISION(src_params.has_bw_params(), layer.wt_bw, src_params.bw_params(), DEFAULT_BW);
+	if(src_params.th_params_size() > 0) {
+	    layer.th_params.insert(layer.th_params.begin(), src_params.th_params().begin(), src_params.th_params().end());
+	}
+	else {
+	    parsedSuccessfully = false;
+	}
+    }
+
+    return parsedSuccessfully;
 }
+
+template
+bool ExtractOfflineQuantizationParameters(const caffe::PrecisionParameter& src_params, XLayer& layer, bool isParamsPrecisionMandatory, bool parsedSuccessfully_);
+template
+bool ExtractOfflineQuantizationParameters(const caffe::QuantizationParameter& src_params, XLayer& layer, bool isParamsPrecisionMandatory, bool parsedSuccessfully_);
+
+// Extract FP Precision Parameters
+bool ExtractPrecisionParameters(const caffe::LayerParameter& src, XLayer& layer, bool isParamsPrecisionMandatory) {
+    bool parsedSuccessfully = true;
+
+    // Check if it is a single precision layer
+    if(SWLayerSet.find(layer.type) != SWLayerSet.end()) {
+	layer.quantization_scheme = "SinglePrecision";
+	return true;
+    }
+
+    // precision_param() or quantization_param() ?
+    string field_type = "";
+
+    if(src.has_precision_param()) {
+        // src_params = &(src.precision_param());
+	layer.quantization_scheme = src.precision_param().quant_type();
+	field_type = "precision"; 
+    }
+    else if(src.has_quantization_param()) {
+	// src_params = &(src.quantization_param());
+	layer.quantization_scheme = src.quantization_param().quant_type();
+	field_type = "quantization"; 
+    }
+    else {
+	parsedSuccessfully = false;
+    }
+
+    layer.quantization_scheme = layer.quantization_scheme.empty() ? "DynamicFixed" : layer.quantization_scheme; 
+
+    // quant_type should be either "DynamicFixed" or "Xilinx" (if empty, by default it is Dynamic Fixed)
+    ASSERT((layer.quantization_scheme == "DynamicFixed" || layer.quantization_scheme == "Xilinx"), EP501,
+    		"Quantization Scheme should be either \"DynamicFixed\" or \"Xilinx\". "
+    		"Quantization Scheme of layer " << layer.name << " is " << "\"" << layer.quantization_scheme << "\""
+			<< " which is not supported" )
+
+    // INFO : Special case : Don't run precision extraction for Maxpool DynamicFixed format
+    // TODO : Maxpool has prec param only in Offline mode, not in DynamicFixed mode. Better keep same pattern everywhere.
+    if(layer.quantization_scheme == "DynamicFixed") {
+	if ((layer.type == "Pooling" && layer.pool_params->PoolType == MAX) ||
+		(layer.type == "Concat") || (layer.type == "Softmax"))
+	{
+	    return true;
+	}
+    }
+
+    // Parse based on the quantization_scheme
+    if(layer.quantization_scheme == "DynamicFixed") {
+	if(field_type == "precision") {
+	    parsedSuccessfully = ExtractDynamicFixedPointParameters(src.precision_param(), layer, isParamsPrecisionMandatory, parsedSuccessfully);
+	}
+	else { // quantization
+	    parsedSuccessfully = ExtractDynamicFixedPointParameters(src.quantization_param(), layer, isParamsPrecisionMandatory, parsedSuccessfully);
+	}
+    }
+    else if(layer.quantization_scheme == "Xilinx") {
+	if(field_type == "precision") {
+	    parsedSuccessfully = ExtractOfflineQuantizationParameters(src.precision_param(), layer, isParamsPrecisionMandatory, parsedSuccessfully);
+	}
+	else { // quantization
+	    parsedSuccessfully = ExtractOfflineQuantizationParameters(src.quantization_param(), layer, isParamsPrecisionMandatory, parsedSuccessfully);
+	}
+    }
+    else {
+	cerr << "[WP205] Quantization scheme is not assigned for layer : " << layer.name << endl;
+    }
+#if 0
+    cout << "[DPxxx] " << src.name() << " DFP : [ " 
+	<<  layer.ip_bw << ":" << layer.ip_fl << " "
+	<<  layer.op_bw << ":" << layer.op_fl << " "
+	<<  layer.wt_bw << ":" << layer.wt_fl << " ]" << endl;
+    cout << "[DPxxx] " << src.name() << " OFF : [ " 
+	<<  layer.ip_bw << ":" << layer.th_layer_in << " "
+	<<  layer.op_bw << ":" << layer.th_layer_out << " "
+	<<  layer.wt_bw << ":" ;
+    if(layer.th_params.size() > 0)
+	std::copy(layer.th_params.begin(), layer.th_params.begin() + 10, std::ostream_iterator<float>(cerr, " ")); cerr << endl;
+#endif
+
+    // cout << "[DPxxx] " << src.name() << " HW BN: [ " << layer.bn_mean_bw << ":" << layer.bn_mean_fl << " " 
+    //                                                  << layer.bn_variance_bw << ":" << layer.bn_variance_fl << endl;
+    // cout << "[DPxxx] " << src.name() << " HW SCALE: [ " << layer.scale_gamma_bw << ":" << layer.scale_gamma_fl << " " 
+    //                                                  << layer.scale_beta_bw << ":" << layer.scale_beta_fl << endl;
+
+    return parsedSuccessfully;
+}
+
 
 // TODO : @ARK : This function will have some changes when we support the latest SSD
 // layerWidth, layerHeight : Width and Height of input feature map
@@ -2702,33 +3333,41 @@ vector<float> computePriorBoxes(int layerWidth, int layerHeight, int imageWidth,
     const float step_h      = (step_h_ == 0) ? static_cast<float>(img_height) / layer_height : step_h_ ;
 
     // Update aspect ratios with their reciprocals
-    // No check for duplicate value
     vector<float> aspect_ratios;
     aspect_ratios.push_back(1.);
-    int num_priors = 1;
 
     for (int i=0; i<aspect_ratios_.size(); i++)
     {
         float ar = aspect_ratios_[i];
-        aspect_ratios.push_back(ar);
-        num_priors++;
-        if (flip)
+        bool processed = false;
+        for(int j=0; j<aspect_ratios.size(); ++j)
         {
-            aspect_ratios.push_back(1.0 / ar);
-            num_priors++;
+            // #. Check for duplicate values
+            if(fabs(ar - aspect_ratios[j]) < 1e-6)
+            {
+                processed = true;
+                break;
+            }
+        }
+        if(!processed)
+        {
+            aspect_ratios.push_back(ar);
+            if (flip)
+            {
+                aspect_ratios.push_back(1.0 / ar);
+            }
         }
     }
 
-    if((max_size.size() > 0) && (max_size[0] > 0))
+    int num_priors = aspect_ratios.size() * min_size.size();
+
+    if(max_size.size() > 0)
     {
-        if(max_size[0] > min_size[0])
+        for(int i=0; i<max_size.size(); ++i)
         {
-            num_priors++;
-        }
-        else
-        {
-            cerr << "[EP054] max_size should be larger than min_size for PriorBox layer : " << max_size[0] << " v/s " << min_size[0] << endl;
-            exit(-1);
+            ASSERT( max_size[i] > min_size[i], EP100,
+                    "max_size shoule be larger than min_size for PriorBox Layer.")
+            num_priors+=1;
         }
     }
     
@@ -2748,39 +3387,41 @@ vector<float> computePriorBoxes(int layerWidth, int layerHeight, int imageWidth,
             float center_x = (w + offset_) * step_w;
             float center_y = (h + offset_) * step_h;
             float box_width, box_height;
-
-            // first prior: aspect_ratio = 1, size = min_size
-            box_width = box_height = (float)min_size[0];
-            priorboxes[idx++] = (center_x - box_width / 2.) / img_width;    // xmin
-            priorboxes[idx++] = (center_y - box_height / 2.) / img_height;  // ymin
-            priorboxes[idx++] = (center_x + box_width / 2.) / img_width;    // xmax
-            priorboxes[idx++] = (center_y + box_height / 2.) / img_height;  // ymax
-
-            // second prior: aspect_ratio = 1, size = sqrt(min_size * max_size)     
-            if((max_size.size() > 0) && (max_size[0] > 0))
+            for(int s = 0; s<min_size.size(); ++s)
             {
-                box_width = box_height = sqrt(min_size[0] * max_size[0]);           
+                // first prior: aspect_ratio = 1, size = min_size
+                box_width = box_height = (float)min_size[s];
                 priorboxes[idx++] = (center_x - box_width / 2.) / img_width;    // xmin
                 priorboxes[idx++] = (center_y - box_height / 2.) / img_height;  // ymin
-                priorboxes[idx++] = (center_x + box_width / 2.) / img_width;    // xmax    
+                priorboxes[idx++] = (center_x + box_width / 2.) / img_width;    // xmax
                 priorboxes[idx++] = (center_y + box_height / 2.) / img_height;  // ymax
-            }
 
-            // rest of priors
-            for (int r = 0; r < aspect_ratios.size(); ++r) 
-            {
-                float ar = aspect_ratios[r];
-                // Check if selected ar is 1.0 which is already processed
-                if (fabs(ar - 1.) < 1e-6) 
+                // second prior: aspect_ratio = 1, size = sqrt(min_size * max_size)     
+                if((max_size.size() > 0) && (max_size.size() == min_size.size()) && (max_size[s] > min_size[s]))
                 {
-                    continue;
+                    box_width = box_height = sqrt(min_size[s] * max_size[s]);           
+                    priorboxes[idx++] = (center_x - box_width / 2.) / img_width;    // xmin
+                    priorboxes[idx++] = (center_y - box_height / 2.) / img_height;  // ymin
+                    priorboxes[idx++] = (center_x + box_width / 2.) / img_width;    // xmax    
+                    priorboxes[idx++] = (center_y + box_height / 2.) / img_height;  // ymax
                 }
-                box_width     = min_size[0] * sqrt(ar);
-                box_height    = min_size[0] / sqrt(ar);
-                priorboxes[idx++] = (center_x - box_width / 2.) / img_width;  // xmin
-                priorboxes[idx++] = (center_y - box_height / 2.) / img_height;// ymin
-                priorboxes[idx++] = (center_x + box_width / 2.) / img_width;  // xmax
-                priorboxes[idx++] = (center_y + box_height / 2.) / img_height;// ymax
+
+                // rest of priors
+                for (int r = 0; r < aspect_ratios.size(); ++r) 
+                {
+                    float ar = aspect_ratios[r];
+                    // Check if selected ar is 1.0 which is already processed
+                    if (fabs(ar - 1.) < 1e-6) 
+                    {
+                        continue;
+                    }
+                    box_width     = min_size[s] * sqrt(ar);
+                    box_height    = min_size[s] / sqrt(ar);
+                    priorboxes[idx++] = (center_x - box_width / 2.) / img_width;  // xmin
+                    priorboxes[idx++] = (center_y - box_height / 2.) / img_height;// ymin
+                    priorboxes[idx++] = (center_x + box_width / 2.) / img_width;  // xmax
+                    priorboxes[idx++] = (center_y + box_height / 2.) / img_height;// ymax
+                }
             }
         }
     }
@@ -2837,8 +3478,8 @@ void Trim2FixedPoint(vector<float>& data, const int bw, const int fl, RoundingMe
     }
 }
 
-// An utility function to convert DynamicFP precision format to HW precision format
-void DynamicFPToHWFormat(const int BW, int r_bw, int r_fl, int& hw_bw, int& hw_fl, bool IO_format)
+// An utility function to convert Ristretto precision format to HW precision format
+void RistrettoToHWFormat(const int BW, int r_bw, int r_fl, int& hw_bw, int& hw_fl, bool IO_format)
 {
     string type = IO_format ? "I/O feature maps" : "parameters"; 
     int tmp_Q = r_bw - r_fl;
@@ -2852,16 +3493,17 @@ void DynamicFPToHWFormat(const int BW, int r_bw, int r_fl, int& hw_bw, int& hw_f
 
     // Behaviour is different for weights and I/O formats
     // Special care should be taken care for I/O formats
-    // If Q.F is the format obtained from DynamicFP, I/O needs Q+1:F-1, but weights still needs Q:F itself
-    hw_fl = IO_format ? tmp_fl - 1: tmp_fl ;
-    //hw_fl = IO_format ? tmp_fl: tmp_fl ;
+    // If Q.F is the format obtained from Ristretto, I/O needs Q+1:F-1, but weights still needs Q:F itself
+    //hw_fl = IO_format ? tmp_fl - 1: tmp_fl ;
+    //TODO:: Anusha
+    hw_fl = IO_format ? tmp_fl : tmp_fl ;
     hw_fl = std::max(0, hw_fl);
     hw_fl += diff;
     hw_bw = BW;
 }
 
-// An utility function to convert DynamicFP precision format to HW precision format
-void DynamicFPToHWFormat_fixedFL(const int BW, int r_bw, int r_fl, int& hw_bw, int& hw_fl, bool IO_format)
+// An utility function to convert Ristretto precision format to HW precision format
+void RistrettoToHWFormat_fixedFL(const int BW, int r_bw, int r_fl, int& hw_bw, int& hw_fl, bool IO_format)
 {
     string type = IO_format ? "I/O feature maps" : "parameters"; 
     int tmp_Q = r_bw - r_fl;
@@ -2873,18 +3515,18 @@ void DynamicFPToHWFormat_fixedFL(const int BW, int r_bw, int r_fl, int& hw_bw, i
 
     // Behaviour is different for weights and I/O formats
     // Special care should be taken care for I/O formats
-    // If Q.F is the format obtained from DynamicFP, I/O needs Q+1:F-1, but weights still needs Q:F itself
+    // If Q.F is the format obtained from Ristretto, I/O needs Q+1:F-1, but weights still needs Q:F itself
     // FIXME : If user gives 16:0, this will become 17:-1
     hw_fl = IO_format ? tmp_fl - 1: tmp_fl ;
     hw_bw = BW;
 }
 
-// An utility function to convert DynamicFP precision format to HW precision format
-void DynamicFPToHWFormat_deprecated(const int BW, int r_bw, int r_fl, int& hw_bw, int& hw_fl, bool IO_format)
+// An utility function to convert Ristretto precision format to HW precision format
+void RistrettoToHWFormat_deprecated(const int BW, int r_bw, int r_fl, int& hw_bw, int& hw_fl, bool IO_format)
 {
     // Behaviour is different for weights and I/O formats
     // Special care should be taken care for I/O formats
-    // If Q.F is the format obtained from DynamicFP, I/O needs Q+1:F-1, but weights still needs Q:F itself
+    // If Q.F is the format obtained from Ristretto, I/O needs Q+1:F-1, but weights still needs Q:F itself
     string type = IO_format ? "I/O feature maps" : "parameters"; 
     int hw_Q = IO_format ? r_bw - r_fl + 1 : r_bw - r_fl ;
     if(hw_Q > BW)
@@ -2896,4 +3538,3 @@ void DynamicFPToHWFormat_deprecated(const int BW, int r_bw, int r_fl, int& hw_bw
     hw_bw = BW;
     hw_fl = BW - hw_Q;
 }
-

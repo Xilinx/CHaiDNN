@@ -19,7 +19,7 @@ limitations under the License.
 using namespace std;
 
 //template<typename T>
-void cropLayer(int* inarray, int* outarray, int in_height, int in_width, int out_height, int out_width, int offset, int channels)
+void CropWrapper(int* inarray, int* outarray, int in_height, int in_width, int out_height, int out_width, int offset, int channels)
 {
     // deconv output width round-to-next-nearest-even
     in_width = ((in_width + 1)/2)*2;

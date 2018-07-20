@@ -17,9 +17,10 @@ limitations under the License.
 #ifndef _XCHANGE_NMS_UTILS_HPP_
 #define _XCHANGE_NMS_UTILS_HPP_
 
-void nms_layerinputdatawrite(float *input_tb, int inputsize, const char *path)
+void nms_layerinputdatawrite(float *input_tb, int inputsize, vector< float >box_buf)
 {
-#if 0//DATA_IN_BINARY
+#if 0
+#if DATA_IN_BINARY
 	FILE *fp = fopen(path,"rb");
 #else
 	FILE *fp = fopen(path,"r");
@@ -29,19 +30,21 @@ void nms_layerinputdatawrite(float *input_tb, int inputsize, const char *path)
 	{
 		fprintf(stderr, "%s : File not found ******\n", path);
 	}
+#endif
 
-#if 0//DATA_IN_BINARY
-	fread(input_tb, sizeof(float)*inputsize, 1, fp);
+#if DATA_IN_BINARY
+	//fread(input_tb, sizeof(float)*inputsize, 1, fp);
 #else
 	float float_val;
 	for(int i = 0; i < inputsize; i++)
 	{
-		fscanf(fp, "%f ", &float_val);
+		//fscanf(fp, "%f ", &float_val);
+		float_val = box_buf[i];
 		input_tb[i] = float_val;
 	}
 #endif
 
-	fclose(fp);
+	//fclose(fp);
 
 }
 

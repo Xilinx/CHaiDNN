@@ -21,12 +21,37 @@ limitations under the License.
 
 #include "../include/xchange_structs.hpp" 
 
-void xiInit( char *dirpath,  char* prototxt,  char* caffemodel,  char* meanfile, int mean_type, 
-			   std::vector<xChangeLayer> (&jobQueue)[NUM_IMG], bufPtrs ptrsList, int resize_h, int resize_w);
-			   
-unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inptr, void *outptr, int inp_bytes);
+struct _io_layer_info
+{
+	std::string inlayer_exectype;
+	int inlayer_sizebytes;
+	std::string outlayer_exectype;
+	int outlayer_sizebytes;
+	int num_in_bufs;
+	int num_out_bufs;
 
-void xiRelease(bufPtrs ptrsList);
+	int in_height;
+	int in_width;
+	int in_bw;
+	int in_fbits;
+	int in_channel;
+	int in_depth;
+	float th_in;
+	int quant_scheme_flag;
+	int out_size;
 
+	kernel_type_e out_kerType;
+
+};
+typedef struct _io_layer_info io_layer_info;
+
+void *xiInit(char *dirpath,  char* prototxt,  char* caffemodel,
+		  _io_layer_info *io_layer_info_ptr, int numImg_to_process, bool layer1_or_not, std::string start_layer, std::string end_layer);
+
+void xiExec(void *handle, std::vector<void *> input, std::vector<void *> output);
+
+void xiRelease(void *chaihandle);
+
+void getPerfInfo(void *handle);
 
 #endif//_XI_INTERFACE_HPP_

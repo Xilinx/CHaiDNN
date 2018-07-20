@@ -13,8 +13,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ----------------------------------------------------*/
-
 #include "xi_scheduler.hpp"
+
+#ifdef __SDSOC
+long long int clock_start, clock_end;
+//float arm_clock = 1.1*1000000;
+//float arm_clock = 1.19*1000000;
+long long int frequency = sds_clock_frequency();
+float arm_clock = (double)frequency/(double)1000;
+//float arm_clock = 1000/frequency;
+#define TIME_STAMP_INIT  clock_start = sds_clock_counter();
+#define TIME_STAMP  { \
+		clock_end = sds_clock_counter(); \
+		fprintf(stderr, "\n** Elapsed Time  : %lf ms\n", (double)(clock_end-clock_start)/arm_clock); clock_start = sds_clock_counter();  \
+}
+#endif
 
 //# Checks Dependence of a layer
 bool chkDeps(std::vector<bool> &layerDone, std::vector<layerID> &previous)
@@ -31,56 +44,27 @@ bool chkDeps(std::vector<bool> &layerDone, std::vector<layerID> &previous)
 	return retFlag;
 }
 
-
-//# Wrapper function for FCForward
-void FcForwardWrapper(
-		CHAR_TYPE *A1, CHAR_TYPE *A2,
-		SHORT_TYPE *in1, SHORT_TYPE *in2,
-		SHORT_TYPE *in3, SHORT_TYPE *y_in,
-		SHORT_TYPE *y_out, int *scalar_fc_args,
-		int fc_id, int reD, int reH, int reW
-)
-{
-	short *fc_in;
-	if(fc_id == 0)
-	{
-		//# Re-arrange input data
-		fc_inputdatawrite(in1, in2, reH, reW, reD, 0, in3, NULL);
-		fc_in = in3;
-#if ENABLE_CONSOLE_TEXT
-		std::cout << "\n[DEBUG] Re-arrange: done !" << std::endl;
-#endif
-	}
-	else
-	{
-		fc_in = in1;
-	}
-
-	//# Call FCForward
-	FcForward(A1, A2, fc_in, y_in, y_out, scalar_fc_args);
-
-}
-
-//# Wrapper function for DeconvForward
-void DeconvForwardWrapper(short* in1, short* in2, short* in3, short* weights, short* bias, int * out, int *scalars)
-{ 
-	//# Re-arrage previous layer output for Deconv input
-	DeconvInReArrange(in1, in2, in3, scalars[1], scalars[2], scalars[0]);
-	//# Call Deconv
-	DeconvForward(in3, weights, bias, (unsigned long long int*)out, scalars);
-}
-
 //# Scheduler for all the layers/tasks in the network in optimal way
 //# to the PL or PS
-
-unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inptr1, void *outptr1, int inp_bytes)
+void xiExec(void *handle, vector<void *> input, vector<void *> output)
 {
+	if(handle == NULL)
+	{
+		fprintf(stderr, "Failed to read handle\n");
+	}
+	
+	chaihandle_t *chaihandle_info = (chaihandle*)handle;
+	std::vector<xChangeLayer> *hwQueue = chaihandle_info->JobQueue;
+	
+    //# Number of layers to be scheduled
+    uint16_t totalLayers = hwQueue[0].size();
+    
 	//# Number of layers to be scheduled
-	uint16_t totalLayers = hwQueue[0].size();
+	// uint16_t totalLayers = hwQueue[0].size();
 	if(totalLayers <= 0)
 	{
 		std::cerr << "\n[ERROR] Invalid Queue size !" << std::endl;
-		return totalLayers;
+		return;
 	}
 	else
 	{
@@ -88,6 +72,28 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 		std::cerr << "\n[INFOx] Total Layers : " << totalLayers << std::endl << std::endl;
 #endif
 	}
+
+	/* Assigning user's input and output pointers to scheduler jobqueue */
+	if((hwQueue[0][0].kernType == CONV))// && (layer1_or_not == 1))
+	{
+		hwQueue[0][0].in_ptrs[2] = (IO_DATA_TYPE *)input[0];
+	}
+	else
+	{
+		for(int i = 0; i < input.size(); i++)
+		{
+			hwQueue[0][0].in_ptrs[i] = (IO_DATA_TYPE *)input[i];
+		}
+	}
+
+	//# Last layer index
+	uint16_t lastLayerIdx = totalLayers - 1;
+
+	for(int i = 0; i < output.size(); i++)
+	{
+		hwQueue[0][lastLayerIdx].out_ptrs[i] = output[i];
+	}
+
 
 	//# Layer-wise Sequence IDs
 	std::vector<int> convSeq;
@@ -99,6 +105,9 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 	std::vector<int> permuteSeq;
 	std::vector<int> normSeq;
 	std::vector<int> cropSeq;
+
+	std::vector<int> xcustomSeq;
+	std::vector<int> xpackSeq;
 
 	//# Initialize layer-wise sequence
 	for(uint16_t idx = 0; idx < totalLayers; ++idx)
@@ -115,6 +124,8 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 		case NMS: 		nmsSeq.push_back(idx); 		break;
 		case PERMUTE: 	permuteSeq.push_back(idx); 	break;
 		case CROP: 		cropSeq.push_back(idx); 	break;
+		case XCUSTOM:	xcustomSeq.push_back(idx);	break;
+		case XPACK: 	xpackSeq.push_back(idx);	break;
 		}
 #if ENABLE_ERROR_CHECKS
 		hwQueue[0][idx].DisplayParams(idx);
@@ -132,6 +143,9 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 	uint16_t tNmsLayers		= nmsSeq.size();
 	uint16_t tCropLayers	= cropSeq.size();
 
+	uint16_t txCustomLayers	= xcustomSeq.size();
+	uint16_t txPackLayers	= xpackSeq.size();
+
 #if ENABLE_ERROR_CHECKS
 	std::cout << "[INFOx] Total Conv Layers :    " << tConvLayers << std::endl;
 	std::cout << "[INFOx] Total Pool Layers :    " << tPoolLayers << std::endl;
@@ -142,6 +156,8 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 	std::cout << "[INFOx] Total NMS Layers :     " << tNmsLayers << std::endl;
 	std::cout << "[INFOx] Total Deconv Layers :  " << tDeconvLayers << std::endl;
 	std::cout << "[INFOx] Total Crop Layers :    " << tCropLayers << std::endl;
+	std::cout << "[INFOx] Total xCustom Layers : " << txCustomLayers << std::endl;
+	std::cout << "[INFOx] Total xPack Layers :   " << txPackLayers << std::endl;
 #endif
 
 	//# Counter for all the layers
@@ -153,7 +169,9 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 			normCnt[NUM_IMG] = {0},
 			nmsCnt[NUM_IMG] = {0},
 			permuteCnt[NUM_IMG] = {0},
-			cropCnt[NUM_IMG] = {0};
+			cropCnt[NUM_IMG] = {0},
+			xcustomCnt[NUM_IMG] = {0},
+			xpackCnt[NUM_IMG] = {0};
 
 	//# In-use flags
 	bool convInUse 		= false;
@@ -165,12 +183,16 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 	bool permuteInUse 	= false;
 	bool normInUse 		= false;
 	bool cropInUse 		= false;
+
+	bool xcustomInUse 	= false;
+	bool xpackInUse 	= false;
+
 	bool ImreadInUse	= false;
 
 	//# Image IDs for different layers
 	int convImgId, poolImgId, deconvImgId, fcImgId,
 	softmaxImgId, normImgId, permuteImgId, nmsImgId,
-	cropImgId;
+	cropImgId,xcustomImgId,xpackImgId;
 
 	//# Done flags for all the layers
 	std::vector<bool> layerDone[NUM_IMG];
@@ -185,95 +207,42 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 		}
 	}
 
-#if MANUAL_LAYER_ENABLE
-	totalLayers = total_layers;
-#endif
-	uint16_t lastLayerIdx = totalLayers - 1; 	//# Last layer index
 	uint16_t ImageDoneCount = 0;				//# Number of images completed
 	uint16_t ImageDispatchCount = NUM_IMG;		//# Number of images dispatched
 	int ImgId;									//# Image ID for parallel image execution
 
 	//# Software thread & done flags
 	pthread_t softmaxThread, normThread, nmsThread, permuteThread, imageReadThread,
-	cropThread;
+	cropThread,xcustomThread,xpackThread;
 
 	uint8_t normThreadDone 		= 0;
 	uint8_t nmsThreadDone  		= 0;
 	uint8_t softmaxThreadDone	= 0;
 	uint8_t permuteThreadDone	= 0;
 	uint8_t cropThreadDone 		= 0;
-	uint8_t imageReadDone 		= 0;
 
-#if LIST_INPUT
-	//# Read Images
-	FILE * ImageListFp	= fopen(ImageListPath, "r");
-	if(ImageListFp == NULL)
-	{
-		std::cout << "\n[ERROR] Can not find Image List File : " << ImageListPath;
-		std::cout << std::endl << std::endl;
-		return -1;
-	}
-
-	//# Create Image Read Thread argument structure
-	ImgReadThreadArgs imreadArg;
-	imreadArg.ImageReadDone = &imageReadDone;
-
-	//# Read n-images prior to scheduling
-	//# Initialize
-	imreadArg.fp = ImageListFp;
-	inputImageRead(&ImageListFp, &hwQueue[0][0]);
-#if (NUM_IMG==2)
-	inputImageRead(&ImageListFp, &hwQueue[1][0]);
-#endif
-
-#else //#LIST_INPUT
-	if(inp_bytes == 2)
-	{
-		//	loadData(ImageListPath, &hwQueue[0][0]);
-		loadDatafromBuffptr((short *)inptr1, &hwQueue[0][0]);
-#if (NUM_IMG==2)
-		//	loadData(ImageListPath, &hwQueue[1][0]);
-		loadDatafromBuffptr((short *)inptr2, &hwQueue[1][0]);
-#endif
-	}
-	else
-	{
-		loadImagefromBuffptr((unsigned char *)inptr1, &hwQueue[0][0]);
-		//	inputImageRead(ImageListPath, &hwQueue[0][0]);
-#if (NUM_IMG==2)
-		//	inputImageRead(ImageListPath, &hwQueue[1][0]);
-		loadImagefromBuffptr((unsigned char *)inptr2, &hwQueue[1][0]);
-#endif
-	}
-#endif  //#if LIST_INPUT
-
-
-	//# Initiate Image Read flags 
-	bool CanReadImage[NUM_IMG];
-	for(uint8_t img = 0; img < NUM_IMG; ++img)
-		CanReadImage[img] = true;
+	uint8_t xcustomThreadDone	= 0;
+	uint8_t	xpackThreadDone		= 0;
 
 	//# Check flags for all individual layers done
 	bool allPoolDone, allConvDone, allFCDone, allSoftMaxDone,
 	allPermuteDone, allDeconvDone, allNmsDone, allNormDone,
-	allCropDone;
+	allCropDone,allxCustomDone,allxPackDone;
 
 	int totalImages = NUM_IMG;//total_layers;
 	//int totalImages = 20;
 
 	//# Create Crop thread argument structure
 	CropThreadArgs cropArgs;
+	xCustomThreadArgs xcustomArgs;
+	//Custom Xcustom_obj;
+	//xcustomArgs.Xcustom_obj = Xcustom_obj;
+	xPackThreadArgs xpackArgs;
 	//# Initialize
 	cropArgs.cropThreadDone = &cropThreadDone;
 
-	int reH, reW, reD;
-	if(!fcSeq.empty())
-	{
-		int prevLayer = hwQueue[0][fcSeq[0]].previous[0].seqidx;
-		reH = *((int*)(hwQueue[0][prevLayer].params) + 2);
-		reW = *((int*)(hwQueue[0][prevLayer].params) + 3);
-		reD = *((int*)(hwQueue[0][prevLayer].params) + 4) << 1;
-	}
+	xcustomArgs.xcustomThreadDone = &xcustomThreadDone;
+	xpackArgs.xpackThreadDone = &xpackThreadDone;
 
 #if ENABLE_SCHEDULER
 	//# Scheduler Entry Point ################################################
@@ -283,27 +252,7 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 		std::cout << "[DEBUG] while(1)" << std::endl;
 #endif
 
-#if ENABLE_IMAGE_READ_THREAD
-		//#TODO : Write conditional code to enable thread for Image read: Stop Reading based on number of images dispatched
-		if((ImreadInUse == false) && (ImageDispatchCount < totalImages))
-		{
-#if ENABLE_CONSOLE_TEXT
-			std::cout << "[DEBUG] ImreadInUse == false " << std::endl;
-#endif
-			for(ImgId = 0; ImgId < NUM_IMG; ++ImgId)
-			{
-				if(CanReadImage[ImgId] && layerDone[ImgId][0])
-				{
-					imreadArg.firstLayer = &hwQueue[ImgId][0];
-					pthread_create(&imageReadThread, NULL, imageReadRoutine, &imreadArg);
-					ImreadInUse = true;
-					CanReadImage[ImgId] = false;
-					++ImageDispatchCount;
-					break;
-				}
-			}
-		}
-#endif//ENABLE_IMAGE_READ_THREAD
+
 
 #if NEEDED_CONV
 		if((convInUse == false) && tConvLayers)
@@ -322,17 +271,41 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 				{
 #if ENABLE_CONSOLE_TEXT
 					std::cout << "[DEBUG] Weights Ptrs : " << hwQueue[ImgId][whichConv].wts_ptrs[0] << " , " << hwQueue[ImgId][whichConv].wts_ptrs[1] << std::endl; 
-#endif								
-					//# Call Conv wrapper
+#endif
+
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichConv].startclk = sds_clock_counter();
+#endif
+
 					ConvolutionForward(
 							(CHAR_TYPE*)hwQueue[ImgId][whichConv].wts_ptrs[0], (CHAR_TYPE*)hwQueue[ImgId][whichConv].wts_ptrs[1],
-							(SHORT_TYPE*)hwQueue[ImgId][whichConv].out_ptrs[0], (SHORT_TYPE*)hwQueue[ImgId][whichConv].out_ptrs[1],
-							(SHORT_TYPE*)hwQueue[ImgId][whichConv].in_ptrs[0], (SHORT_TYPE*)hwQueue[ImgId][whichConv].in_ptrs[1],
+#if (KER_PROC==16 || (PORT_BITWIDTH_64BIT==1 && KER_PROC==8))
+							(CHAR_TYPE*)hwQueue[ImgId][whichConv].wts_ptrs[2], (CHAR_TYPE*)hwQueue[ImgId][whichConv].wts_ptrs[3],
+#endif
+							(CHAR_TYPE*)hwQueue[ImgId][whichConv].out_ptrs[0],
+#if !SINGLE_IO_PORT
+							(CHAR_TYPE*)hwQueue[ImgId][whichConv].out_ptrs[1],
+#endif
+							(CHAR_TYPE*)hwQueue[ImgId][whichConv].in_ptrs[0],
+#if !SINGLE_IO_PORT
+							(CHAR_TYPE*)hwQueue[ImgId][whichConv].in_ptrs[1],
+#endif
 							(CHAR_TYPE*)hwQueue[ImgId][whichConv].in_ptrs[2],
 							(SHORT_TYPE*)hwQueue[ImgId][whichConv].bias_ptr,
+#if !DISABLE_BN
 							//# New args added
-							(CHAR_TYPE*)hwQueue[ImgId][whichConv].in_ptrs[3], (CHAR_TYPE*)hwQueue[ImgId][whichConv].in_ptrs[4],		
-							(CHAR_TYPE*)hwQueue[ImgId][whichConv].out_ptrs[0], (CHAR_TYPE*)hwQueue[ImgId][whichConv].out_ptrs[1],
+							(CHAR_TYPE*)hwQueue[ImgId][whichConv].in_ptrs[3], (CHAR_TYPE*)hwQueue[ImgId][whichConv].in_ptrs[4],
+#endif
+
+#if !SINGLE_IO_PORT
+							(CHAR_TYPE*)hwQueue[ImgId][whichConv].out_ptrs[2],
+#else
+							(CHAR_TYPE*)hwQueue[ImgId][whichConv].out_ptrs[1],
+#endif
+
+#if !SINGLE_IO_PORT
+							(CHAR_TYPE*)hwQueue[ImgId][whichConv].out_ptrs[3],
+#endif
 							(INT_TYPE *)hwQueue[ImgId][whichConv].params
 					);
 
@@ -359,10 +332,15 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 				uint16_t whichPool = poolSeq[poolCnt[ImgId]];
 				if(!allPoolDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichPool].previous)))
 				{
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichPool].startclk = sds_clock_counter();
+#endif
+					
 					//# Call Pool wrapper
 					PoolForward(
 							(SHORT_TYPE*)hwQueue[ImgId][whichPool].in_ptrs[0], (SHORT_TYPE*)hwQueue[ImgId][whichPool].out_ptrs[0],
 							(SHORT_TYPE*)hwQueue[ImgId][whichPool].in_ptrs[1], (SHORT_TYPE*)hwQueue[ImgId][whichPool].out_ptrs[1],
+							(CHAR_TYPE*)hwQueue[ImgId][whichPool].wts_ptrs[0],
 							(INT_TYPE*)hwQueue[ImgId][whichPool].params
 					);
 
@@ -391,8 +369,13 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 				uint16_t whichFc = fcSeq[fcCount];
 				if(!allFCDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichFc].previous)))
 				{
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichFc].startclk = sds_clock_counter();
+#endif
+
+#if 0
 					//# Call FC wrapper
-					FcForwardWrapper(
+					FcForward(
 							(CHAR_TYPE*)hwQueue[ImgId][whichFc].wts_ptrs[0],
 							(CHAR_TYPE*)hwQueue[ImgId][whichFc].wts_ptrs[1],
 							(SHORT_TYPE *)hwQueue[ImgId][whichFc].in_ptrs[0],
@@ -400,8 +383,21 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 							(SHORT_TYPE *)hwQueue[ImgId][whichFc].in_ptrs[2],
 							(SHORT_TYPE *)hwQueue[ImgId][whichFc].bias_ptr,
 							(SHORT_TYPE *)hwQueue[ImgId][whichFc].out_ptrs[0],
-							(INT_TYPE*)hwQueue[ImgId][whichFc].params,
-							fcCnt[ImgId], reD, reH, reW);
+							(INT_TYPE*)hwQueue[ImgId][whichFc].params);
+#endif
+
+
+					//# Call FC wrapper
+					SwFcForward(
+							(IO_DATA_TYPE*)hwQueue[0][whichFc].in_ptrs[0],
+							(IO_DATA_TYPE*)hwQueue[0][whichFc].in_ptrs[1],
+							(SW_FC_DATA_TYPE *)hwQueue[0][whichFc].in_ptrs[2],
+							(SW_FC_DATA_TYPE *)hwQueue[0][whichFc].wts_ptrs[0],
+							(SW_FC_DATA_TYPE *)hwQueue[0][whichFc].bias_ptr,
+							(SW_FC_DATA_TYPE *)hwQueue[0][whichFc].out_ptrs[0],
+							(INT_TYPE *)hwQueue[0][whichFc].params
+					);
+
 					fcImgId = ImgId; 
 					fcInUse = true; 
 #if ENABLE_CONSOLE_TEXT
@@ -425,11 +421,16 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 				uint16_t whichDeconv = deconvSeq[deconvCnt[ImgId]];
 				if(!allDeconvDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichDeconv].previous)))
 				{
-					DeconvForwardWrapper(
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichDeconv].startclk = sds_clock_counter();
+#endif
+					
+					DeconvForward(
 							(SHORT_TYPE*)hwQueue[ImgId][whichDeconv].in_ptrs[0], (SHORT_TYPE*)hwQueue[ImgId][whichDeconv].in_ptrs[1],
 							(SHORT_TYPE*)hwQueue[ImgId][whichDeconv].in_ptrs[2], (SHORT_TYPE*)hwQueue[ImgId][whichDeconv].wts_ptrs[0],
 							(SHORT_TYPE*)hwQueue[ImgId][whichDeconv].bias_ptr, (INT_TYPE*)hwQueue[ImgId][whichDeconv].out_ptrs[0],
 							(INT_TYPE*)hwQueue[ImgId][whichDeconv].params);
+
 					deconvImgId = ImgId; 
 					deconvInUse = true; break;
 				}
@@ -452,8 +453,11 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 #if ENABLE_CONSOLE_TEXT
 					std::cout << "[DEBUG] normForward" << std::endl;
 #endif
-					//# TODO: 
-					//pthread_create(&imageReadThread, NULL, imageReadRoutine, &imreadArg);
+
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichNorm].startclk = sds_clock_counter();
+#endif
+
 #if PTHREAD
 					pthread_create(&normThread, NULL, normRoutine, (void *)&hwQueue[ImgId][whichNorm]);
 #else
@@ -477,8 +481,10 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 				uint16_t whichPermute = permuteSeq[permuteCnt[ImgId]];
 				if(!allPermuteDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichPermute].previous)))
 				{
-					//# TODO: 
-					//pthread_create(&permuteThread, NULL, permuteRoutine, &permuteThreadDone);
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichPermute].startclk = sds_clock_counter();
+#endif
+					
 #if PTHREAD
 					pthread_create(&permuteThread, NULL, permuteRoutine, (void *)&hwQueue[ImgId][whichPermute]);
 #else
@@ -507,8 +513,10 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 				uint16_t whichSoftmax = softmaxSeq[softmaxCnt[ImgId]];
 				if(!allSoftMaxDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichSoftmax].previous)))
 				{
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichSoftmax].startclk = sds_clock_counter();
+#endif					
 					//# Call SoftMax wrapper
-					//pthread_create(&softmaxThread, NULL, softmaxRoutine, &softmaxThreadDone);
 #if PTHREAD
 					pthread_create(&softmaxThread, NULL, softmaxRoutine, (void *)&hwQueue[ImgId][whichSoftmax]);
 #else
@@ -535,8 +543,10 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 				uint16_t whichNms = nmsSeq[nmsCnt[ImgId]];
 				if(!allNmsDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichNms].previous)))
 				{
-					//# TODO:
-					//pthread_create(&nmsThread, NULL, nmsRoutine, &nmsThreadDone);
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichNms].startclk = sds_clock_counter();
+#endif	
+				
 #if PTHREAD
 					pthread_create(&nmsThread, NULL, nmsRoutine, (void *)&hwQueue[ImgId][whichNms]);
 #else
@@ -564,6 +574,9 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 				//# Check dependencies are satisfied or not
 				if(!allCropDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichCrop].previous)))
 				{
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichCrop].startclk = sds_clock_counter();
+#endif					
 					//# Call Crop layer
 					//std::cout << "\n\n[DEBUG] Calling Thread : Crop" << std::endl;
 					cropArgs.Layer = &hwQueue[ImgId][whichCrop];
@@ -577,6 +590,70 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 		}
 #endif//NEEDED_CROP
 
+#if NEEDED_XCUSTOM
+		if((xcustomInUse == false) && txCustomLayers)
+		{
+#if ENABLE_CONSOLE_TEXT
+			std::cout << "[DEBUG] xcustomInUse == false " << std::endl;
+#endif
+			for(ImgId = 0; ImgId < NUM_IMG; ++ImgId)
+			{
+				allxCustomDone = (xcustomCnt[ImgId] == txCustomLayers) ? true : false;
+				//# Get the Custom layer ID
+				uint16_t whichxcustom = xcustomSeq[xcustomCnt[ImgId]];
+				//# Check dependencies are satisfied or not
+				if(!allxCustomDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichxcustom].previous)))
+				{
+					//cout<<"exec "<<"ImgId "<<ImgId<<"whichxcustom "<<whichxcustom<<endl;
+					//# Call Custom layer
+					//std::cout << "\n\n[DEBUG] Calling Thread : Custom" << std::endl;
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichxcustom].startclk = sds_clock_counter();
+#endif
+
+					xcustomArgs.Layer = &hwQueue[ImgId][whichxcustom];
+
+					//xcustomRoutine(&xcustomArgs);
+					pthread_create(&xcustomThread, NULL, xcustomRoutine, &xcustomArgs);
+					//std::cout << "\n\n[DEBUG] Calling Thread : Custom : Done" << std::endl;
+					xcustomImgId = ImgId;
+					xcustomInUse = true;
+					break;
+				}
+			}
+		}
+#endif//NEEDED_XCUSTOM
+
+#if NEEDED_XPACK
+		if((xpackInUse == false) && txPackLayers)
+		{
+#if ENABLE_CONSOLE_TEXT
+			std::cout << "[DEBUG] xpackInUse == false " << std::endl;
+#endif
+			for(ImgId = 0; ImgId < NUM_IMG; ++ImgId)
+			{
+				allxPackDone = (xpackCnt[ImgId] == txPackLayers) ? true : false;
+				//# Get the Pack layer ID
+				uint16_t whichxpack = xpackSeq[xpackCnt[ImgId]];
+				//# Check dependencies are satisfied or not
+				if(!allxPackDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichxpack].previous)))
+				{
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichxpack].startclk = sds_clock_counter();
+#endif
+					
+					//# Call Pack layer
+					//std::cout << "\n\n[DEBUG] Calling Thread : Pack" << std::endl;
+					xpackArgs.Layer = &hwQueue[ImgId][whichxpack];
+					pthread_create(&xpackThread, NULL, xpackRoutine, &xpackArgs);
+					//std::cout << "\n\n[DEBUG] Calling Thread : Pack : Done" << std::endl;
+					xpackImgId = ImgId;
+					xpackInUse = true;
+					break;
+				}
+			}
+		}
+#endif//NEEDED_XPACK
 		//#######################################################################################//
 
 #if NEEDED_CONV
@@ -592,7 +669,18 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 			int group_enable = *(((int*)hwQueue[convImgId][whichConv].params) + 30);
 			if(group_enable)
 			{
-				((int*)hwQueue[convImgId][whichConv].params)[11] = 1;
+				//((int*)hwQueue[convImgId][whichConv].params)[11] = 1;
+
+				int *params = (int*)hwQueue[0][whichConv].params;
+
+				/* when group=2 */
+				params[11] = 1;
+				params[78] = params[120];
+				params[79] = params[121];
+				params[80] = params[122];
+				params[81] = params[123];
+				params[82] = params[124];
+				params[102] = params[125];
 
 #if ENABLE_CONSOLE_TEXT
 				std::cout << "[DEBUG] convForward, Group : " << convImgId << std::endl;
@@ -600,20 +688,53 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 
 				ConvolutionForward(
 						(CHAR_TYPE*)hwQueue[convImgId][whichConv].wts_ptrs[0], (CHAR_TYPE*)hwQueue[convImgId][whichConv].wts_ptrs[1],
-						(SHORT_TYPE*)hwQueue[convImgId][whichConv].out_ptrs[0], (SHORT_TYPE*)hwQueue[convImgId][whichConv].out_ptrs[1],
-						(SHORT_TYPE*)hwQueue[convImgId][whichConv].in_ptrs[0], (SHORT_TYPE*)hwQueue[convImgId][whichConv].in_ptrs[1],
+#if (KER_PROC==16 || (PORT_BITWIDTH_64BIT==1 && KER_PROC==8))
+						(CHAR_TYPE*)hwQueue[convImgId][whichConv].wts_ptrs[2], (CHAR_TYPE*)hwQueue[convImgId][whichConv].wts_ptrs[3],
+#endif
+						(CHAR_TYPE*)hwQueue[convImgId][whichConv].out_ptrs[0],
+#if !SINGLE_IO_PORT
+						(CHAR_TYPE*)hwQueue[convImgId][whichConv].out_ptrs[1],
+#endif
+						(CHAR_TYPE*)hwQueue[convImgId][whichConv].in_ptrs[0],
+#if !SINGLE_IO_PORT
+						(CHAR_TYPE*)hwQueue[convImgId][whichConv].in_ptrs[1],
+#endif
 						(CHAR_TYPE*)hwQueue[convImgId][whichConv].in_ptrs[2],
 						(SHORT_TYPE*)hwQueue[convImgId][whichConv].bias_ptr,
+#if !DISABLE_BN
 						//# New args added
 						(CHAR_TYPE*)hwQueue[convImgId][whichConv].in_ptrs[3], (CHAR_TYPE*)hwQueue[convImgId][whichConv].in_ptrs[4],
-						(CHAR_TYPE*)hwQueue[convImgId][whichConv].out_ptrs[0], (CHAR_TYPE*)hwQueue[convImgId][whichConv].out_ptrs[1],
+#endif
+
+#if !SINGLE_IO_PORT
+						(CHAR_TYPE*)hwQueue[convImgId][whichConv].out_ptrs[2],
+#else
+						(CHAR_TYPE*)hwQueue[convImgId][whichConv].out_ptrs[1],
+#endif
+
+#if !SINGLE_IO_PORT
+						(CHAR_TYPE*)hwQueue[convImgId][whichConv].out_ptrs[3],
+#endif
 						(INT_TYPE *)hwQueue[convImgId][whichConv].params
 				);
+
 #ifdef __SDSOC
 				sds_wait(1);
 #endif
-				((int*)hwQueue[convImgId][whichConv].params)[11] = 0;
+
+				params[11] = 0;
+				params[78] = 0;
+				params[79] = 0;
+				params[80] = 0;
+				params[81] = 0;
+				params[82] = 0;
+				params[102] = params[119];
 			}
+			
+#if LAYERWISE_PERFORMANCE
+			hwQueue[convImgId][whichConv].endclk = sds_clock_counter();
+#endif
+			
 #if ENABLE_ERROR_CHECKS
 			if(convImgId == 0)
 			{
@@ -656,6 +777,11 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 							std::cout << "\n[ERROR] Pool Layer : " << poolSeq[poolCnt[poolImgId]] << " Image : " << poolImgId << " Pass !" << std::endl;
 					}
 #endif
+
+#if LAYERWISE_PERFORMANCE
+			hwQueue[poolImgId][poolSeq[poolCnt[poolImgId]]].endclk = sds_clock_counter();
+#endif
+
 					layerDone[poolImgId][poolSeq[poolCnt[poolImgId]]] = true;
 					poolCnt[poolImgId]++;
 					poolInUse = false;
@@ -671,7 +797,7 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 		if(fcInUse == true)
 		{
 #ifdef __SDSOC
-			if(sds_try_wait(3))
+			if(1)//sds_try_wait(3))
 #else
 				if(1)
 #endif
@@ -688,6 +814,9 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 							std::cout << "\n[ERROR] FC Layer : " << fcSeq[fcCnt[fcImgId]] << " Image : " << fcImgId << " Pass !" << std::endl;
 					}
 #endif
+#if LAYERWISE_PERFORMANCE
+			hwQueue[fcImgId][fcSeq[fcCnt[fcImgId]]].endclk = sds_clock_counter();
+#endif
 					layerDone[fcImgId][fcSeq[fcCnt[fcImgId]]] = true;
 					fcCnt[fcImgId]++;
 					fcInUse = false;
@@ -703,7 +832,7 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 		if(deconvInUse == true)
 		{
 #ifdef __SDSOC
-			if(sds_try_wait(5))
+			if(sds_try_wait(3))
 #else
 				if(1)
 #endif
@@ -718,6 +847,9 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 							std::cout << "\n[ERROR] Deconv Layer : " << whichDeconv << " Image : " << deconvImgId << " Pass !" << std::endl;
 					}
 #endif	
+#if LAYERWISE_PERFORMANCE
+			hwQueue[deconvImgId][deconvSeq[deconvCnt[deconvImgId]]].endclk = sds_clock_counter();
+#endif
 					layerDone[deconvImgId][deconvSeq[deconvCnt[deconvImgId]]] = true;
 					deconvCnt[deconvImgId]++;
 					deconvInUse = false;
@@ -762,6 +894,10 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 						std::cout << "\n[ERROR] Norm Layer : " << whichNorm << " Image : " << normImgId << " Pass !" << std::endl;
 				}
 #endif
+
+#if LAYERWISE_PERFORMANCE
+			hwQueue[normImgId][whichNorm].endclk = sds_clock_counter();
+#endif
 				layerDone[normImgId][normSeq[normCnt[normImgId]]] = true;
 				normCnt[normImgId]++; 
 				normInUse = false;
@@ -783,6 +919,7 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 #else
 				int permuteRet = 0;
 #endif
+
 #if ENABLE_CONSOLE_TEXT
 				if(permuteRet != 0)
 				{ std::cerr << "\n[ERROR] permuteThread Fail ! " << "Image : " << permuteImgId << ", Layer ID : " << permuteSeq[permuteCnt[permuteImgId]] << std::endl; }
@@ -800,6 +937,9 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 					else
 						std::cout << "\n[ERROR] Permute Layer : " << whichPermute << " Image : " << permuteImgId << " Pass !" << std::endl;
 				}
+#endif
+#if LAYERWISE_PERFORMANCE
+			hwQueue[permuteImgId][whichPermute].endclk = sds_clock_counter();
 #endif
 				layerDone[permuteImgId][permuteSeq[permuteCnt[permuteImgId]]] = true;
 				permuteCnt[permuteImgId]++; 
@@ -822,6 +962,7 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 #else
 				int softmaxRet = 0;
 #endif
+
 #if ENABLE_CONSOLE_TEXT
 				if(softmaxRet != 0)
 				{ std::cerr << "\n[ERROR] softmaxThread Fail ! " << "Image : " << softmaxImgId << ", Layer ID : " << softmaxSeq[softmaxCnt[softmaxImgId]] << std::endl; }
@@ -839,6 +980,9 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 					else
 						std::cout << "\n[ERROR] Softmax Layer : " << whichSoftmax << " Image : " << softmaxImgId << " Pass !" << std::endl;
 				}
+#endif
+#if LAYERWISE_PERFORMANCE
+			hwQueue[softmaxImgId][whichSoftmax].endclk = sds_clock_counter();
 #endif
 				layerDone[softmaxImgId][softmaxSeq[softmaxCnt[softmaxImgId]]] = true;
 				softmaxCnt[softmaxImgId]++;
@@ -861,13 +1005,14 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 #else
 				int nmsRet = 0;
 #endif
+
 #if ENABLE_CONSOLE_TEXT
 				if(nmsRet != 0)
 				{ std::cerr << "\n[ERROR] nmsThread Fail ! " << "Image : " << nmsImgId << ", Layer ID : " << nmsSeq[nmsCnt[nmsImgId]] << std::endl; }
 				else
 				{ std::cout << "** nmsForward : Done" << std::endl; }
 #endif
-				hwQueue[normImgId][whichNms].layer_done[0] = 0;
+				hwQueue[nmsImgId][whichNms].layer_done[0] = 0;
 				nmsThreadDone = 0;
 
 #if ENABLE_ERROR_CHECKS
@@ -879,6 +1024,11 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 						std::cout << "\n[ERROR] Nms Layer : " << whichNms << " Image : " << nmsImgId << " Pass !" << std::endl;
 				}
 #endif
+
+#if LAYERWISE_PERFORMANCE
+			hwQueue[nmsImgId][whichNms].endclk = sds_clock_counter();
+#endif
+
 				layerDone[nmsImgId][nmsSeq[nmsCnt[nmsImgId]]] = true;
 				nmsCnt[nmsImgId]++;
 				nmsInUse = false;
@@ -907,34 +1057,75 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 				}
 #endif
 				cropThreadDone = 0;
+#if LAYERWISE_PERFORMANCE
+			hwQueue[cropImgId][cropSeq[cropCnt[cropImgId]]].endclk = sds_clock_counter();
+#endif				
 				layerDone[cropImgId][cropSeq[cropCnt[cropImgId]]] = true;
 				cropCnt[cropImgId]++; 
 				cropInUse = false;
 			}
 		}
 #endif//NEEDED_CROP
-
-#if ENABLE_IMAGE_READ_THREAD
-		if(ImreadInUse == true)
+#if NEEDED_XCUSTOM
+		if(xcustomInUse == true)
 		{
-			if(imageReadDone)
+			//# Check for thread completion
+			if(xcustomThreadDone)
 			{
-				//#TODO: 
-				int imreadRet = pthread_join(imageReadThread, NULL);
-#if ENABLE_CONSOLE_TEXT
-				if(imreadRet != 0){ 
-					std::cerr << "\n[ERROR] imageReadThread Fail !" << std::endl;
-				}
-				else { 
-					std::cout << "[DEBUG] imreadForward : Done : Image : "<< ImageDispatchCount << std::endl; 
+				//# Join thread
+				int xcustomRet = pthread_join(xcustomThread, NULL);
+				if(xcustomRet != 0)
+				{ std::cerr << "\n[ERROR] xcustomThread Fail ! " << "Image : " << xcustomImgId << ", Layer ID : " << xcustomSeq[xcustomCnt[xcustomImgId]] << std::endl; }
+#if ENABLE_ERROR_CHECKS
+				if(cropImgId == 0){
+					uint16_t whichxcustom = xcustomSeq[xcustomCnt[xcustomImgId]];
+					int cropErr = errorCheck(hwQueue[xcustomImgId][whichxcustom]);
+					if(cropErr)
+						std::cout << "\n[ERROR] xcustom Layer : " << whichxcustom << " Image : " << xcustomImgId << " Fail !" << std::endl;
+					else
+						std::cout << "\n[ERROR] xcustom Layer : " << whichxcustom << " Image : " << xcustomImgId << " Pass !" << std::endl;
 				}
 #endif
-				imageReadDone = 0;
-				ImreadInUse = false;
+				xcustomThreadDone = 0;
+#if LAYERWISE_PERFORMANCE
+			hwQueue[xcustomImgId][xcustomSeq[xcustomCnt[xcustomImgId]]].endclk = sds_clock_counter();
+#endif				
+				layerDone[xcustomImgId][xcustomSeq[xcustomCnt[xcustomImgId]]] = true;
+				xcustomCnt[xcustomImgId]++;
+				xcustomInUse = false;
 			}
 		}
-#endif//ENABLE_IMAGE_READ_THREAD
-
+#endif//NEEDED_XCUSTOM
+#if NEEDED_XPACK
+		if(xpackInUse == true)
+		{
+			//# Check for thread completion
+			if(xpackThreadDone)
+			{
+				//# Join thread
+				int xpackRet = pthread_join(xpackThread, NULL);
+				if(xpackRet != 0)
+				{ std::cerr << "\n[ERROR] xpackThread Fail ! " << "Image : " << xpackImgId << ", Layer ID : " << xpackSeq[xpackCnt[xpackImgId]] << std::endl; }
+#if ENABLE_ERROR_CHECKS
+				if(cropImgId == 0){
+					uint16_t whichxpack = xpackSeq[xpackCnt[xpackImgId]];
+					int cropErr = errorCheck(hwQueue[xpackImgId][whichxpack]);
+					if(cropErr)
+						std::cout << "\n[ERROR] Pack/Unpack Layer : " << whichxpack << " Image : " << xpackImgId << " Fail !" << std::endl;
+					else
+						std::cout << "\n[ERROR] Pack/Unpack Layer : " << whichxpack << " Image : " << xpackImgId << " Pass !" << std::endl;
+				}
+#endif
+				xpackThreadDone = 0;
+#if LAYERWISE_PERFORMANCE
+			hwQueue[xpackImgId][xpackSeq[xpackCnt[xpackImgId]]].endclk = sds_clock_counter();
+#endif				
+				layerDone[xpackImgId][xpackSeq[xpackCnt[xpackImgId]]] = true;
+				xpackCnt[xpackImgId]++;
+				xpackInUse = false;
+			}
+		}
+#endif//NEEDED_XPACK
 #if RESET_DONE_FLAGS
 		//# Check Last Layer : Done ?
 		if(layerDone[0][lastLayerIdx] == true)
@@ -950,7 +1141,7 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 			}
 			poolCnt[0] = 0; fcCnt[0] = 0; softmaxCnt[0] = 0; 
 			deconvCnt[0] = 0; normCnt[0] = 0; nmsCnt[0] = 0; permuteCnt[0] = 0; cropCnt[0] = 0;
-			CanReadImage[0] = true;
+
 			if(ImageDoneCount >= totalImages-1)
 				convCnt[0] = tConvLayers;
 			else
@@ -992,58 +1183,38 @@ unsigned short int xiExec(std::vector<xChangeLayer> hwQueue[NUM_IMG], void *inpt
 
 	}//# while(1) ############################################################
 
-#if 1
-	//# For Classification Networks
-	if(hwQueue[0][lastLayerIdx].kernType == SOFTMAX)
-	{
-		//# Output Buffer Write
-		float *hls_out1	= (float*)hwQueue[0][totalLayers-1].out_ptrs[0];
-		int    n_elems  = ((int*)hwQueue[0][totalLayers-1].params)[0];
-
-		memcpy(((float*)outptr1), hls_out1, n_elems*sizeof(float));
-		
-#if NUM_IMG==2
-		float *hls_out2	= (float*)hwQueue[1][totalLayers-1].out_ptrs[0];
-		memcpy(((float*)outptr2), hls_out2, n_elems*sizeof(float));
-#endif
-	}
-	//# For Detection Networks
-	else if (hwQueue[0][lastLayerIdx].kernType == NMS)
-	{
-		//# Output Buffer Write
-		float *hls_out1	= (float*)hwQueue[0][totalLayers-1].xtra_ptrs[2];
-		int *nms_cnt1 = (int*)hwQueue[0][totalLayers-1].out_ptrs[1];
-		int BoxCount1 = nms_cnt1[0];
-		memcpy((int*)outptr1, &BoxCount1, sizeof(int));
-		memcpy(((float*)outptr1)+1, hls_out1, BoxCount1*7*sizeof(float));
-
-#if NUM_IMG==2		
-		float *hls_out2	= (float*)hwQueue[1][totalLayers-1].xtra_ptrs[2];
-		int *nms_cnt2 = (int*)hwQueue[1][totalLayers-1].out_ptrs[1];
-		int BoxCount2 = nms_cnt2[0];
-		memcpy((int*)outptr2, &BoxCount2, sizeof(int));	
-		memcpy(((float*)outptr2)+1, hls_out2, BoxCount2*7*sizeof(float));
-#endif
-	}
-	//# For Segmentation Networks
-	else if (hwQueue[0][lastLayerIdx].kernType == CROP)
-	{
-		int *hls_out1	= (int*)hwQueue[0][totalLayers-1].out_ptrs[0];
-		int *params		= (int*)hwQueue[0][totalLayers-1].params;
-		
-		int outH = params[4];
-		int outW = params[5];
-
-		memcpy(((int*)outptr1), hls_out1, outH*outW*sizeof(int));
-		
-#if NUM_IMG==2
-		int *hls_out2	= (int*)hwQueue[1][totalLayers-1].out_ptrs[0];
-		memcpy(((int*)outptr2), hls_out2, outH*outW*sizeof(int));
-#endif
-	}
-#endif
 
 #endif//ENABLE_SCHEDULER
 
-	return 0;
+#if OUTPUT_WRITE
+	//# Output data write
+	int status = outFileWrite(hwQueue[0][totalLayers-1], ImageListPath);
+
+	if(status)
+		std::cout << "\n[ERROR] Output file write failed " << std::endl;
+	/*else
+		std::cout << "[INFOx] File write End " << std::endl;
+	 */
+	//std::cout << std::endl;
+#endif
+
+	//# TODO: Can be removed based on need
+#if 0//ENABLE_ERROR_CHECKS1
+	for(int img = 0; img < NUM_IMG; ++img)
+	{
+		uint16_t whichLayer = totalLayers-1;
+		int nmsErr = errorCheck(hwQueue[img][whichLayer]);
+		if(nmsErr)
+			std::cout << "\n[ERROR] Final Layer : " << whichLayer << " Image : " << img << " Fail !" << std::endl;
+		else
+			std::cout << "\n[ERROR] Final Layer : " << whichLayer << " Image : " << img << " Pass !" << std::endl;
+
+		std::cout << std::endl;
+	}
+
+#endif
+
+	//output[0]	= hwQueue[0][totalLayers-1].out_ptrs[0];
+
+	return;
 }

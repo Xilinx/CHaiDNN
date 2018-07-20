@@ -17,14 +17,36 @@ limitations under the License.
 #ifndef _XI_UTILS_HPP_
 #define _XI_UTILS_HPP_
 
-#define PACK_ELEMS				8	//# TODO : Should come from "hw_settings" file
+#include "../include/hw_settings.h"
+
 #define XI_UTILS_CONSOLE_TEXT	0
+typedef  signed char int8_t;
+typedef  short int int16_t;
+
 
 //# Re-arranges data for HW FC
-void fc_inputdatawrite(short *conv_out, short *conv_out1, int height, int width, int indepth, bool relu,
-		short *kernel_output, char *output_file_path);
+void fc_inputdatawrite(IO_DATA_TYPE *conv_out, IO_DATA_TYPE *conv_out1, int height, int width, int indepth, bool relu,
+		IO_DATA_TYPE *kernel_output, char *output_file_path);
+
+void fc_inputdatawrite_float(IO_DATA_TYPE *conv_out, IO_DATA_TYPE *conv_out1, int height, int width, int indepth, bool relu,
+		SW_FC_DATA_TYPE *kernel_output, float sf_in);
+
+void fc_inputdatawrite_float_dynamicfixed(IO_DATA_TYPE *conv_out, IO_DATA_TYPE *conv_out1, int height, int width, int indepth, bool relu,
+		SW_FC_DATA_TYPE *kernel_output, int in_fbits);
 
 //# Re-arranges data for HW deconv
-void DeconvInReArrange(short *input1, short *input2, short *output, int height, int width, int inp_planes);
+void DeconvInReArrange(IO_DATA_TYPE *input1, IO_DATA_TYPE *input2, short *output, int height, int width, int inp_planes);
+
+//# Convolution out to FC in re-arrange
+int convOut_to_fcInAsWts_rearrange(int8_t *convOut, int8_t *fc_in_asWts, int isize);
+
+//# FC out to FC in re-arrange
+int fcOut_to_fcIn_rearrange(int16_t *fcOut, int8_t *fc_in_asWts, int isize);
+
+//# FC out to SoftMax in
+int fcOut_to_smaxIn(int16_t *fcOut, int8_t *smaxIn, int isize);
+
+//int swfcOut_to_smaxIn(float *fcOut, int8_t *smaxIn, int isize, float sf_in);
+int swfcOut_to_smaxIn(float *fcOut, float *smaxIn, int isize);
 
 #endif//_XI_UTILS_HPP_

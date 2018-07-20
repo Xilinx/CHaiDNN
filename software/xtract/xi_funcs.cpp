@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----------------------------------------------------*/
 
-
 #include "xi_funcs.hpp"
+
 #include <iomanip>
 
 using namespace std;
@@ -40,8 +40,8 @@ string to_string<unsigned long>(unsigned long number);
 template
 string to_string<unsigned int>(unsigned int number);
 
-//template string to_string<int>(int number);
-//template string to_string<float>(float number);
+template string to_string<int>(int number);
+template string to_string<float>(float number);
 //template string to_string<double>(double number);
 
 // Dummy function

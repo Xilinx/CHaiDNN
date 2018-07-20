@@ -23,10 +23,25 @@ limitations under the License.
 
 void ConvolutionForward(
 		CHAR_TYPE *weights1, CHAR_TYPE *weights2,
-		SHORT_TYPE *output1, SHORT_TYPE *output2,
-		SHORT_TYPE *input_other1, SHORT_TYPE *input_other2,
-		CHAR_TYPE *input_1st, SHORT_TYPE *bias, CHAR_TYPE *input_norm2, CHAR_TYPE *input_norm3,
-		CHAR_TYPE *istg_out1, CHAR_TYPE *istg_out2,
+#if (KER_PROC==16 || (PORT_BITWIDTH_64BIT==1 && KER_PROC==8))
+		CHAR_TYPE *weights3, CHAR_TYPE *weights4,
+#endif
+		CHAR_TYPE *output1,
+#if !SINGLE_IO_PORT
+		CHAR_TYPE *output2,
+#endif
+		CHAR_TYPE *input_other1,
+#if !SINGLE_IO_PORT
+		CHAR_TYPE *input_other2,
+#endif
+		CHAR_TYPE *input_1st, SHORT_TYPE *bias,
+#if !DISABLE_BN
+		CHAR_TYPE *input_norm2, CHAR_TYPE *input_norm3,
+#endif
+		CHAR_TYPE *istg_out1,
+#if !SINGLE_IO_PORT
+		CHAR_TYPE *istg_out2,
+#endif
 		int *scalar_conv_args );
 
 
@@ -34,43 +49,66 @@ void ConvolutionForward(
 void PoolForward(
 		            SHORT_TYPE *pool_in, SHORT_TYPE *pool_out,
 		            SHORT_TYPE *pool_in1, SHORT_TYPE *pool_out1,
+					CHAR_TYPE *wts,
 				    int *scalar_pool_args
 				);
 
-
-							
 void FcForward(
-		        CHAR_TYPE *A1,
-		        CHAR_TYPE *A2,
-				SHORT_TYPE *x,
-				SHORT_TYPE *y_in,
-				SHORT_TYPE *y_out,
-				INT_TYPE *scalar_fc_args);
-
-void SwSoftmaxForward(float *softmax_in, float *sumBuffer, float *softmax_out, int *scalar_softmax_args);
+		CHAR_TYPE *A1, CHAR_TYPE *A2,
+		SHORT_TYPE *in1, SHORT_TYPE *in2, SHORT_TYPE *in3,
+		SHORT_TYPE *y_in, SHORT_TYPE *y_out,
+		int *scalar_fc_args
+		);
 
 
+void SwFcForward(IO_DATA_TYPE *inp1, IO_DATA_TYPE *inp2, SW_FC_DATA_TYPE *inp3, SW_FC_DATA_TYPE *fc_wgts, SW_FC_DATA_TYPE *fc_bias, SW_FC_DATA_TYPE *fc_out,
+		         int *scalar_fc_args);
+
+void SwSoftmaxForward(IO_DATA_TYPE *softmax_in, IO_DATA_TYPE1 *softmax_in1, IO_DATA_TYPE1 *sumBuffer, IO_DATA_TYPE1 *softmax_out, int *scalar_softmax_args);
+
+/*
 void DeconvForward(
 					short* deconvIN, short* deconvWT,
 					short* deconvBias, unsigned long long int* deconvIDout,
 					int *scalar_deconv_args
 					);
+*/
+
+void DeconvForward(
+		short* deconvIN1, short* deconvIN2, short* deconvIN3,
+		short* deconvWT,
+		short* deconvBias, int* deconvIDout,
+		int *scalar_deconv_args
+);
 
 
+void NormalizationForward(IO_DATA_TYPE *input,
+#if !SINGLE_IO_PORT
+		IO_DATA_TYPE *input1,
+#endif
+		IO_DATA_TYPE *gamma, IO_DATA_TYPE *output,
+#if !SINGLE_IO_PORT
+		IO_DATA_TYPE *output1,
+#endif
+		int *sumBuffer, float sf_in, float sf_out, int *scalar_norm_args);
 
-void NormalizationForward(short *input, short *input1, short *gamma, short *output, short *output1, int *sumBuffer, int *scalar_norm_args);
+void PermuteForward(IO_DATA_TYPE *input1,
+#if !SINGLE_IO_PORT
+		IO_DATA_TYPE *input2,
+#endif
+		IO_DATA_TYPE *sds_input1,
+#if !SINGLE_IO_PORT
+		IO_DATA_TYPE *sds_input2,
+#endif
+		IO_DATA_TYPE *output, int *scalar_permute_args);
 
+void NMSForward(float *nms_score, int *nms_id, int *nms_label, float *nms_box, int* nms_finalboxcount,
+		        float* conf, float* pbox, IO_DATA_TYPE* loc, float* var,
+				int *scalar_nms_args );
 
+void CropForward(int *input, int *output, int *scalars);
 
+void XpackForward(void *input1, void *input2, void *output1, void *output2, string quant, int *params, float *float_params);
 
-void PermuteForward(short *input1, short *input2, short *sds_input1, short *sds_input2, float *output, float *output_unpack, int *scalar_permute_args);
-
-
-
-void NMSForward(int* nms_finalboxcount, int *nms_id, int *nms_label, float *nms_box, float *nms_score,
-		        float* conf, float* pbox, float* loc, float* var, float score_threshold, float nms_overlap, int *scalar_nms_args );
-
-				
-void cropLayer(int* inarray, int* outarray, int in_height, int in_width, int out_height, int out_width, int offset, int channels);
 
 #endif//_XI_KERNELS_H_
