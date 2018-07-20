@@ -4,13 +4,15 @@
 </th>
 </tr>
   <tr>
-    <th rowspan="2" width="17%">Analysis</th>
+    <th rowspan="6" width="17%">Analysis and Eval</th>
    </tr>
 <tr>
-	<td width="40%" align="center" >Performance Eval</td>
-	<td width="40%" align="center" colspan="2"><a href="../docs/SUPPORTED_LAYERS.md">Supported Layers</a></td>
-	<td width="50%" align="center" ><a href="../docs/PERFORMANCE_SNAPSHOT.md">Performance/Resource Utilization</a></td>
-
+	<td align="center" colspan="2"><a href="../docs/SUPPORTED_LAYERS.md">Supported Layers</a></td>
+	<td align="center" colspan="2"><a href="../docs/PERFORMANCE_SNAPSHOT.md">Performance/Resource Utilization</a></td>
+</tr>
+  <tr></tr>
+<tr>
+	<td align="center" colspan="4">Performance Eval</td>	
 </tr>
 <tr></tr>
     <tr></tr>
@@ -36,27 +38,28 @@
 </tr>
   <tr></tr>
 <tr>
-	<td  align="center" colspan="2"><a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_4/ug1027-sdsoc-user-guide.pdf">SDSoC Environment User Guide</a></td>
-	<td  align="center" colspan="2"><a href="../docs/HW_SW_PARTITIONING.md">Hardware-Software Partioning for Performance</a></td>
+	<td  align="center" colspan="2"><a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_4/ug1027-sdsoc-user-guide.pdf">SDSoC Environment User Guide</a></td>	
+	<td align="center" colspan="2"><a href="../docs/HW_SW_PARTITIONING.md">Hardware-Software Partioning for Performance</a></td>
 
 </tr>  
 </table>
 
 
 ## Quick Performance Evaluation
-If you need a quick feel for the latency of your network but have no time to quantize or generate a caffe model for your network use quick eval feature 
+CHai-v2 provides support for a variety of networks for classification, object detection and segmentation. Please refer to [Model Zoo](./MODELZOO.md) for list of networks and [Supported layers](./SUPPORTED_LAYERS.md) for list of layers that are required for these networks. While we believe that we have addressed most of the frequently-used heavy-lifting layers required in networks, we also understand that there might be some networks which might require support for some additional layers. We encourage users to add support for these layers and you could use the [software plugin](./SOFTWARE_LAYER_PLUGIN.md) methodology or the methodology described [here](./HW_SW_PARTITIONING.md) for efficient hardware software partitioning. But from a system design perspective, we understand that it might be useful to understand the performance of CHai on the layers that are already supported for a given network. We describe an API in this section which can be used to achieve this. For example, if a network is built with 50 layers and the support is missing for only two layers on CHai, then you could get a ball-park estimate on the latency of the 48 layers which are supported. Please note that these latency numbers are only an estimate and they could be optimistic or pessimistic based on the structure of the network. The reason for this is that the runtime of the accelerator fuses some layers for latency optimization.
+
 <details>
 <summary><big><strong>API</strong></big></summary>
 
 </details>
 
 <details>
-<summary><big><strong>Input description</strong></big></summary>
+<summary><big><strong>Example</strong></big></summary>
 
 </details>
 
 <details>
-<summary><big><strong>Output description</strong></big></summary>
+<summary><big><strong>Benchmarks</strong></big></summary>
 
 </details>
 
