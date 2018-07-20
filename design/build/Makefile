@@ -37,9 +37,9 @@
 
 # Main Variables
 LIBRARY     := libxlnxdnn.so
-PLATFORM    := /proj/sdxapps/refdes/custom_platforms/dp_300_600_pf/zcu102
-CLOCK_ID    := 1 # Core clock ID
-DM_CLOCK_ID := 1 # Data Motion Clock ID
+PLATFORM    := zcu102
+CLOCK_ID    := 2 # Core clock ID
+DM_CLOCK_ID := 2 # Data Motion Clock ID
 # Below path should be relative
 PROJ_PATH   := ..
 # H/W Kernel enables
