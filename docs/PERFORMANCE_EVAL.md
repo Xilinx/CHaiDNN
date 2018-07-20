@@ -51,6 +51,16 @@ CHai-v2 provides support for a variety of networks for classification, object de
 <details>
 <summary><big><strong>API</strong></big></summary>
 
+`xiEval()` evaluates the performance of given layers and logs them in a CSV file.
+
+**Syntax**
+
+```c++
+int xiEval (std::string &layerspec_csv);
+```
+**Parameters**
+- `layerspec_csv` : Input CSV file containing list of layers with respective input arguments. See [Eval CSV format](./images/Eval.xlsx) for more details.
+
 </details>
 
 <details>
