@@ -7,12 +7,12 @@
     <th rowspan="6" width="17%">Analysis and Eval</th>
    </tr>
 <tr>
-	<td align="center" colspan="2"><a href="../docs/SUPPORTED_LAYERS.md">Supported Layers</a></td>
-	<td align="center" colspan="2"><a href="../docs/PERFORMANCE_SNAPSHOT.md">Performance/Resource Utilization</a></td>
+	<td align="center" colspan="2"><a href="./docs/SUPPORTED_LAYERS.md">Supported Layers</a></td>
+	<td align="center" colspan="2"><a href="./docs/PERFORMANCE_SNAPSHOT.md">Performance/Resource Utilization</a></td>
 </tr>
   <tr></tr>
 <tr>
-	<td align="center" colspan="4"><a href="../docs/PERFORMANCE_EVAL.md">Performance Eval</a></td>	
+	<td align="center" colspan="4"><a href="./docs/PERFORMANCE_EVAL.md">Performance Eval</a></td>	
 </tr>
 <tr></tr>
     <tr></tr>
@@ -24,22 +24,22 @@
    </tr>
 
 <tr>
-	<td  align="center"><a href="../docs/API.md">API Reference</a></td>
-	<td  align="center"><a href="../docs/QUANTIZATION.md">Quantization User Guide for CHaiDNN</a></td>
-	<td  align="center"><a href="../docs/MODELZOO.md">Model Zoo</a></td>
-	<td  align="center"><a href="../docs/RUN_NEW_NETWORK.md">Running Interface on new Network</a></td>
+	<td  align="center"><a href="./docs/API.md">API Reference</a></td>
+	<td  align="center"><a href="./docs/QUANTIZATION.md">Quantization User Guide for CHaiDNN</a></td>
+	<td  align="center"><a href="./docs/MODELZOO.md">Model Zoo</a></td>
+	<td  align="center"><a href="./docs/RUN_NEW_NETWORK.md">Running Interface on new Network</a></td>
 </tr>
   <tr></tr>
 <tr>
-	<td  align="center"><a href="../docs/BUILD_USING_SDX_GUI.md">Creating SDx GUI Project</a></td>
-	<td  align="center"><a href="../docs/CONFIGURABLE_PARAMS.md">Configurable Parameters</a></td>
-	<td  align="center"><a href="../docs/CUSTOM_PLATFORM_GEN.md">Custom Platform Generation</a></td>
-	<td  align="center"><a href="../docs/SOFTWARE_LAYER_PLUGIN.md">Software Layer Plugin</a></td>
+	<td  align="center"><a href="./docs/BUILD_USING_SDX_GUI.md">Creating SDx GUI Project</a></td>
+	<td  align="center"><a href="./docs/CONFIGURABLE_PARAMS.md">Configurable Parameters</a></td>
+	<td  align="center"><a href="./docs/CUSTOM_PLATFORM_GEN.md">Custom Platform Generation</a></td>
+	<td  align="center"><a href="./docs/SOFTWARE_LAYER_PLUGIN.md">Software Layer Plugin</a></td>
 </tr>
   <tr></tr>
 <tr>
 	<td  align="center" colspan="2"><a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_4/ug1027-sdsoc-user-guide.pdf">SDSoC Environment User Guide</a></td>	
-	<td align="center" colspan="2"><a href="../docs/HW_SW_PARTITIONING.md">Hardware-Software Partioning for Performance</a></td>
+	<td align="center" colspan="2"><a href="./docs/HW_SW_PARTITIONING.md">Hardware-Software Partioning for Performance</a></td>
 
 </tr>  
 </table>
