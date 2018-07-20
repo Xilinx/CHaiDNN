@@ -89,6 +89,9 @@ vgg16:
 # Compile Advanced-ResNet50 example
 resnet50:
 	make -f example.mk resnet50.elf
+
+eval:
+	make -f example.mk eval.elf
 	
 # Clean object and elf files
 clean :

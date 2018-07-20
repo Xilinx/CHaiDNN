@@ -13,7 +13,7 @@ CFLAGS_ARM = -std=c++11 -D__SDSOC=1 -Wno-write-strings -D__APIMODE=1
 CFLAGS_ARM += $(WRAPPER_FLAGS)
 
 
-all: resnet50.elf googlenet.elf alexnetfcn.elf alexnet.elf ssd.elf vgg.elf sw_layer_plugin.elf
+all: resnet50.elf googlenet.elf alexnetfcn.elf alexnet.elf ssd.elf vgg.elf sw_layer_plugin.elf eval.elf
 
 
 googlenet.elf : ../example/googlenet_ex.cpp
@@ -53,6 +53,12 @@ sw_layer_plugin.elf : ../example/sw_layer_plugin.cpp
 	$(ARM_CXX) $(CFLAGS_ARM) -L$(PB_ARM_DIR)/lib -I$(PB_ARM_DIR)/include -L$(OPENCV_DIR)/lib -I$(OPENCV_DIR)/include $(IDIRS) $(LDIRS) $(LLIBS) $(OPENCV_LIBS) $^ -o $@
 	@echo	
 	
+eval.elf : ../example/eval_ex.cpp
+
+	@echo -e "\n## Compiling Custom Layer example\n"
+	$(ARM_CXX) $(CFLAGS_ARM) -L$(PB_ARM_DIR)/lib -I$(PB_ARM_DIR)/include -L$(OPENCV_DIR)/lib -I$(OPENCV_DIR)/include $(IDIRS) $(LDIRS) $(LLIBS) $(OPENCV_LIBS) $^ -o $@
+	@echo
+
 copy :
 	cp *.elf $(ELF_DIR)
 

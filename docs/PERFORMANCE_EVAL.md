@@ -66,13 +66,34 @@ int xiEval (std::string &layerspec_csv);
 <details>
 <summary><big><strong>Example</strong></big></summary>
 
+Below is the argument sequence in CSV, which needs to be followed for all the supported layers.
+
+<div align="center">
+  <img src="./images/eval.JPG"><br><br>
+</div>
+
+The output of the API is logged into another CSV file. Example input and output CSV files will look as depicted below.
+
+Input CSV :
+<div align="center">
+  <img src="./images/eval_in.JPG"><br><br>
+</div>
+Output CSV :
+<div align="center">
+  <img src="./images/eval_out.JPG"><br><br>
+</div>
 </details>
 
 <details>
 <summary><big><strong>Benchmarks</strong></big></summary>
 
-</details>
+Below is a table with benchmarks of networks evaluated by `xiEval()` API.
 
+<div align="center">
+  <img src="./images/benchmarks.JPG"><br><br>
+</div>
+
+</details>
 
 
 
