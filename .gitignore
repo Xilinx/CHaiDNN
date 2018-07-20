@@ -3,13 +3,3 @@
 # Compiled Object files
 *.o
 
-# Compiled Dynamic libraries
-software/scripts/*.so
-/*.so
-
-design
-
-# Compiled executables
-software/scripts/*.elf
-design/*.elf
-/*.elf
