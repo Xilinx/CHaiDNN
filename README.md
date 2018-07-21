@@ -212,7 +212,7 @@ CHaiDNN/
 <a name="Pre-built"></a>
 
 To run inference on example networks, follow these steps:
-1. Download the example network [6-bit GoogleNet with Xilinx Quantization scheme](). More networks are available as part of the [ModelZoo](./MODELZOO.md).
+1. Download the example network [6-bit GoogleNet with Xilinx Quantization scheme](https://www.xilinx.com/member/forms/download/xef.html?filename=GoogleNetWithoutLRN_XQ.zip). More networks are available as part of the [ModelZoo](./docs/MODELZOO.md).
 1. Place the downloaded and unzipped contents at "`SD_Card/models`" directory. Create `SD_Card/models` directory if not present already.
 
 1. Copy the required contents of "`SD_Card`" folder into a SD-Card.
