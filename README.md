@@ -139,7 +139,7 @@ The CHaiDNN library is designed to work with Zynq UltraScale+ MPSoCs. The librar
 
 ## How to Download the Repository
 
-To get a local copy of the CHaiDNN repository, clone this repository to the local system with the following command:
+To get a local copy of the CHaiDNN repository, configure [git-lfs](https://github.com/git-lfs/git-lfs/wiki/Installation) and then, clone this repository to the local system with the following command:
 ``` sh
 git clone https://github.com/Xilinx/CHaiDNN.git CHaiDNN
 ```
