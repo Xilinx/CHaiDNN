@@ -27,7 +27,7 @@
 	<td  align="center"><a href="../docs/API.md">API Reference</a></td>
 	<td  align="center">Quantization User Guide for CHaiDNN</td>
 	<td  align="center"><a href="../docs/MODELZOO.md">Model Zoo</a></td>
-	<td  align="center"><a href="../docs/RUN_NEW_NETWORK.md">Running Interface on new Network</a></td>
+	<td  align="center"><a href="../docs/RUN_NEW_NETWORK.md">Running Inference on new Network</a></td>
 </tr>
   <tr></tr>
 <tr>
@@ -39,7 +39,7 @@
   <tr></tr>
 <tr>
 	<td  align="center" colspan="2"><a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_4/ug1027-sdsoc-user-guide.pdf">SDSoC Environment User Guide</a></td>	
-	<td align="center" colspan="2"><a href="../docs/HW_SW_PARTITIONING.md">Hardware-Software Partioning for Performance</a></td>
+	<td align="center" colspan="2"><a href="../docs/HW_SW_PARTITIONING.md">Hardware-Software Partitioning for Performance</a></td>
 
 </tr>  
 </table>
