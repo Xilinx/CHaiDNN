@@ -291,7 +291,7 @@ Please follow the steps to build the design for zcu102 (ZU9 device based board)
 	 ```sh
 	 source <SDx Installation Dir>/installs/lin64/SDx/2018.2/settings64.csh
 	 ```
-1. To build the design, run Makefile
+1. To build the design, run Makefile. (By default this will build 1024 DSP design @ 200/400 MHz)
 	 ```sh
 	 make ultraclean
 	 make
