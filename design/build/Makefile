@@ -38,8 +38,8 @@
 # Main Variables
 LIBRARY     := libxlnxdnn.so
 PLATFORM    := zcu102
-CLOCK_ID    := 2 # Core clock ID
-DM_CLOCK_ID := 2 # Data Motion Clock ID
+CLOCK_ID    := 3 # Core clock ID
+DM_CLOCK_ID := 3 # Data Motion Clock ID
 # Below path should be relative
 PROJ_PATH   := ..
 # H/W Kernel enables
