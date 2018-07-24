@@ -40,7 +40,7 @@ limitations under the License.
 #define XI_WEIGHTBUFF_DEPTH 1024
 #else
 #define XI_KER_PROC       	16
-#define XI_PIX_PROC       	4
+#define XI_PIX_PROC       	32
 #define XI_ISTAGEBUFF_DEPTH 8192
 #define XI_OSTAGEBUFF_DEPTH 2048
 #define XI_WEIGHTBUFF_DEPTH 2048	
