@@ -279,6 +279,9 @@ CHaiDNN can be built using Makefiles OR using SDx IDE. The below steps describe 
 
 Please follow the steps to build the design for zcu102 (ZU9 device based board)
 
+1. Please generate a custom platform with 1x and 2x clocks using the steps described [here](./docs/CUSTOM_PLATFORM_GEN.md). With Chai-v2, we now have the DSPs operating at twice the frequency of the rest of the core.
+
+
 1. Go to `CHaiDNN/design/build` folder.
 
 
@@ -308,6 +311,13 @@ Please follow the steps to build the design for zcu102 (ZU9 device based board)
 	 make copy
 	 ```
 1. The hardware setup is now ready.
+
+
+  >**:pushpin: NOTE:**  
+  > - The 1024 DSP config was timing closed at 250/500Mhz with an iterative synthesis and P&R strategy. In the first iteration, the design was taken through the SDx flow (all the way till the bitstream Gen) at 200/400Mhz. In the second iteration the post-routed design from the first iteration was re-routed at 250/500Mhz. We believe that this is a general strategy that can be applied for other configs also. We would definitely like to hear from you on this if you are able to crank the frequency further up on other configs with this strategy.
+  > - Please note that when you try building some of the configs that are mentioned in the [performance table](./docs/PERFORMANCE_SNAPSHOT.md), you might see some negative slack reported by the tools but we encourage you to try the bitstreams generated on hardware for functionality. These timing closure issues can be cleaned up with some special synthesis and P&R strategies. (You are welcome to try the timing-closure strategies that have worked for you in the past on other designs.)
+ 
+
 </details>
 
 <details>
