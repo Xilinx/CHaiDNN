@@ -297,9 +297,29 @@ int runLayer(const char *layerType, std::vector<int> &params)
     unsigned long long frequency = sds_clock_frequency();
     start = sds_clock_counter();
     //# Call Conv
-    ConvolutionForward((char*)weights[0], (char*)weights[1], (char*)weights[2], (char*)weights[3], (char*)output[0], (char*)output[1], 
-                        (char*)input[0], (char*)input[1], (char*)input[2], (short*)bias[0], (char*)input[3], (char*)input[4], (char*)output[2], 
-                        (char*)output[3], scalar_conv_args);
+    ConvolutionForward(
+        (char*)weights[0], (char*)weights[1],
+    #if (KER_PROC==16 || (PORT_BITWIDTH_64BIT==1 && KER_PROC==8)) 
+        (char*)weights[2], (char*)weights[3], 
+    #endif
+        (char*)output[0], 
+    #if !SINGLE_IO_PORT
+        (char*)output[1],
+    #endif
+        (char*)input[0], 
+    #if !SINGLE_IO_PORT
+        (char*)input[1],
+    #endif
+        (char*)input[2], (short*)bias[0], 
+    #if !DISABLE_BN
+        (char*)input[3], (char*)input[4], 
+    #endif
+        (char*)output[2],
+    #if !SINGLE_IO_PORT 
+        (char*)output[3], 
+    #endif
+        scalar_conv_args);
+        
     sds_wait(1);
     end = sds_clock_counter();
   	double tot_time = ((double)(end - start) / ((double)frequency)) * 1000.0;
