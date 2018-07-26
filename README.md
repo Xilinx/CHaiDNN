@@ -272,7 +272,7 @@ To run inference on example networks, follow these steps:
 <details>
 <summary><strong>Build from Source</strong></summary>
 
-CHaiDNN can be built using Makefiles OR using SDx IDE. The below steps describe how to build CHaiDNN using Makefiles. For steps to build using SDx IDE, see the instructions in [Build using SDx IDE](./BUILD_USING_SDX_GUI.md).
+CHaiDNN can be built using Makefiles OR using SDx IDE. The below steps describe how to build CHaiDNN using Makefiles. For steps to build using SDx IDE, see the instructions in [Build using SDx IDE](./docs/BUILD_USING_SDX_GUI.md).
 
 <details>
 <summary><strong>Build CHaiDNN Hardware</strong></summary>
