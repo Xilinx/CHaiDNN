@@ -145,7 +145,6 @@ git clone https://github.com/Xilinx/CHaiDNN.git CHaiDNN
 ```
 Where `CHaiDNN` is the name of the directory where the repository will be stored on the local system. This command needs to be executed only once to retrieve the latest version of the CHaiDNN library.
 
->**:pushpin: NOTE:** This repository uses [git-lfs](https://github.com/git-lfs/git-lfs/wiki/Installation). Configuration details can be found [here](https://help.github.com/articles/configuring-git-large-file-storage).
 
 
 <details>
