@@ -78,7 +78,7 @@ Dilated Convolution||||         |
 <details>
 <summary><strong><big>Step 1: Update prototxt with precision Parameters</big> </strong></summary>
 
-CHaiDNN works in fixed point domain for better performance. All the feature maps and trained parameters are converted from single precision to fixed point before the computation starts. The steps to obtain the updated deploy.prototxt with precision parameters are shared in the [Quantization user guide](../doc/QUANTIZATION.md)
+CHaiDNN works in fixed point domain for better performance. All the feature maps and trained parameters are converted from single precision to fixed point before the computation starts. The steps to obtain the updated deploy.prototxt with precision parameters are shared in the [Quantization user guide](../docs/QUANTIZATION.md)
 </details>
 
 <details>
