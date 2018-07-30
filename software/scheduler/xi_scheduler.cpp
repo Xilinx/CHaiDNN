@@ -15,20 +15,6 @@ limitations under the License.
 ----------------------------------------------------*/
 #include "xi_scheduler.hpp"
 
-#ifdef __SDSOC
-long long int clock_start, clock_end;
-//float arm_clock = 1.1*1000000;
-//float arm_clock = 1.19*1000000;
-long long int frequency = sds_clock_frequency();
-float arm_clock = (double)frequency/(double)1000;
-//float arm_clock = 1000/frequency;
-#define TIME_STAMP_INIT  clock_start = sds_clock_counter();
-#define TIME_STAMP  { \
-		clock_end = sds_clock_counter(); \
-		fprintf(stderr, "\n** Elapsed Time  : %lf ms\n", (double)(clock_end-clock_start)/arm_clock); clock_start = sds_clock_counter();  \
-}
-#endif
-
 //# Checks Dependence of a layer
 bool chkDeps(std::vector<bool> &layerDone, std::vector<layerID> &previous)
 {
