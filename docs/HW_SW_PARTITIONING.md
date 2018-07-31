@@ -12,7 +12,7 @@
 </tr>
   <tr></tr>
 <tr>
-	<td align="center" colspan="4"><a href="../docs/PERFORMANCE_EVAL.md">Performance Eval</a></td>	
+	<td align="center" colspan="4"><a href="../docs/PERFORMANCE_EVAL.md">Performance Eval</a></td>
 </tr>
 <tr></tr>
     <tr></tr>
@@ -38,7 +38,7 @@
 </tr>
   <tr></tr>
 <tr>
-	<td  align="center" colspan="2"><a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_4/ug1027-sdsoc-user-guide.pdf">SDSoC Environment User Guide</a></td>	
+	<td  align="center" colspan="2"><a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_4/ug1027-sdsoc-user-guide.pdf">SDSoC Environment User Guide</a></td>
 	<td  align="center" colspan="2">Hardware-Software Partitioning for Performance</td>
 
 </tr>  
@@ -52,6 +52,37 @@ In modern convolutional neural networks, convolution layer, pooling, and ReLU la
 
 One way to improve the inference throughput is to run Hardware and Software layers in parallel, so that latency of one is hidden behind the other. This will require splitting the network into two sub-graphs. The first sub-graph contains all the Hardware-accelerated layers and the second sub-graph contains all the subsequent software layers. You can then use threads to run them in parallel across multiple images in a ping-pong style. So ideally, the effective inference time would be the maximum of inference time of these two sub-graphs.
 
+### **Data organization in IO buffers for Hardware accelerated layers**
+
+The input/output for a hardware accelerated layers is organized as two buffers containing a set of 8 feature-maps(planes) each. More details of the data organization is explained below.
+
+ <div align="center">
+  <img src="./images/data_org_hwlayers.JPG"><br><br>
+</div>
+
+<details>
+<summary><strong>Description of IO buffers used for a HW accelerated Layer</strong></summary>
+	
+	
+The details of IO buffers for the n<sup>th</sup> layer can be obtained using the below code snippet
+
+```c++
+  chaihandle_t *chaihandle_info = (chaihandle*)handle;
+	std::vector<xChangeLayer> *hwQueue = chaihandle_info->JobQueue;
+  void **in_ptrs = hwQueue[0][n].in_ptrs;
+  void **out_ptrs = hwQueue[0][n].out_ptrs;
+```
+The in_ptrs and out_ptrs are described in the below table.
+
+| Buffer   Type |          Convolution          |    Convolution+Batch   Norm   |              Pool             |
+|:-------------:|:-----------------------------:|:-----------------------------:|:-----------------------------:|
+|     Input     |  in_ptrs[0] <br/> in_ptrs[1]  |  in_ptrs[2]   <br/> in_ptrs[3]  |  in_ptrs[0]   <br/> in_ptrs[1]  |
+|     Output    | out_ptrs[0]   <br/> out_ptrs[1] | out_ptrs[2]   <br/> out_ptrs[3] | out_ptrs[0]   <br/> out_ptrs[1] |
+
+</details>
+
+### Example Description
+
 Before starting with an example, keep the following aspects in mind.
 
 1. CHaiDNN does not support multiple inputs/outputs for a network. This holds true for its sub-graphs also. When extracting a sub-graph, make sure that the sub-graph has only one input and only one output.
@@ -61,7 +92,6 @@ Before starting with an example, keep the following aspects in mind.
 3. If there are Hardware-accelerated layers in both the sub-graphs, they will try to access the Hardware simultaneously which might cause undefined behavior or performance penalty.
 
 In the [tutorial on running a network](RUN_NEW_NETWORK.md), steps to run and benchmark a network are presented. (It is highly recommended to go through that tutorial first). How you can use this technique to improve the performance is presented here. GoogleNet is used as an example. The full code can be accessed [here](software/examples/googlenet_ex.cpp). Key code snippets in the example are explained below.
-
 
 <details>
 <summary><strong>Define structure</strong></summary>
