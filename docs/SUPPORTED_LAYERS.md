@@ -49,16 +49,18 @@
 Supported Layers||||
 :--------------:|:---------------:|:---------------:|:---------------:|
 Convolution     | BatchNorm       | Power           | Scale           |
-Deconvolution   | ReLU            | Pooling(Max, Avg)         | InnerProduct    |
+Deconvolution<sup>* </sup>   | ReLU            | Pooling(Max, Avg)         | InnerProduct    |
 Dropout         | Softmax         | Crop            | Concat          |
 Permute         | Normalize(L2 Norm)       | Argmax          | Flatten         |
 PriorBox        | Reshape         | NMS             | Eltwise         |
-CReLU<sup>* </sup> | Depthwise Separable Convolution | Software Layer Plugin<sup>** </sup>|Input/ Data|
+CReLU<sup>** </sup> | Depthwise Separable Convolution | Software Layer Plugin<sup>*** </sup>|Input/ Data|
 Dilated Convolution||||         |
 
-<sup>*  refers CReLU supported as a composition operation, i.e., Concat(Convolution, Power(Convolution, -1)), where Power(Convolution, -1) is expected to perform invert operation by multiplying input with -1. </sup>
+<sup>* It performs combined Deconvolution+Argmax operation. </sup>
+	
+<sup>**  refers CReLU supported as a composition operation, i.e., Concat(Convolution, Power(Convolution, -1)), where Power(Convolution, -1) is expected to perform invert operation by multiplying input with -1. </sup>
 
-<sup>** refers to [CHai Software-layer-Plugin](./SOFTWARE_LAYER_PLUGIN.md) </sup>
+<sup>*** refers to [CHai Software-layer-Plugin](./SOFTWARE_LAYER_PLUGIN.md) </sup>
 
 
 <details>
@@ -74,7 +76,7 @@ The following table describes the hardware accelerated layers.
 | Scale and Bias           | Convolution      | Number of Input and output feature maps must be less than 2048.                                                                                                                                                                                    |
 | Element-wise addition    | Convolution      |                                                                                                                                                                                                                                                    |
 | Pooling (Max, Average)   | Convolution/Pool | Number of Input and output feature maps must be less than 4096.                                                                                                                                                                                    |
-| Deconvolution            | Deconvolution    | 16-bit only                                                                                                                                                                                                                                        |
+| Deconvolution            | Deconvolution    | 16-bit only. It performs only Deconvolution + Argmax combined. Standalone deconvolution output won't be available.                                                                                                                                                                                                                                         |
 | Depthwise Separable Convolution | Convolution      | Number of Input and output feature maps must be less than 4096.                                                                                                                                                                                    |
 | ReLU                     | Convolution      | ReLU operation is performed in-line with other supported operations. The fusion of ReLU is supported for the below Layers: Convolution, Dilated Convolution, Batch Normalization, Scale and Bias, 3D separable Convolution, Element-wise Addition  |
 </details>
