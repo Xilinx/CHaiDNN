@@ -100,7 +100,7 @@ Before starting with an example, keep the following aspects in mind.
 
 3. If there are Hardware-accelerated layers in both the sub-graphs, they will try to access the Hardware simultaneously which might cause undefined behavior or performance penalty.
 
-In the [tutorial on running a network](RUN_NEW_NETWORK.md), steps to run and benchmark a network are presented. (It is highly recommended to go through that tutorial first). How you can use this technique to improve the performance is presented here. GoogleNet is used as an example. The full code can be accessed [here](software/examples/googlenet_ex.cpp). Key code snippets in the example are explained below.
+In the [tutorial on running a network](RUN_NEW_NETWORK.md), steps to run and benchmark a network are presented. (It is highly recommended to go through that tutorial first). How you can use this technique to improve the performance is presented here. GoogleNet is used as an example. The full code can be accessed [here](../software/example/googlenet_ex.cpp). Key code snippets in the example are explained below.
 
 <details>
 <summary><strong>Define structure</strong></summary>
