@@ -26,14 +26,18 @@ int errorCheck(
 )
 {
 	std :: cout << std :: endl;
-	std :: cout << "[CHECKS] *****************************	start : errorCheck()" << std :: endl;
+	
+#if LAYERWISE_OUTPUT_WRITE
+	std :: cout << "[CHECKS] Start : Output Write\n" << std :: endl;
+#else
+	std :: cout << "[CHECKS] Start : errorCheck()\n" << std :: endl;
+#endif
 
 	int status = 0;
 
 	const char *ref_path = inLayer.ref_path;
 	const char *out_path = inLayer.out_path;
 
-	//char *network_name = (char *)malloc(100*sizeof(char));
 	char network_name[100];
 	for(int i=0;i<100;i++)
 	{
@@ -108,8 +112,11 @@ int errorCheck(
 	fprintf(error_fp, "\n");
 #endif  //#if EN_FILE_WRITE
 
-	std :: cout << "[PATH] ref_path : " << ref_path << std :: endl;
-	std :: cout << "[PATH] out_path : " << out_path << std :: endl;
+#if !LAYERWISE_OUTPUT_WRITE
+	std :: cout << "[REPATH] ref_path : " << ref_path << std :: endl;
+#endif
+
+	std :: cout << "[WRPATH] out_path : " << out_path << std :: endl;
 
 	if(ref_path == NULL)
 	{
@@ -188,7 +195,12 @@ int errorCheck(
 	//free(network_name);
 	//free(csv_path);
 
-	std :: cout << "[CHECKS] *****************************	End : errorCheck()" << std :: endl;
+	
+#if LAYERWISE_OUTPUT_WRITE
+	std :: cout << "\n[CHECKS] End : Output Write\n" << std :: endl;
+#else
+	std :: cout << "\n[CHECKS] End : errorCheck()\n" << std :: endl;
+#endif
 
 	if(status != 0)
 		return -1;

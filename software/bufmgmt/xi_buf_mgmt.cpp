@@ -821,7 +821,7 @@ void xiIOBuffCreate(
 							}
 							else
 							{
-								lay_obj[img_id][iter].in_ptrs[j+2] = addOffset<BUF_ADDR_TYPE>(io_map[cur_handle].ptr[j], in_offset); //io_map[cur_handle].ptr[j];
+								lay_obj[img_id][iter].in_ptrs[j+(l_ib*2)] = addOffset<BUF_ADDR_TYPE>(io_map[cur_handle].ptr[j], in_offset); //io_map[cur_handle].ptr[j];
 							}
 						}
 					}

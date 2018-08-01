@@ -28,8 +28,8 @@ limitations under the License.
 
 #include "../include/xchange_structs.hpp"
 
-#define EN_HISTOGRAM	1
-#define EN_FILE_WRITE   1
+#define EN_HISTOGRAM	0
+#define EN_FILE_WRITE   0
 
 #define AlignSize(x, y) (x%y == 0) ? x : ((x/y + 1)*y)
 #define ConvertToFP(fVal, iPart, fbits)	((int)((iPart<<fbits) + ((fVal-(float)iPart))*(1<<fbits)))

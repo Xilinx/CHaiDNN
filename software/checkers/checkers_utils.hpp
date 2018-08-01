@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "ap_int.h"
 #include "../common/kernelinfo_class.h"
+#include "../swkernels/xi_format_converter.hpp"
 
 //# Checks Convolution/Pool funtionality
 int cpCheck(
@@ -27,6 +28,124 @@ int cpCheck(
 		FILE *&error_fp
 )
 {
+#if LAYERWISE_OUTPUT_WRITE
+
+	//std :: cout << std :: endl;
+	//std :: cout << "[CHECKS] start : cpCheck()" << std :: endl;
+	
+	const char *output_file_path = inLayer.out_path;
+	FILE *fout = fopen(output_file_path, "w");
+	if(fout == NULL)
+	{
+		std :: cout << "can't create file - " << fout << std :: endl;
+		return -1;
+	}
+	
+	int *params = (int*)inLayer.params;
+
+	int height, width, indepth;
+	bool relu;
+	int en_batch_size_one;
+	int offline_quant_mode;
+
+	if(inLayer.kernType == CONV)
+	{
+		height = params[2];
+		width  = params[3];
+
+		if(params[30])  //for group case
+			indepth = params[4] << 1;
+		else
+			indepth = params[4];
+
+		relu   = params[10];
+		en_batch_size_one = params[126];//58];
+	}
+	else if(inLayer.kernType == NORM)
+	{
+		height = params[1];
+		width  = params[2];
+		indepth = params[0];
+		en_batch_size_one = params[8];
+		offline_quant_mode = params[9];
+	}
+	else //POOL
+	{
+		height = params[2];
+		width  = params[3];
+		indepth = params[4];// << 1;  TODO:ANITHA
+		relu   = 1;
+		en_batch_size_one = params[20];
+	}
+	
+	int out_fbits;
+
+	//# Offline quant mode out_fbits are zero
+	string quant; float th = 0.0, sf = 0.0;
+	if((params[103] == 1) || (offline_quant_mode == 1) )
+	{
+		out_fbits = 0;
+		quant = "Xilinx";
+		th = inLayer.float_params[1]; sf = inLayer.float_params[3];
+	}
+	else
+	{
+		out_fbits = inLayer.qf_format.op_fbits;
+		quant = "DynamicFixed";
+	}
+
+	std :: cout << "[CHECKS] (h, w, d, out_fbits, quant mode, th, sf) : " << height << " " << width << " " << indepth << " " << out_fbits << " " << quant << " " << th << " " << sf << std :: endl;
+	
+	IO_DATA_TYPE* hls_out1, *hls_out2;
+
+	hls_out1 = (IO_DATA_TYPE*)inLayer.out_ptrs[0];
+
+#if SINGLE_IO_PORT==0
+	hls_out2 = (IO_DATA_TYPE*)inLayer.out_ptrs[1];
+#endif
+
+	int single_buf=0;
+#if SINGLE_IO_PORT==0
+	single_buf=0;
+#else
+	single_buf=1;
+#endif
+	
+	float *kernel_output;
+	kernel_output = (float*)malloc(XBATCH_SIZE*height*width*indepth*16*sizeof(float));
+	if(kernel_output == NULL)
+	{
+		fprintf(stderr, "[ERROR] Failed to create memory\n");
+		return -1;
+	}
+	
+	//fprintf(stderr, "Before call :\n");
+	SoftwareUnpack<IO_DATA_TYPE>(hls_out1, hls_out2, height, width, indepth, out_fbits, sf, th, quant,
+	 kernel_output, single_buf);
+	//fprintf(stderr, "After call\n");
+
+	int idx = 0;
+	
+	for(int i = 0; i < XBATCH_SIZE; i++)
+	{
+		for(int j = 0; j < indepth; j++)
+		{
+			for(int k = 0; k < height*width; k++)
+			{
+				fprintf(fout, "%f ", kernel_output[idx++]);
+			}
+			fprintf(fout, "\n");
+		}
+		fprintf(fout, "\n\n");
+	}
+	fclose(fout);
+		
+	free(kernel_output);
+	
+	return 0;
+#else
+	
+	////////////// ERROR CHECKS ///////////////
 	std :: cout << std :: endl;
 	std :: cout << "[CHECKS] start : cpCheck()" << std :: endl;
 #if EN_FILE_WRITE
@@ -571,6 +690,7 @@ int cpCheck(
 		return -1;
 	else
 		return 0;
+#endif
 
 }
 // cpCheck
@@ -1728,9 +1848,9 @@ int xcustCheck(
 	std::vector<int> dim=inLayer.output_dims[0];
 	// TODO @raju these dimentions should be calculated with vector size
 
-	//	int depth	= dim[1];
-	//	int height	= dim[2];
-	//	int width	= dim[3];
+	int depth	= dim[1];
+	int height	= dim[2];
+	int width	= dim[3];
 	int size=1;
 	for(int iter_s=0;iter_s<dim.size();iter_s++){
 

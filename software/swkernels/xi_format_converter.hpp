@@ -43,4 +43,8 @@ template<class T>
 void unPackPermutetocustom(T* conv_out,int height,int width,int indepth,int fbits,float &sf,float &th,string &quant,float *software_output);
 template<class T>
 void unpackDataToSoftmax(T* conv_out,int width,int indepth,int fbits,float &sf,float &th,string &quant,float *software_output);
+
+template<class T>
+void SoftwareUnpack(T* conv_out, T *conv_out1, int height,int width,int indepth,int fbits,float &sf,float &th,string &quant,float *kernel_output,int single_buf);
+
 #endif//_xTHREAD_ROUTINES_HPP_

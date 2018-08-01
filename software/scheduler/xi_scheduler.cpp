@@ -721,14 +721,17 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 			hwQueue[convImgId][whichConv].endclk = sds_clock_counter();
 #endif
 			
-#if ENABLE_ERROR_CHECKS
+#if ENABLE_ERROR_CHECKS || LAYERWISE_OUTPUT_WRITE
 			if(convImgId == 0)
 			{
 				int convErr = errorCheck(hwQueue[convImgId][whichConv]);
+				
+#if !LAYERWISE_OUTPUT_WRITE
 				if(convErr)
 					std::cout << "\n[ERROR] Conv Layer : " << whichConv << " Image : " << convImgId << " Fail !" << std::endl;
 				else
 					std::cout << "\n[ERROR] Conv Layer : " << whichConv << " Image : " << convImgId << " Pass !" << std::endl;
+#endif
 			}
 #endif		
 #if ENABLE_CONSOLE_TEXT

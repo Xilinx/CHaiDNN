@@ -74,6 +74,9 @@ limitations under the License.
 
 #define FC_KERNEL_EXIST     0
 
+//# Enable to dump layerwise output 
+#define LAYERWISE_OUTPUT_WRITE	0
+
 #define DEBUG_WEIGHT_EXTRACTION 0
 
 //#define POOL_KERNEL_EXIST 0
@@ -107,6 +110,8 @@ limitations under the License.
 #define WEIGHT_PORTS	2
 #endif  //#if PORT_BITWIDTH_64BIT
 #endif  //#if KER_PROC==16
+
+#define MAX_PORTS			32
 
 //# Number of Ports
 #if SINGLE_IO_PORT==0

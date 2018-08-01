@@ -73,7 +73,7 @@ public:
 	int input_sizebytes;
 	int output_sizebytes;
 	int output_size;
-	void * in_ptrs[INPUT_PORTS];
+	void * in_ptrs[MAX_PORTS];
 	void * out_ptrs[OUTPUT_PORTS];
 	void * wts_ptrs[WEIGHT_PORTS];
 	void * bias_ptr;

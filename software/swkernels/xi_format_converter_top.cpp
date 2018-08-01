@@ -72,8 +72,8 @@ void unpackDataToSoftmax(T* conv_out,int width,int indepth,int fbits,float &sf,f
 				software_output[iter_soft_buf]=((float)fxval2)*sf;
 #if FILE_WRITE
 				fprintf(fout_pack, "%d\n ", fxval2);
-				fprintf(fin_pack, "%f\n ", f_val);
-				fprintf(ffin_pack, "%f\n ", fc_val);
+				//fprintf(fin_pack, "%f\n ", f_val);
+				//fprintf(ffin_pack, "%f\n ", fc_val);
 #endif
 
 			}
@@ -93,8 +93,8 @@ void unpackDataToSoftmax(T* conv_out,int width,int indepth,int fbits,float &sf,f
 
 #if FILE_WRITE
 				fprintf(fout_pack, "%d\n ", fxval2);
-				fprintf(fin_pack, "%f\n ", f_val);
-				fprintf(ffin_pack, "%f\n ", fc_val);
+				//fprintf(fin_pack, "%f\n ", f_val);
+				//fprintf(ffin_pack, "%f\n ", fc_val);
 #endif
 
 			}
@@ -201,8 +201,8 @@ void packDataToSoftmax(float *software_output,int width,int indepth,int fbits,fl
 
 #if FILE_WRITE
 				fprintf(fout_pack, "%d\n ", fxval2);
-				fprintf(fin_pack, "%f\n ", f_val);
-				fprintf(ffin_pack, "%f\n ", fc_val);
+				//fprintf(fin_pack, "%f\n ", f_val);
+				//fprintf(ffin_pack, "%f\n ", fc_val);
 #endif
 				fc_indx++;
 			}
@@ -227,8 +227,8 @@ void packDataToSoftmax(float *software_output,int width,int indepth,int fbits,fl
 
 #if FILE_WRITE
 				fprintf(fout_pack, "%d\n ", fxval2);
-				fprintf(fin_pack, "%f\n ", f_val);
-				fprintf(ffin_pack, "%f\n ", fc_val);
+				//fprintf(fin_pack, "%f\n ", f_val);
+				//fprintf(ffin_pack, "%f\n ", fc_val);
 #endif
 				fc_indx++;
 			}
