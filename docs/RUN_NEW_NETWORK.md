@@ -128,7 +128,6 @@ To implement a network inference using CHaiDNN APIs, follow these steps.
             frequency = sds_clock_frequency(); \
     }
     ```
-
 6. Write `main()`.
 
    1. Create a structure to hold info about input/output layers
@@ -138,97 +137,104 @@ To implement a network inference using CHaiDNN APIs, follow these steps.
    2. Define variables to hold network directory/file paths.
       ```c++
       char *dirpath    = "/mnt/models/MyNet"; /* Path to the network model directory */
-	    char *prototxt   = "deploy.prototxt";       /* Prototxt file name residing in network model directory */
-	    char *caffemodel = "MyNet.caffemodel";  /* caffemodel file name residing in network model directory */
+      char *prototxt   = "deploy.prototxt";       /* Prototxt file name residing in network model directory */
+      char *caffemodel = "MyNet.caffemodel";  /* caffemodel file name residing in network model directory */
       ```
 
-   3.  Define variables to hold input image path.
+   3. Define variables to hold input image path.
        ```c++
        char *img_path  = "/mnt/models/MyNet/input/camel.jpg";
        ```
+   4. Define start and end layers in network.
+      ```c++
+      //# start/end layer in the graph1
+      string start_layer = "";
+      string end_layer   = "";
+      ```
+      - `start_layer` represents the name of the first layer of a network. If it is set to empty string, name of the first layer in the prototxt is taken by default.
+      - `end_layer` represents the name of the last layer of a network. If it is set to empty string, name of the last layer in the prototxt is taken by default.
 
-   4. The data initialization can now be done using the `xiInit()` API. This API parses the network and initializes the Job-queue with memory and store network params in buffers.
+   5. The data initialization can now be done using the `xiInit()` API. This API parses the network and initializes the Job-queue with memory and store network params in buffers.
       ```c++
 	    void *chai_handle = xiInit(dirpath, prototxt, caffemodel, &io_layer_info_ptr, numImg_to_process, is_first_layer, start_layer, end_layer);
       ```
-   5. Read and pre-process input image. This includes resizing the input image and subtract the mean if the mean is pixel wise. Two example utility functions are provided to make preprocessing easier.
+   6. Read and pre-process input image. This includes resizing the input image and subtract the mean if the mean is pixel wise. Two example utility functions are provided to make preprocessing easier.
       ```c++
 	    int status = inputNormalization(normalizeInput, resize_h, resize_w, img_path1, img_path2,
 			inp_mode, mean_path, numImg_to_process, io_layer_info_ptr);
       ```
-  6. Create input buffer
-     ```c++
-     int in_size = io_layer_info_ptr.inlayer_sizebytes;
-     //# Create input/output Buffers
-     vector<void *> input;
-     void *ptr;
-     for(int i = 0; i < io_layer_info_ptr.num_in_bufs; i++)
-     {
+   7. Create input buffer
+      ```c++
+      int in_size = io_layer_info_ptr.inlayer_sizebytes;
+      //# Create input/output Buffers
+      vector<void *> input;
+      void *ptr;
+      for(int i = 0; i < io_layer_info_ptr.num_in_bufs; i++)
+      {
          if(io_layer_info_ptr.inlayer_exectype.compare("hardware") == 0)
              ptr = sds_alloc_non_cacheable(in_size);
          else
              ptr = malloc(in_size);
          input.push_back(ptr);
-     }
-     ```
-  7. Create output buffer
-     ```c++
-     int out_size = io_layer_info_ptr.outlayer_sizebytes;
-     vector<void *> output;
+      }
+      ```
+   8. Create output buffer
+      ```c++
+      int out_size = io_layer_info_ptr.outlayer_sizebytes;
+      vector<void *> output;
 
-     for(int i = 0; i < io_layer_info_ptr.num_out_bufs; i++)
-     {
+      for(int i = 0; i < io_layer_info_ptr.num_out_bufs; i++)
+      {
         if(io_layer_info_ptr.outlayer_exectype.compare("hardware") == 0)
             ptr = sds_alloc_non_cacheable(out_size);
         else
             ptr = malloc(out_size);
         output.push_back(ptr);
-     }
-     ```
- 8. Pack the mean-subtracted input to input buffer
-    ```c++
-    xiInputRead(normalizeInput, input, numImg_to_process, io_layer_info_ptr);
-    ```
+      }
+      ```
+   9. Pack the mean-subtracted input to input buffer
+      ```c++
+      xiInputRead(normalizeInput, input, numImg_to_process, io_layer_info_ptr);
+      ```
 
- 9. Call `xiExec` to run inference
-    ```c++
-        TIME_STAMP_INIT
-        xiExec(chai_handle, input, output);
-        TIME_STAMP
-    ```
+   10. Call `xiExec` to run inference
+       ```c++
+       TIME_STAMP_INIT
+       xiExec(chai_handle, input, output);
+       TIME_STAMP
+       ```
     >**:pushpin: NOTE:**  `TIME_STAMP_INIT` and `TIME_STAMP` stores the start and end cycles which can be used to check the performance of the network.
 
- 10. Check the latency
-     ```c++
-     //# Total time for the API in Images/Second
-     double tot_time = (((double)(clock_end-clock_start)/(double)frequency)*1000)*(double)XBATCH_SIZE;
-     fprintf(stderr, "\n[PERFM] Performance : %lf Images/second\n", (double)(1000)/tot_time);
-     fprintf(stderr, "\n\n");
-     ```
- 11. Unpack the output and write to output file (optional)
-     ```c++
-     int unpack_out_size = io_layer_info_ptr.outlayer_sizebytes;
+   11. Check the latency
+       ```c++
+       //# Total time for the API in Images/Second
+       double tot_time = (((double)(clock_end-clock_start)/(double)frequency)*1000)*(double)XBATCH_SIZE;
+       fprintf(stderr, "\n[PERFM] Performance : %lf Images/second\n", (double)(1000)/tot_time);
+       fprintf(stderr, "\n\n");
+       ```
+   12. Unpack the output and write to output file (optional)
+       ```c++
+       int unpack_out_size = io_layer_info_ptr.outlayer_sizebytes;
 
-     //# Create memory for unpack output data
-     vector<void *> unpack_output;
-     for(int batch_id = 0; batch_id < numImg_to_process; batch_id++)
-     {
-        void *ptr = malloc(unpack_out_size);
-        unpack_output.push_back(ptr);
-     }
-     //# Loading required params for unpack function
-     kernel_type_e out_kerType = io_layer_info_ptr.out_kerType;
-     int out_layer_size = io_layer_info_ptr.out_size;
-     //# unpacks the output data
-     xiUnpackOutput(output, unpack_output, out_kerType, out_layer_size, numImg_to_process);
-     //# Write the output data to txt file
-     outputWrite(dirpath, img_path1, unpack_output, numImg_to_process, io_layer_info_ptr, 0);
-     ```
- 12. Release Memory
-     ```c++
-     xiRelease(chai_handle); //# Release before exiting application
-     ```
-
+       //# Create memory for unpack output data
+       vector<void *> unpack_output;
+       for(int batch_id = 0; batch_id < numImg_to_process; batch_id++)
+       {
+         void *ptr = malloc(unpack_out_size);
+         unpack_output.push_back(ptr);
+       }
+       //# Loading required params for unpack function
+       kernel_type_e out_kerType = io_layer_info_ptr.out_kerType;
+       int out_layer_size = io_layer_info_ptr.out_size;
+       //# unpacks the output data
+       xiUnpackOutput(output, unpack_output, out_kerType, out_layer_size, numImg_to_process);
+       //# Write the output data to txt file
+       outputWrite(dirpath, img_path1, unpack_output, numImg_to_process, io_layer_info_ptr, 0);
+       ```
+   13. Release Memory
+       ```c++
+       xiRelease(chai_handle); //# Release before exiting application
+       ```
 ##### 2. Compile Application using Makefile.
 
 >**:pushpin: NOTE:**  Paths provided for libs/includes in below Makefile example might change based on where the Makefile is located. Use Relative/Absolute paths to libs/includes based on the directory structure. These instructions assumes that all the  libraries are already built and kept in `SD_Card` directory.  
