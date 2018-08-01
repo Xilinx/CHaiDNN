@@ -81,6 +81,15 @@ The in_ptrs and out_ptrs are described in the below table.
 
 </details>
 
+<details>
+<summary><strong>How to enable Layer-wise output dump</strong></summary>
+
+To dump the outputs of hardware accelerated layers, set the value of `LAYERWISE_OUTPUT_WRITE` to 1 in the file `<CHaiDNN Repo>/software/include/hw_settings.h`. This will dump the output of all layers to `<models>/<network>/<6/8-bit>/out` directory. The Output contains float values printed in [NCHW](http://caffe.berkeleyvision.org/tutorial/net_layer_blob.html) order.
+```c++
+#define LAYERWISE_OUTPUT_WRITE 1
+```
+</details>
+
 ### Example Description
 
 Before starting with an example, keep the following aspects in mind.
