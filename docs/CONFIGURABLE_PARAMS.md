@@ -51,7 +51,7 @@ CHaiDNN provides various configurable parameters to be able to port the design t
 <details>
 <summary><strong><big>Hardware Parameters</big></strong></summary>
 
-The following table describes the available configurable parameters. The below parameters have to be changed in the two files namely [xi_conv_config.h](../design/conv/include/xi_conv_config.h) and [hw_settings.h](../software/include/hw_settings.h).
+The following table describes the available configurable parameters. The below parameters have to be changed in the two files namely <path  to local CHaiDNN>/design/conv/include/[xi_conv_config.h](../design/conv/include/xi_conv_config.h) and <path  to local CHaiDNN>/software/include/[hw_settings.h](../software/include/hw_settings.h).
 
 >**:pushpin: NOTE:**  Both the design and the software has to be rebuilt for expected functionality of the new configuration.
 

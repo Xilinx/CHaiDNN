@@ -135,12 +135,18 @@ To build `CHaiDNN` using the Xilinx&reg; SDx Development Environment, perform th
 
 22. Save and apply changes. Close the settings window.
 
-23. Navigate to `src/software/init` folder in `Project Explorer` Pane. Right click on `xi_init.cpp` and open the properties.
+23. Navigate to `<project name>/src/software/init` folder in `Project Explorer` Pane. Right click on `xi_init.cpp` and open the properties.
     In Optimization, change the `Optimization Level` to None (-O0).
 
 24. Apply changes and close the window.
 
-25.	Select the Hardware functions.
+25. Open `<project name>/src/design/scripts/mcps.tcl` file and modify the path of `xdc` file as shown below.
+```
+    read_xdc <path to project>/src/design/conv/scripts/mcp_const.xdc
+```
+>**:pushpin: NOTE:**   `<path to project>` is the path to SDx project.
+
+26.	Select the Hardware functions.
 
     - Navigate to `src/design/src/pool/src/pooling_layer_dp_2xio_top.cpp` file using SDx explorer, right click on `PoolTop` and select Toggle HW/SW.
 
@@ -148,9 +154,9 @@ To build `CHaiDNN` using the Xilinx&reg; SDx Development Environment, perform th
 
      >**:pushpin: NOTE:**  When building `DietChai` don't map any function to HW. `XiConvolutionTop` will be mapped to HW by default.
 
-25. Open `project.sdx` file, change the `Data motion network clock frequency (MHz)` to 100.00 and change the `Hardware Functions clock frequency (MHz)` to 100.00.
+27. Open `project.sdx` file, change the `Data motion network clock frequency (MHz)` to 100.00 and change the `Hardware Functions clock frequency (MHz)` to 100.00.
 
-26. Build the project.
+28. Build the project.
 
 >**:information_source: NOTE:**   Current CHaiDNN release only supports SDx GUI build on Linux machines.
 

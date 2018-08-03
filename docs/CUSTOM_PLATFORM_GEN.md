@@ -89,15 +89,16 @@ To increase the throughput, compute DSPs are double-pumped i.e., DSPs are clocke
     This will create a project and generates a BD (Block Design)
     ![](./images/sc1.jpg)
 
-3. Double click on the **clk_wiz** IP to customize the clock wizard IP.
+1. Double click on the **clk_wiz** IP to customize the clock wizard IP.
 
-4. Select the **Output Clocks** tab and enter the required clock frequencies in `clk_out 1` and `clk_out 2`.
-5. Click **OK**.
-   >**:pushpin: NOTE:** Ensure that the `clk_out1` is always the 2x clock.
+1. Select the **Output Clocks** tab and enter the required clock frequencies in `clk_out 1` and `clk_out 2`. Click **OK** after setting the frequencies.
+
+    >**:pushpin: NOTE:** Ensure that the `clk_out1` is always the 2x clock.
+  
 
    ![](./images/sc2.jpg)
 
-6. Run the following commands in the TCL console to generate a `.dsa` file.
+1. Run the following commands in the TCL console to generate a `.dsa` file.
     ```tcl
     ### Add Reset IP to block design [Embedded Processing -> Clock & Reset-> Processor System Reset]
     create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset proc_sys_reset_0
@@ -162,11 +163,11 @@ To increase the throughput, compute DSPs are double-pumped i.e., DSPs are clocke
     set_param dsa.writeHDFData 1
     write_dsa -force -unified ./$board_name.dsa
     ```
-7. Copy `zcu102` folder from the `<INSTALLATION DIRECTORY>/Xilinx/SDx/2018.2/platforms` directory to some working folder. For example, `<custom_platform_path>`.
+1. Copy `zcu102` folder from the `<INSTALLATION DIRECTORY>/Xilinx/SDx/2018.2/platforms` directory to some working folder. For example, `<custom_platform_path>`.
 
-8. Replace the `.dsa` file present in the `<custom_platform_path>/zcu102/hw` folder with the generated `.dsa` file (with above flow).
+1. Replace the `.dsa` file present in the `<custom_platform_path>/zcu102/hw` folder with the generated `.dsa` file (with above flow).
 
-9. To build the design with this custom platform, set platform variable to `<custom_platform_path>/zcu102` (this path needs to be an absolute path) and set `clk_id/dm_clk_id` variables to `1`.
+1. To build the design with this custom platform, set platform variable to `<custom_platform_path>/zcu102` (this path needs to be an absolute path) and set `clk_id/dm_clk_id` variables to `1` in <CHaiDNN local path>/design/build/Makefile.
 </details>
 
 
