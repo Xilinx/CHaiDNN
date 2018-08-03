@@ -53,9 +53,11 @@ DECONV_ENABLE ?= 1
 ifeq (${DIET_CHAI_Z}, 1)
 	POOL_ENABLE   := 0
 	DECONV_ENABLE := 0
-else ifeq (${DIET_CHAI_ZUPLUS}, 1)
+else
+ ifeq (${DIET_CHAI_ZUPLUS}, 1)
 	POOL_ENABLE   := 0
 	DECONV_ENABLE := 0
+ endif
 endif
 
 # Internal Path Variables
@@ -149,7 +151,6 @@ copy:
 	cp sd_card/${LIBRARY} ../../SD_Card/lib/
 	cp sd_card/BOOT.BIN ../../SD_Card/
 	cp sd_card/image.ub ../../SD_Card/
-	cp -r sd_card/_sds ../../SD_Card/
 
 # Some clean Targets
 clean:
@@ -157,4 +158,4 @@ clean:
 
 ultraclean: clean
 	${RM} ${LIBRARY}.bit
-	${RM} -rf _sds sd_card .Xil
+	${RM} -r _sds sd_card .Xil
