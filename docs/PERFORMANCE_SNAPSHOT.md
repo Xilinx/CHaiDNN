@@ -61,7 +61,7 @@ The following table lists the performance numbers on ZU9.
   <img src="./images/Zu9.JPG"><br><br>
 </div>
 
-The following table lists the performance numbers on ZU7.															
+The following table lists the performance numbers on ZU7 (As resources in ZU7 are lower than ZU9, standalone pool kernel is disabled and the pool functionality in Convolution kernel is used).															
 
 <div align="center">
   <img src="./images/Zu7.JPG"><br><br>
