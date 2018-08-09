@@ -2924,7 +2924,7 @@ void ExtractXCustomParameters(const caffe::LayerParameter& src, XGraph& graph)
     ASSERT( (ntops > 0) && (nbottoms > 0), EP070, 
             "There should be minimum one top & bottom blobs for layer " << src.name())
 
-    ASSERT( (nbottoms == 1), EP075, 
+    ASSERT( (ntops == 1), EP075, 
             "Currently only one top blob is supported for user_defined_layer: " << src.name())
 
     ELOG( (ntops == 1 && nbottoms == 1 && src.bottom(0) == src.top(0)), EP073,
