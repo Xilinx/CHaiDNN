@@ -2112,7 +2112,7 @@ void OStgBuffSeq_fx(ap_int<36> result_ping_fe0[XI_KER_PROC][XI_PIX_PROC],
 					read_ostg_fx0[img][dim1_fx2][1] = ostg_src_fx0[img][7].range(bit18 + 17,bit18);
 				}
 #else
-				if (outputkernelid_fx0[3] == 0)
+				if (outputkernelid_fx0[2] == 0)
 				{
 					read_ostg_fx0[img][dim1_fx2][0] = ostg_src_fx0[img][0].range(bit18 + 17,bit18);
 					read_ostg_fx0[img][dim1_fx2][1] = ostg_src_fx0[img][1].range(bit18 + 17,bit18);
