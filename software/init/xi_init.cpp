@@ -100,7 +100,8 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 		th_layer_out = xlayer_seq->hw_ops->th_layer_out;
 		scalar_conv_args[127] = 1;  //offline mode
 
-		if((scalar_conv_args[34] == OPCODE_POOL2CONV) || (scalar_conv_args[34] == OPCODE_AVRPOOL2CONV) || (scalar_conv_args[34] == OPCODE_FC2CONV))//Checking for MAX_POOL or AVG_POOL
+		//if((scalar_conv_args[34] == OPCODE_POOL2CONV) || (scalar_conv_args[34] == OPCODE_AVRPOOL2CONV) || (scalar_conv_args[34] == OPCODE_FC2CONV))//Checking for MAX_POOL or AVG_POOL
+		if((scalar_conv_args[34] == OPCODE_3D_CONV) || (scalar_conv_args[34] == OPCODE_POOL2CONV) || (scalar_conv_args[34] == OPCODE_AVRPOOL2CONV) || (scalar_conv_args[34] == OPCODE_POOL_CONV2CONV) || (scalar_conv_args[34] == OPCODE_FC2CONV))
 		{
 			th_layer_in  = conv_params->th_layer_in_3d;//39.5895589117;
 			th_layer_out = conv_params->th_layer_out_3d;//39.5895589117;
@@ -312,30 +313,6 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 		scalar_conv_args[6]  = scalar_conv_args[53];
 	}
 
-	if(scalar_conv_args[34] == OPCODE_3D_CONV)
-	{
-		//Loading Weights
-		char *wt_ptr0 = (char *)currentLayer->xtra_ptrs[0];
-		char *wt_ptr1 = (char *)currentLayer->xtra_ptrs[1];
-		currentLayer->in_ptrs[3] = wt_ptr0;
-		currentLayer->in_ptrs[4] = wt_ptr1;
-
-		const float *weight_vec     = (const float *)&(xlayer_seq->hw_ops->conv_params->weights_3d[0][0]);
-		//loadSeperableConvWgtsTXT(wt_ptr0, weight_vec, scalar_conv_args, currentLayer->qf_format.wt_fbits);
-		load3dSeperableConvWgts(wt_ptr0, wt_ptr1, weight_vec, scalar_conv_args, conv_params->wt_bw_3d, conv_params->wt_fl_3d, const_data_path->wgt_path);
-
-		//Loading Bias
-		//# 3D-sep Conv bias
-		IO_DATA_TYPE *bs_ptr0 = (IO_DATA_TYPE *)currentLayer->xtra_ptrs[2];
-		IO_DATA_TYPE *bs_ptr1 = (IO_DATA_TYPE *)currentLayer->xtra_ptrs[3];
-		currentLayer->out_ptrs[2] = bs_ptr0;
-		currentLayer->out_ptrs[3] = bs_ptr1;
-
-		const float *bias_vec     = (const float *)&(xlayer_seq->hw_ops->conv_params->bias_3d[0][0]);
-		//loadSeperableConvWgtsTXT(wt_ptr0, weight_vec, scalar_conv_args, currentLayer->qf_format.wt_fbits);
-		load3dSeperableConvBias(bs_ptr0, bs_ptr1, bias_vec, scalar_conv_args[51], layer_id, conv_params->op_bw_3d, conv_params->op_fl_3d, const_data_path->bias_path);
-	}
-
 	if(scalar_conv_args[34] == OPCODE_AVRPOOL2CONV)
 	{
 			//printf("stop");
@@ -379,7 +356,7 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 			inp_planes = inp_planes/2;
 			out_planes = out_planes/2;
 #endif
-			scalar_conv_args[110] = op_planes_split_cnt;
+			scalar_conv_args[110] = pow(2,op_planes_split_cnt-1);
 			scalar_conv_args[111] = inp_planes * conv_inp_width * conv_inp_height * XBATCH_SIZE;
 			scalar_conv_args[112] = out_planes * conv_out_width * conv_out_height * XBATCH_SIZE;
 
@@ -393,7 +370,7 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 	}
 	else
 	{
-		stgRowCount(scalar_conv_args);
+		stgRowCount(scalar_conv_args);  //update 56-conv3d_stg_row_cnt, 58-conv3d_ostg_row_cnt, 14-istg_row_cnt, 15-ostgRowCount params
 		scalar_conv_args[110] = 1;
 	}
 
@@ -404,17 +381,11 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 
 	straddleFactorCount(scalar_conv_args);  //update 16-compute_planes, 17-straddle_factor
 
-	nkpfCount(scalar_conv_args);  //19-slk
-
+	nkpfCount(scalar_conv_args);  //13-nkpf, 19-slk
 
 	int group_flag = scalar_conv_args[11];
 
 	int io_precision = currentLayer->qf_format.ip_fbits+currentLayer->qf_format.wt_fbits-currentLayer->qf_format.op_fbits;
-
-	if(scalar_conv_args[34] == OPCODE_FC2CONV)
-	{
-		io_precision = conv_params->ip_fl_3d+conv_params->wt_fl_3d-conv_params->op_fl_3d;
-	}
 
 	//# Fixed the shift for offline quant mode
 	if(quant_scheme.compare("Xilinx") == 0)
@@ -472,16 +443,19 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 	//Norm_prec2 = 14 + Fbits_in + Fbits_out
 	scalar_conv_args[37] = 14+currentLayer->qf_format.ip_fbits+currentLayer->qf_format.op_fbits;
 
+	//fprintf(stderr, "seq ip_bw=%d\n", xlayer_seq[0].hw_ops->ip_bw);
+	//fprintf(stderr, "seq ip_3d_bw=%d\n", conv_params->ip_bw_3d);
+
 	//# int6 input flag
 	//# TODO: Fix this
-	if((xlayer_seq[0].hw_ops->ip_bw == 6)||(conv_params->ip_bw_3d == 6))
+	if(currentLayer->qf_format.ip_bw == 6)
 		scalar_conv_args[39] = 1;
 	else
 		scalar_conv_args[39] = 0;
 
 	//# int6 output flag
 	//# TODO: Fix this
-	if((xlayer_seq->hw_ops->op_bw == 6)||(conv_params->op_bw_3d == 6))
+	if(currentLayer->qf_format.ip_bw == 6)
 		scalar_conv_args[40] = 1;
 	else
 		scalar_conv_args[40] = 0;
@@ -502,6 +476,8 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 		fprintf(stderr,"\t%d",(int)scalar_conv_args[i]);
 	//	fprintf(stderr,"\n--------------in_height:plane = %d:%d \tout_height:plane = %d:%d\t in_stgcnt = %d \tout_stgcnt = %d ",l_input_height_ffa0 ,l_input_planes_ffa0, l_output_height_ffa0, l_output_planes_ffa0,l_istg_row_cnt_ffa0, l_ostg_row_cnt_ffa0);
 #endif
+
+	/* Loading Constant Data */
 
 	char *base_path = currentLayer->base_path;
 
@@ -622,27 +598,6 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 
 	}
 
-	if(scalar_conv_args[34] == OPCODE_ELTWISE)
-	{
-		scalar_conv_args[35] = 0; //mul_in;
-		scalar_conv_args[36] = 8; //norm_prec
-		scalar_conv_args[37] = 8; //norm_prec_2
-		scalar_conv_args[38] = 0; //norm_prec_3
-		scalar_conv_args[42] = 0;
-	}
-
-	int inDepth    = scalar_conv_args[5];
-	int outDepth   = scalar_conv_args[4];
-	if((group_flag) && (inDepth > 4))
-	{
-		scalar_conv_args[5] = scalar_conv_args[5]/2;
-	}
-
-	if((group_flag) && (outDepth > 8))
-	{
-		scalar_conv_args[4] = scalar_conv_args[4]/2;
-	}
-
 	if(scalar_conv_args[34] == OPCODE_FC2CONV)
 	{
 		//Loading Weights
@@ -682,7 +637,6 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 		loadfcconvBiasTXT<HFC_BIAS_TYPE>(bias_ptr, bias_vec, weights_th_vec, th_out, th_in, conv_inp_height, ip_bw, op_bw, wt_bw, bs_bw, bs_fl, quant_scheme);
 	}
 
-
 	//if((quant_scheme.compare("Xilinx") == 0) && (scalar_conv_args[34] == OPCODE_AVRPOOL2CONV))
 	if(scalar_conv_args[34] == OPCODE_AVRPOOL2CONV)
 	{
@@ -711,6 +665,54 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 		int op_bw = conv_params->op_bw_3d;
 
 		loadsf_avg_pool(out_ptr0, out_ptr1, th_out, th_in, ip_bw, op_bw, scalar_conv_args[51], scalar_conv_args[7], offline_quant_mode);
+	}
+
+	if(scalar_conv_args[34] == OPCODE_ELTWISE)
+	{
+		scalar_conv_args[35] = 0; //mul_in;
+		scalar_conv_args[36] = 8; //norm_prec
+		scalar_conv_args[37] = 8; //norm_prec_2
+		scalar_conv_args[38] = 0; //norm_prec_3
+		scalar_conv_args[42] = 0;
+	}
+
+	if(scalar_conv_args[34] == OPCODE_3D_CONV)
+	{
+		//Loading Weights
+		char *wt_ptr0 = (char *)currentLayer->xtra_ptrs[0];
+		char *wt_ptr1 = (char *)currentLayer->xtra_ptrs[1];
+		currentLayer->in_ptrs[3] = wt_ptr0;
+		currentLayer->in_ptrs[4] = wt_ptr1;
+
+		const float *weight_vec     = (const float *)&(xlayer_seq->hw_ops->conv_params->weights_3d[0][0]);
+		//loadSeperableConvWgtsTXT(wt_ptr0, weight_vec, scalar_conv_args, currentLayer->qf_format.wt_fbits);
+		load3dSeperableConvWgts(wt_ptr0, wt_ptr1, weight_vec, scalar_conv_args, conv_params->wt_bw_3d, conv_params->wt_fl_3d, const_data_path->wgt_path);
+
+		//Loading Bias
+		//# 3D-sep Conv bias
+		IO_DATA_TYPE *bs_ptr0 = (IO_DATA_TYPE *)currentLayer->xtra_ptrs[2];
+		IO_DATA_TYPE *bs_ptr1 = (IO_DATA_TYPE *)currentLayer->xtra_ptrs[3];
+		currentLayer->out_ptrs[2] = bs_ptr0;
+		currentLayer->out_ptrs[3] = bs_ptr1;
+
+		const float *bias_vec     = (const float *)&(xlayer_seq->hw_ops->conv_params->bias_3d[0][0]);
+		//loadSeperableConvWgtsTXT(wt_ptr0, weight_vec, scalar_conv_args, currentLayer->qf_format.wt_fbits);
+		load3dSeperableConvBias(bs_ptr0, bs_ptr1, bias_vec, scalar_conv_args[51], layer_id, conv_params->op_bw_3d, conv_params->op_fl_3d, const_data_path->bias_path);
+	}
+
+	/* group care for input and output planes */
+	int inDepth    = scalar_conv_args[5];
+	int outDepth   = scalar_conv_args[4];
+	if((group_flag) && (inDepth > 4))
+	{
+		scalar_conv_args[5] = scalar_conv_args[5]/2;
+		scalar_conv_args[50] = scalar_conv_args[50]/2;
+	}
+
+	if((group_flag) && (outDepth > 8))
+	{
+		scalar_conv_args[4] = scalar_conv_args[4]/2;
+		scalar_conv_args[51] = scalar_conv_args[51]/2;
 	}
 
 	//scalar_conv_args[11] = 0;              //making group as zero for the first group
@@ -863,7 +865,7 @@ void convInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer, int layer_id, 
 	scalar_conv_args[90] = pc_loop_bound;
 	scalar_conv_args[91] = Last_itr_pc_loop_bound;
 	scalar_conv_args[92] =  scalar_conv_args[13] * filter_height * filter_width * (scalar_conv_args[61]/4);//wts_loop_count          = nkpf x f_h x f_w x compute plane / 4
-	scalar_conv_args[93] =  filter_height * filter_width * (scalar_conv_args[62]/16);                   //wts_offset_scale          = fsz^2 x outplane / 16
+	scalar_conv_args[93] =  filter_height * filter_width * (scalar_conv_args[62]/XI_KER_PROC);                   //wts_offset_scale          = fsz^2 x outplane / 16
 	scalar_conv_args[94] =  scalar_conv_args[71] * stride;
 	scalar_conv_args[95] =  scalar_conv_args[75] * output_width;;
 
@@ -1781,16 +1783,24 @@ void eltwiseaddInit(XlayerData *xlayer_seq, xChangeLayer *currentLayer)
 
 	printShape(bottomShape);
 
+	scalar_eltwiseadd_args[0] = bottomShape.at(1) * bottomShape.at(2) * bottomShape.at(3) * (XBATCH_SIZE/HCONV_OUT_PORTS);   //in_size
 
-	scalar_eltwiseadd_args[0] = bottomShape.at(1);   //in_depth
-	scalar_eltwiseadd_args[1] = bottomShape.at(2);   //input_h
-	scalar_eltwiseadd_args[2] = bottomShape.at(3);   //input_w
+	if(xlayer_seq[0].hw_ops->ip_bw == 6)
+		scalar_eltwiseadd_args[1]  = 1;
+	else
+		scalar_eltwiseadd_args[1]  = 0;
+
+	scalar_eltwiseadd_args[2]  = xlayer_seq->hw_ops->eltwise_params->reluflag;
+
+	scalar_eltwiseadd_args[3] = bottomShape.at(1);   //in_depth
+	scalar_eltwiseadd_args[4] = bottomShape.at(2);   //input_h
+	scalar_eltwiseadd_args[5] = bottomShape.at(3);   //input_w
 
 	printShape(topShape);
 
-	scalar_eltwiseadd_args[3] = topShape.at(1);   //out_depth
-	scalar_eltwiseadd_args[4] = topShape.at(2);   //output_h
-	scalar_eltwiseadd_args[5] = topShape.at(3);   //output_w
+	scalar_eltwiseadd_args[6] = topShape.at(1);   //out_depth
+	scalar_eltwiseadd_args[7] = topShape.at(2);   //output_h
+	scalar_eltwiseadd_args[8] = topShape.at(3);   //output_w
 
 #if EN_DEBUG_INIT_PRINT
 	for(int i=0;i<MAX_PARAM_SIZE;i++)
@@ -2273,7 +2283,8 @@ void initXChangeHost(char *file_path, vector < XlayerData > &xlayer_seq, vector<
 		qf_format.bs_bw    = xlayer_seq[layerId].hw_ops->op_bw;
 		qf_format.bs_fbits = xlayer_seq[layerId].hw_ops->op_fl;
 
-		if((xlayer_seq[layerId].hw_ops->opcode == OPCODE_POOL2CONV) || (xlayer_seq[layerId].hw_ops->opcode == OPCODE_AVRPOOL2CONV) || (xlayer_seq[layerId].hw_ops->opcode == OPCODE_FC2CONV))
+		//if((xlayer_seq[layerId].hw_ops->opcode == OPCODE_POOL2CONV) || (xlayer_seq[layerId].hw_ops->opcode == OPCODE_AVRPOOL2CONV) || (xlayer_seq[layerId].hw_ops->opcode == OPCODE_FC2CONV))
+		if((xlayer_seq[layerId].hw_ops->opcode == OPCODE_3D_CONV) || (xlayer_seq[layerId].hw_ops->opcode == OPCODE_POOL2CONV) || (xlayer_seq[layerId].hw_ops->opcode == OPCODE_AVRPOOL2CONV) || (xlayer_seq[layerId].hw_ops->opcode == OPCODE_POOL_CONV2CONV) || (xlayer_seq[layerId].hw_ops->opcode == OPCODE_FC2CONV))
 		{
 			qf_format.ip_bw    = xlayer_seq[layerId].hw_ops->conv_params->ip_bw_3d;
 			qf_format.ip_fbits = xlayer_seq[layerId].hw_ops->conv_params->ip_fl_3d;
@@ -2762,6 +2773,11 @@ void initXChangeHost(char *file_path, vector < XlayerData > &xlayer_seq, vector<
 			xpackInit(current_seq_layer, currentLayer);
 			//currentLayer->qf_format = prev_qf_format;
 			//prev_layer_type = XPACK;
+		}
+
+		if( xlayer_seq[layerId].hw_ops->type.compare("Eltwise") == 0)
+		{
+			eltwiseaddInit(current_seq_layer, currentLayer);
 		}
 
 		if(xlayer_seq[layerId].hw_ops->quantization_scheme.compare("SinglePrecision") == 0)

@@ -76,10 +76,13 @@ custom_class.o: ../custom/custom_class.cpp
 xi_format_converter_top.o: ../swkernels/xi_format_converter_top.cpp
 	$(ARM_CXX) ${CFLAGS} -c -fPIC -I$(PB_ARM_DIR)/include $(IDIRS) $< -o $@
 
+xi_eltwiseadd_top.o: ../swkernels/xi_eltwiseadd_top.cpp
+	$(ARM_CXX) ${CFLAGS} -c -fPIC -I$(PB_ARM_DIR)/include $(IDIRS) $< -o $@	
+
 xi_perf_eval.o: ../scheduler/xi_perf_eval.cpp
 	$(ARM_CXX) ${CFLAGS1} -c -fPIC -I$(PB_ARM_DIR)/include $(IDIRS) $< -o $@
 	
-${LIBRARY}: scheduler.o xi_utils.o xi_thread_routines.o xi_kernels.o xi_buff_mgmt.o xi_init.o checkers.o xchange_structs.o xi_nms_top.o xi_norm_top.o xi_permute_top.o xi_swsoftmax_top.o xi_crop.o xi_fc_top.o xi_interface.o xi_readwrite_util.o kernelinfo_class.o custom_class.o xi_format_converter_top.o xi_perf_eval.o
+${LIBRARY}: scheduler.o xi_utils.o xi_thread_routines.o xi_kernels.o xi_buff_mgmt.o xi_init.o checkers.o xchange_structs.o xi_nms_top.o xi_norm_top.o xi_permute_top.o xi_swsoftmax_top.o xi_crop.o xi_fc_top.o xi_interface.o xi_readwrite_util.o kernelinfo_class.o custom_class.o xi_format_converter_top.o xi_perf_eval.o xi_eltwiseadd_top.o
 	${ARM_CXX} ${OLEVEL} -shared $^ -o $@
 
 copy :

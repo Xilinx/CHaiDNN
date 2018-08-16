@@ -124,7 +124,7 @@ int errorCheck(
 		return -1;
 	}
 
-	if(inLayer.kernType == CONV)
+	if((inLayer.kernType == CONV) || (inLayer.kernType == ELTWISEADD))
 	{
 #if PACKED_INOUT
 		status = cpCheck_packed(inLayer);

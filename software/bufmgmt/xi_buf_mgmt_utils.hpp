@@ -394,12 +394,14 @@ int convWeightsSize(int out_depth, int in_depth, int kernel_h, int kernel_w, int
 	int size_of_weights;
 	int no_kernals,no_planes;
 
-	remainder=no_kernals_1%KER_PROC;
+	//remainder=no_kernals_1%KER_PROC;
+	remainder=no_kernals_1%CONV_IO_PACK_ELEMS;
 
 	if(remainder==0)
 		no_kernals=no_kernals_1;
 	else
-		no_kernals=no_kernals_1+KER_PROC-remainder;
+		//no_kernals=no_kernals_1+KER_PROC-remainder;
+		no_kernals=no_kernals_1+CONV_IO_PACK_ELEMS-remainder;
 
 	if(no_kernals<4)
 		no_kernals=4; //TODO: make it as a argument minimum number of kernels are processing

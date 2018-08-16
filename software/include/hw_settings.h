@@ -25,6 +25,7 @@ limitations under the License.
 #define XI_DIET_CHAI_ZUPLUS	0
 #define __POOL_ENABLE__		1
 #define __DECONV_ENABLE__	0
+#define __CONV_ENABLE__     	1
 #endif
 
 //**** CONFIGURABLE MACROS
@@ -74,8 +75,47 @@ limitations under the License.
 
 #define FC_KERNEL_EXIST     0
 
-//# Enable to dump layerwise output 
-#define LAYERWISE_OUTPUT_WRITE	0
+#if 1
+#if XI_64BIT_PORT_EN
+#define XI_IO_64bit_PORT_EN 1
+#define XI_WTS_PORT_64BIT_EN 1
+#else
+#define XI_IO_64bit_PORT_EN 0
+#define XI_WTS_PORT_64BIT_EN 0
+#endif
+
+#if !XI_SINGLE_IO_PORT_EN
+#define LOG2_NUM_PORT_IO 1
+#else
+#define LOG2_NUM_PORT_IO 0
+#endif
+
+#define XI_INPUTPACKCOUNT_LOG2		2
+#if XI_IO_64bit_PORT_EN
+#define XI_INPUTPACKCOUNT2_LOG2		3 - LOG2_NUM_PORT_IO
+#else
+#define XI_INPUTPACKCOUNT2_LOG2		4 - LOG2_NUM_PORT_IO
+#endif
+
+#if XI_KER_PROC==8
+#define XI_WEIGHTPACKCOUNT_LOG2		5
+#else//16 KP
+#define XI_WEIGHTPACKCOUNT_LOG2		6
+#endif//KP
+
+#define XI_BIASPACKCOUNT_LOG2		2
+#if XI_IO_64bit_PORT_EN
+#define XI_OUTPUTPACKCOUNT_LOG2		3 - LOG2_NUM_PORT_IO
+#else
+#define XI_OUTPUTPACKCOUNT_LOG2		4 - LOG2_NUM_PORT_IO
+#endif
+#else
+#define XI_INPUTPACKCOUNT_LOG2		2
+#define XI_INPUTPACKCOUNT2_LOG2		3
+#define XI_WEIGHTPACKCOUNT_LOG2		6
+#define XI_OUTPUTPACKCOUNT_LOG2		3
+#define XI_BIASPACKCOUNT_LOG2		2	
+#endif	
 
 #define DEBUG_WEIGHT_EXTRACTION 0
 
@@ -159,6 +199,7 @@ limitations under the License.
 
 //#define WEIGHT_PACK_ELEMS 16
 #define CONV3D_WEIGHT_PACK_ELEMS 8
+#define CONV_IO_PACK_ELEMS       16
 
 #define HPARAM_TYPE 	int
 

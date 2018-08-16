@@ -51,6 +51,7 @@ using namespace std;
 #define NEEDED_CROP		1
 #define NEEDED_XCUSTOM	1
 #define NEEDED_XPACK	1
+#define NEEDED_ELTWADD	1
 
 //# Code Folding 
 #define ENABLE_SCHEDULER			1
@@ -63,10 +64,12 @@ using namespace std;
 #ifdef __SDSOC
 #include <sds_lib.h>
 #define PERFORMANCE_CHECK			1
+#define LAYERWISE_PERFORMANCE 		1
 #else
 #define PERFORMANCE_CHECK			0
+#define LAYERWISE_PERFORMANCE 		0
 #endif
 
-#define LAYERWISE_PERFORMANCE 1
+
 
 #endif//_XI_SCHEDULER_HPP_

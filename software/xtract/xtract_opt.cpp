@@ -3907,8 +3907,11 @@ void xlayer_sequence_generator(vector < XlayerData > & xlayer_seq,XGraph *xgraph
 	//	xgraphopt.opt_fc2conv(xgraph);
 	//#endif
 
+#if XI_DIET_CHAI_Z
+	xgraphopt.opt_sw_eltwise(xgraph);
+#else
 	xgraphopt.opt_eltwise(xgraph);
-
+#endif
 	xgraphopt.opt_relu(xgraph);
 
 	xgraphopt.opt_lrn(xgraph); // TODO offline changes need to discussed with team and add changes
@@ -5492,6 +5495,7 @@ void XGraphOpt::opt_relu(XGraph *xgraph_opt){
 	string *fc_layer_type = new string("InnerProduct");
 	string *conv_layer_type = new string("Convolution");
 	string *custom_layer_type =   new string("XCustom");
+	string *eltwise_layer_type = new string("Eltwise");
 
 #if O_DEBUG
 	cout<< "[O_DEBUG] opt_relu: blobs loop start" << endl;
@@ -5528,6 +5532,11 @@ void XGraphOpt::opt_relu(XGraph *xgraph_opt){
 						producer_layer->second->fc_params->reluflag=1;
 					else if (producer_layer->second->type.compare(*custom_layer_type)==0)
 						producer_layer->second->xcustom_params->reluflag=1;
+					else{
+						if (producer_layer->second->type.compare(*eltwise_layer_type)==0)
+							producer_layer->second->eltwise_params->reluflag=1;
+
+					}
 					producer_layer->second->output_file=output_file;
 				}
 			}else{
@@ -5551,6 +5560,11 @@ void XGraphOpt::opt_relu(XGraph *xgraph_opt){
 						producer_layer->second->fc_params->reluflag=1;
 					else if (producer_layer->second->type.compare(*custom_layer_type)==0)
 						producer_layer->second->xcustom_params->reluflag=1;
+					else{
+						if (producer_layer->second->type.compare(*eltwise_layer_type)==0)
+							producer_layer->second->eltwise_params->reluflag=1;
+
+					}
 					producer_layer->second->output_file=output_file;
 				}
 			}

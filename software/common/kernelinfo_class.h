@@ -94,7 +94,8 @@ enum moudle_type {
 	SW_XPACK=104,
 	SW_XUNPACK=105,
 	SW_PERMUTE=106,
-	SW_L2NORMALIZE=107
+	SW_L2NORMALIZE=107,
+	SW_ELTWISE_ADD=108
 };
 typedef enum moudle_type _moudle_type_e;
 

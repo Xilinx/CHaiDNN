@@ -37,11 +37,13 @@ limitations under the License.
 #define CONV_WT_TYPE         short
 #endif
 
+#if 0
 #define XI_INPUTPACKCOUNT_LOG2		2
 #define XI_INPUTPACKCOUNT2_LOG2		3
 #define XI_WEIGHTPACKCOUNT_LOG2		6
 #define XI_OUTPUTPACKCOUNT_LOG2		3
 #define XI_BIASPACKCOUNT_LOG2		2
+#endif
 
 #if 0
 #if KER_PROC==8 || KER_PROC==16

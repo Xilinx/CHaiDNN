@@ -158,7 +158,7 @@ void ConvolutionForward(
 			istg_out1    = istg_out1 + scalar_conv_args[112];
 #if !SINGLE_IO_PORT
 			input_other2 = input_other2 + scalar_conv_args[111];
-			istg_out2    = output2 + scalar_conv_args[112];
+			istg_out2    = istg_out2+ scalar_conv_args[112];
 #endif
 			/*
 			if(loop_iter==(pool_split_cnt-2))
@@ -173,11 +173,12 @@ void ConvolutionForward(
 				scalar_conv_args[14] = scalar_conv_args[117];
 				scalar_conv_args[15] = scalar_conv_args[118];
 			}*/
-
+/*
 			if(loop_iter==(pool_split_cnt-1))
 			{
 				scalar_conv_args[4] = scalar_conv_args[109];
 			}
+			*/
 		}
 		
 #ifdef __SDSOC
@@ -504,6 +505,13 @@ void XpackWrapper(void *input1, void *input2, void *output1, void *output2, stri
 void XpackForward(void *input1, void *input2, void *output1, void *output2, string quant, int *params, float *float_params)
 {
 	XpackWrapper(input1, input2, output1, output2, quant, params, float_params);
+}
+
+void EltwiseaddWrapper(IO_DATA_TYPE *input1, IO_DATA_TYPE *input2, IO_DATA_TYPE *input3, IO_DATA_TYPE *input4, IO_DATA_TYPE *output1, IO_DATA_TYPE *output2, int *params);
+
+void EltwiseaddForward(void *input1, void *input2, void *input3, void *input4, void *output1, void *output2, int *params)
+{
+	EltwiseaddWrapper((IO_DATA_TYPE *)input1, (IO_DATA_TYPE *)input2, (IO_DATA_TYPE *)input3, (IO_DATA_TYPE *)input4, (IO_DATA_TYPE *)output1, (IO_DATA_TYPE *)output2, params);
 }
 
 

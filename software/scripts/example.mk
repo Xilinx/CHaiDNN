@@ -3,6 +3,7 @@
 IDIRS = -I$(OPENCV_INC) -I$(ARM_INC) -I$(SDX_INC)
 
 OPENCV_LIBS = -lopencv_core -lopencv_imgproc -lopencv_imgcodecs -ldl -lrt -llzma -ltiff -lpng16 -lz -ljpeg -lwebp
+#enable following for 32-bit libs
 #OPENCV_LIBS = -lopencv_core -lopencv_imgproc -lopencv_imgcodecs -ldl -lrt
 
 LDIRS = -L$(LIB_DIR) -L$(BLAS_ARM_DIR)/lib

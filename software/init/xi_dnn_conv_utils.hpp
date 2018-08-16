@@ -283,9 +283,17 @@ void stgRowCount(int *scalar_conv_args)
 		ip_eff = (ip/32) + 1;
 
 	int possible_output_rows = (XI_OSTAGEBUFF_DEPTH)/((op_eff)*ow);
-	if(possible_output_rows == 0)
+
+	if( (scalar_conv_args[34] != OPCODE_POOL2CONV) && (scalar_conv_args[34] != OPCODE_AVRPOOL2CONV) )  //otherthan pool split
 	{
-		fprintf(stderr, "\n***** ostageBuf bram depth is not sufficient");
+		if(possible_output_rows == 0)
+		{
+			//fprintf(stderr, "\n***** ostageBuf bram depth is not sufficient");
+
+			fprintf(stderr, "\n[INFOx] Design will not fit for output dimension %dx%dx%d\n", outputplanes, oh, ow);
+
+			exit(-1);
+		}
 	}
 
 	int possible_input_rows = ((possible_output_rows-1)*fst) + fsz_dilated;
@@ -323,7 +331,7 @@ void stgRowCount(int *scalar_conv_args)
 			{
 				if(possible_input_rows <= 0)
 				{
-					fprintf(stderr, "\n************unable to set istage_row count");
+					//fprintf(stderr, "\n************unable to set istage_row count");
 				}
 
 				expression = temp*(ip_eff)*iw;
@@ -373,6 +381,19 @@ void stgRowCount(int *scalar_conv_args)
 
 	//*ostgRowCount = ostgcount;
 	scalar_conv_args[15] = ostgcount;
+
+	if( (scalar_conv_args[34] != OPCODE_POOL2CONV) && (scalar_conv_args[34] != OPCODE_AVRPOOL2CONV) )  //otherthan pool split
+	{
+	if(stgcount < fsz)
+	{
+			fprintf(stderr, "\n[INFOx] Design will not fit for input dimension  %dx%dx%d with filter dimension %dx%d\n", inputplanes, ih, iw, fsz, fsz);
+		if(ostgcount < 1)
+		{
+				fprintf(stderr, "\n[INFOx] Design will not fit for output dimension %dx%dx%d\n", outputplanes, oh, ow);
+		}
+			exit(-1);
+		}
+	}
 
 	if((scalar_conv_args[34] == OPCODE_3D_CONV) || (scalar_conv_args[34] == OPCODE_POOL_CONV2CONV))//if(opcode == 23 || opcode == 19)
 		scalar_conv_args[58] =  stgcount;
@@ -442,11 +463,6 @@ void stgRowCount_poolsplit(int *scalar_conv_args)
 		ip_eff = (ip/32) + 1;
 
 	int possible_output_rows = (XI_OSTAGEBUFF_DEPTH)/((op_eff)*ow);
-	if(possible_output_rows == 0)
-	{
-		fprintf(stderr, "\n***** ostageBuf bram depth is not sufficient");
-	}
-
 	int possible_input_rows = ((possible_output_rows-1)*fst) + fsz_dilated;
 
 	int conv3d_possible_input_rows = ((possible_input_rows-1)*conv3d_fst) + conv3d_fsz;
@@ -690,12 +706,15 @@ void loadConvWgtsTXT(xChangeLayer *currentLayer, const float *wts_arr, const flo
 	int size_of_weights,no_of_filters;
 	int no_kernals,no_planes;
 	int padding_no=0;
-	remainder=no_kernals_1%KER_PROC;
+
+//	remainder=no_kernals_1%KER_PROC;
+	remainder=no_kernals_1%CONV_IO_PACK_ELEMS;
 
 	if(remainder==0)
 		no_kernals=no_kernals_1;
 	else
-		no_kernals=no_kernals_1+KER_PROC-remainder;
+//		no_kernals=no_kernals_1+KER_PROC-remainder;
+		no_kernals=no_kernals_1+CONV_IO_PACK_ELEMS-remainder;
 
 	if(no_kernals<4)
 		no_kernals=4; //TODO: make it as a argument minimum number of kernels are processing

@@ -19,7 +19,6 @@ limitations under the License.
 
 #include "ap_int.h"
 #include "../common/kernelinfo_class.h"
-#include "../swkernels/xi_format_converter.hpp"
 
 //# Checks Convolution/Pool funtionality
 int cpCheck(
@@ -191,6 +190,12 @@ int cpCheck(
 
 		relu   = params[10];
 		en_batch_size_one = params[126];//58];
+
+		int pool_split_cnt = params[110];
+		if(pool_split_cnt>1)
+		{
+			indepth = params[109];
+		}
 	}
 	else if(inLayer.kernType == NORM)
 	{
@@ -199,6 +204,14 @@ int cpCheck(
 		indepth = params[0];
 		en_batch_size_one = params[8];
 		offline_quant_mode = params[9];
+	}
+	else if(inLayer.kernType == ELTWISEADD)
+	{
+		height = params[4];
+		width  = params[5];
+		indepth = params[3];
+		en_batch_size_one = 0;//params[8];
+		offline_quant_mode = 1;//params[9];
 	}
 	else //POOL
 	{
@@ -690,7 +703,7 @@ int cpCheck(
 		return -1;
 	else
 		return 0;
-#endif
+#endif  //if LAYERWISE_OUTPUT_WRITE
 
 }
 // cpCheck
@@ -3019,6 +3032,11 @@ void LoadInputData(xChangeLayer inLayer, char *lay_path)
 		planes	= params[5];
 		height	= params[0];
 		width	= params[1];
+		int pool_split_cnt = params[110];
+		if(pool_split_cnt>1)
+		{
+			planes = params[109];
+		}
 	}
 
 	if(inLayer.kernType == POOL)

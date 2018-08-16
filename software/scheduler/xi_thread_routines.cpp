@@ -1,3 +1,19 @@
+/*----------------------------------------------------
+Copyright 2017 Xilinx, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+----------------------------------------------------*/
+
 #include <stdio.h>
 #include "../include/xchange_structs.hpp"
 //#include "../imageRead/xiInputImage.hpp"
@@ -453,3 +469,27 @@ void * xpackRoutine(void *arguments)
 	return NULL;
 }
 
+//# EltwiseAdd Thread Routine
+void * eltwaddRoutine(void *arguments)
+{
+	//	std::cout << "\n** EltwiseAdd Thread " << std::endl;
+	xChangeLayer *layerArgs = (xChangeLayer *)arguments;
+	layerArgs->layer_done[0] = 0;
+
+	//# Call Eltwiseadd wrapper
+	EltwiseaddForward(
+			(void*)layerArgs->in_ptrs[0],
+			(void*)layerArgs->in_ptrs[1],
+			(void*)layerArgs->in_ptrs[2],
+			(void*)layerArgs->in_ptrs[3],
+			(void*)layerArgs->out_ptrs[0],
+			(void*)layerArgs->out_ptrs[1],
+			(int*)layerArgs->params
+			);
+
+	layerArgs->layer_done[0] = 1;
+#if PTHREAD
+	pthread_exit(NULL);
+#endif
+	return NULL;
+}

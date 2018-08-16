@@ -198,12 +198,14 @@ void update_conv_module_opcode_table(Opcode_info & obj_module_opcode,map<opcode_
 	/****** OPCODE_CRELU ***********/
 	obj_module_opcode.op_code = OPCODE_CRELU;
 	opcode_info_map[obj_module_opcode.op_code]=obj_module_opcode;
-	/****** OPCODE_BN ***********/
+	/****** OPCODE_BN + SCALE***********/
 	obj_module_opcode.op_code = OPCODE_BN;
 	opcode_info_map[obj_module_opcode.op_code]=obj_module_opcode;
 	/****** OPCODE_ELTWISE ***********/
+#if XI_DIET_CHAI_Z==0
 	obj_module_opcode.op_code = OPCODE_ELTWISE;
 	opcode_info_map[obj_module_opcode.op_code]=obj_module_opcode;
+#endif
 	/****** OPCODE_FUSE_BN_CONV ***********/
 	obj_module_opcode.op_code = OPCODE_FUSE_BN_CONV;
 	opcode_info_map[obj_module_opcode.op_code]=obj_module_opcode;
@@ -1283,6 +1285,163 @@ void update_permute_xunpack_module_opcode_table(Opcode_info & obj_module_opcode,
 	opcode_info_map[obj_module_opcode.op_code]=obj_module_opcode;
 
 }
+void update_opcde_sw_eltwise_module_opcode_table(Opcode_info & obj_module_opcode,map<opcode_num_e, Opcode_info>  & opcode_info_map,int batch_size){
+
+	Module_info module_default;
+	module_default.module_target_info = CPU;
+	module_default.module_type = SW_ELTWISE_ADD;
+	module_default.module_name = "Eltwise"; /// TODO abid needs to update the layer information based on the enum instead of layer name
+	module_default.num_total_ports=11; // TODO need to check with buffer management & init module
+	obj_module_opcode.mega_module = module_default;
+
+	/*** xcustom mega module ports  & these port order should be same as deploy file*********/
+
+	Port_info port_defualt;
+	port_defualt.port_width=XI_128BIT_WIDTH;
+	port_defualt.data_type = XI_INT8;
+	port_defualt.size_datatype = XI_INT8_S;
+	port_defualt.memory_align_required=32; // TODO need to check with buffer management & init module
+	port_defualt.memory_map_info = __MALLOC_TYPE;
+	port_defualt.port_enum=XI_INPUT;
+	port_defualt.qant_scheme_type = g_quant_value;
+
+
+	packinfo input_pack;
+
+	input_pack.dim = XI_CHANNEL;
+	input_pack.mem_contiguous = true;
+	input_pack.mod_div_factor = (port_defualt.port_width/port_defualt.size_datatype)/batch_size;
+	input_pack.sep=XI_DIVISION;
+
+	port_defualt.pack_info_vec.push_back(input_pack);
+
+	input_pack.dim = XI_HEIGHT;
+	input_pack.mem_contiguous = true;
+	input_pack.mod_div_factor = 0;
+	input_pack.sep=XI_NONE;
+
+	port_defualt.pack_info_vec.push_back(input_pack);
+
+	input_pack.dim = XI_WIDTH;
+	input_pack.mem_contiguous = true;
+	input_pack.mod_div_factor = 0;
+	input_pack.sep=XI_NONE;
+
+	port_defualt.pack_info_vec.push_back(input_pack);
+
+	input_pack.dim = XI_INTERLEAVED;
+	input_pack.mem_contiguous = true;
+	input_pack.mod_div_factor = (port_defualt.port_width/port_defualt.size_datatype)/batch_size;
+	input_pack.sep=XI_MODULO;
+	port_defualt.pack_info_vec.push_back(input_pack);
+
+	input_pack.dim = XI_BATCH;
+	input_pack.mem_contiguous = true;
+	input_pack.mod_div_factor = 0;
+	input_pack.sep=XI_NONE;
+
+	port_defualt.pack_info_vec.push_back(input_pack);
+
+	obj_module_opcode.port_vec.push_back(port_defualt);
+
+
+	packinfo input_pack1;
+	Port_info port_defualt2;
+	port_defualt2.port_width=XI_128BIT_WIDTH;
+	port_defualt2.data_type = XI_INT8;
+	port_defualt2.size_datatype = XI_INT8_S;
+	port_defualt2.memory_align_required=32; // TODO need to check with buffer management & init module
+	port_defualt2.memory_map_info = __MALLOC_TYPE;
+	port_defualt2.port_enum=XI_INPUT;
+	port_defualt2.qant_scheme_type = g_quant_value;
+
+	input_pack1.dim = XI_CHANNEL;
+	input_pack1.mem_contiguous = true;
+	input_pack1.mod_div_factor = (port_defualt2.port_width/port_defualt2.size_datatype)/batch_size;
+	input_pack1.sep=XI_DIVISION;
+
+	port_defualt2.pack_info_vec.push_back(input_pack1);
+
+	input_pack1.dim = XI_HEIGHT;
+	input_pack1.mem_contiguous = true;
+	input_pack1.mod_div_factor = 0;
+	input_pack1.sep=XI_NONE;
+
+	port_defualt2.pack_info_vec.push_back(input_pack1);
+
+	input_pack1.dim = XI_WIDTH;
+	input_pack1.mem_contiguous = true;
+	input_pack1.mod_div_factor = 0;
+	input_pack1.sep=XI_NONE;
+
+	port_defualt2.pack_info_vec.push_back(input_pack1);
+
+	input_pack1.dim = XI_INTERLEAVED;
+	input_pack1.mem_contiguous = true;
+	input_pack1.mod_div_factor = (port_defualt2.port_width/port_defualt2.size_datatype)/batch_size;
+	input_pack1.sep=XI_MODULO;
+	port_defualt2.pack_info_vec.push_back(input_pack1);
+
+	input_pack1.dim = XI_BATCH;
+	input_pack1.mem_contiguous = true;
+	input_pack1.mod_div_factor = 0;
+	input_pack1.sep=XI_NONE;
+
+	port_defualt2.pack_info_vec.push_back(input_pack1);
+	obj_module_opcode.port_vec.push_back(port_defualt2);
+
+	Port_info port_defualt1;
+	port_defualt1.port_width=XI_128BIT_WIDTH;
+	port_defualt1.data_type = XI_INT8;
+	port_defualt1.size_datatype = XI_INT8_S;
+	port_defualt1.memory_align_required=32; // TODO need to check with buffer management & init module
+	port_defualt1.memory_map_info = __MALLOC_TYPE;
+	port_defualt1.port_enum=XI_OUTPUT;
+	port_defualt1.qant_scheme_type = g_quant_value;
+
+	packinfo output_pack0;
+
+	output_pack0.dim = XI_CHANNEL;
+	output_pack0.mem_contiguous = true;
+	output_pack0.mod_div_factor = (port_defualt1.port_width/port_defualt1.size_datatype)/batch_size;
+	output_pack0.sep=XI_DIVISION;
+
+	port_defualt1.pack_info_vec.push_back(output_pack0);
+
+	output_pack0.dim = XI_HEIGHT;
+	output_pack0.mem_contiguous = true;
+	output_pack0.mod_div_factor = 0;
+	output_pack0.sep=XI_NONE;
+
+	port_defualt1.pack_info_vec.push_back(output_pack0);
+
+	output_pack0.dim = XI_WIDTH;
+	output_pack0.mem_contiguous = true;
+	output_pack0.mod_div_factor = 0;
+	output_pack0.sep=XI_NONE;
+
+	port_defualt1.pack_info_vec.push_back(output_pack0);
+
+	output_pack0.dim = XI_INTERLEAVED;
+	output_pack0.mem_contiguous = true;
+	output_pack0.mod_div_factor = (port_defualt1.port_width/port_defualt1.size_datatype)/batch_size;
+	output_pack0.sep=XI_MODULO;
+
+	port_defualt1.pack_info_vec.push_back(output_pack0);
+
+	output_pack0.dim = XI_BATCH;
+	output_pack0.mem_contiguous = true;
+	output_pack0.mod_div_factor = 0;
+	output_pack0.sep=XI_NONE;
+
+	port_defualt1.pack_info_vec.push_back(output_pack0);
+	obj_module_opcode.port_vec.push_back(port_defualt1);
+
+
+	/****** OPCODE_SW_ELTWISE_ADD  *******/
+	obj_module_opcode.op_code = OPCODE_SW_ELTWISE_ADD;
+	opcode_info_map[obj_module_opcode.op_code]=obj_module_opcode;
+}
 void update_sf_xpack_module_opcode_table(Opcode_info & obj_module_opcode,map<opcode_num_e, Opcode_info>  & opcode_info_map,int batch_size){
 
 	Module_info module_default;
@@ -1823,12 +1982,16 @@ kernelInfo::kernelInfo()
 	update_l2normalize_module_opcode_table(opcde_l2normalize,opcode_info_map,batch_size);
 
 
+
 	Opcode_info opcde_sf_xpack;
 	update_sf_xpack_module_opcode_table(opcde_sf_xpack,opcode_info_map,batch_size);
 
 	Opcode_info permute_xunpack;
 	update_permute_xunpack_module_opcode_table(permute_xunpack,opcode_info_map,batch_size);
-
+#if XI_DIET_CHAI_Z
+	Opcode_info opcde_sw_eltwise;
+	update_opcde_sw_eltwise_module_opcode_table(opcde_sw_eltwise,opcode_info_map,batch_size);
+#endif
 	//	opcode_info_info.insert()
 	//
 	//	kernelinfo_func_keys.insert(pair<int, kernelfunction>(int(HW_CONV), &kernelInfo::kernelinfo_function));
@@ -1913,7 +2076,10 @@ kernelInfo::kernelInfo(string &quant_schem)
 
 	Opcode_info permute_xunpack;
 	update_permute_xunpack_module_opcode_table(permute_xunpack,opcode_info_map,batch_size);
-
+#if XI_DIET_CHAI_Z
+	Opcode_info opcde_sw_eltwise;
+	update_opcde_sw_eltwise_module_opcode_table(opcde_sw_eltwise,opcode_info_map,batch_size);
+#endif
 	//	opcode_info_info.insert()
 	//
 	//	kernelinfo_func_keys.insert(pair<int, kernelfunction>(int(HW_CONV), &kernelInfo::kernelinfo_function));

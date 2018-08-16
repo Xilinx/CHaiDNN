@@ -94,6 +94,7 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 
 	std::vector<int> xcustomSeq;
 	std::vector<int> xpackSeq;
+	std::vector<int> eltwaddSeq;
 
 	//# Initialize layer-wise sequence
 	for(uint16_t idx = 0; idx < totalLayers; ++idx)
@@ -112,6 +113,7 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 		case CROP: 		cropSeq.push_back(idx); 	break;
 		case XCUSTOM:	xcustomSeq.push_back(idx);	break;
 		case XPACK: 	xpackSeq.push_back(idx);	break;
+		case ELTWISEADD:eltwaddSeq.push_back(idx);	break;
 		}
 #if ENABLE_ERROR_CHECKS
 		hwQueue[0][idx].DisplayParams(idx);
@@ -131,6 +133,7 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 
 	uint16_t txCustomLayers	= xcustomSeq.size();
 	uint16_t txPackLayers	= xpackSeq.size();
+	uint16_t tEltwaddLayers	= eltwaddSeq.size();
 
 #if ENABLE_ERROR_CHECKS
 	std::cout << "[INFOx] Total Conv Layers :    " << tConvLayers << std::endl;
@@ -144,20 +147,22 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 	std::cout << "[INFOx] Total Crop Layers :    " << tCropLayers << std::endl;
 	std::cout << "[INFOx] Total xCustom Layers : " << txCustomLayers << std::endl;
 	std::cout << "[INFOx] Total xPack Layers :   " << txPackLayers << std::endl;
+	std::cout << "[INFOx] Total Eltwadd Layers :   " << tEltwaddLayers << std::endl;
 #endif
 
 	//# Counter for all the layers
-	uint16_t convCnt[NUM_IMG] = {0},
-			poolCnt[NUM_IMG] = {0},
-			fcCnt[NUM_IMG] = {0},
+	uint16_t convCnt[NUM_IMG]   = {0},
+			poolCnt[NUM_IMG]    = {0},
+			fcCnt[NUM_IMG]      = {0},
 			softmaxCnt[NUM_IMG] = {0},
-			deconvCnt[NUM_IMG] = {0},
-			normCnt[NUM_IMG] = {0},
-			nmsCnt[NUM_IMG] = {0},
+			deconvCnt[NUM_IMG]  = {0},
+			normCnt[NUM_IMG]    = {0},
+			nmsCnt[NUM_IMG]     = {0},
 			permuteCnt[NUM_IMG] = {0},
-			cropCnt[NUM_IMG] = {0},
+			cropCnt[NUM_IMG]    = {0},
 			xcustomCnt[NUM_IMG] = {0},
-			xpackCnt[NUM_IMG] = {0};
+			xpackCnt[NUM_IMG]   = {0},
+			eltwaddCnt[NUM_IMG] = {0};
 
 	//# In-use flags
 	bool convInUse 		= false;
@@ -172,13 +177,14 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 
 	bool xcustomInUse 	= false;
 	bool xpackInUse 	= false;
+	bool eltwaddInUse 	= false;
 
 	bool ImreadInUse	= false;
 
 	//# Image IDs for different layers
 	int convImgId, poolImgId, deconvImgId, fcImgId,
 	softmaxImgId, normImgId, permuteImgId, nmsImgId,
-	cropImgId,xcustomImgId,xpackImgId;
+	cropImgId,xcustomImgId,xpackImgId,eltwaddImgId;
 
 	//# Done flags for all the layers
 	std::vector<bool> layerDone[NUM_IMG];
@@ -199,7 +205,7 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 
 	//# Software thread & done flags
 	pthread_t softmaxThread, normThread, nmsThread, permuteThread, imageReadThread,
-	cropThread,xcustomThread,xpackThread;
+	          cropThread, xcustomThread, xpackThread, eltwaddThread;
 
 	uint8_t normThreadDone 		= 0;
 	uint8_t nmsThreadDone  		= 0;
@@ -209,11 +215,12 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 
 	uint8_t xcustomThreadDone	= 0;
 	uint8_t	xpackThreadDone		= 0;
+	uint8_t	eltwaddThreadDone	= 0;
 
 	//# Check flags for all individual layers done
 	bool allPoolDone, allConvDone, allFCDone, allSoftMaxDone,
 	allPermuteDone, allDeconvDone, allNmsDone, allNormDone,
-	allCropDone,allxCustomDone,allxPackDone;
+	allCropDone,allxCustomDone,allxPackDone,allEltwaddDone;
 
 	int totalImages = NUM_IMG;//total_layers;
 	//int totalImages = 20;
@@ -229,6 +236,7 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 
 	xcustomArgs.xcustomThreadDone = &xcustomThreadDone;
 	xpackArgs.xpackThreadDone = &xpackThreadDone;
+
 
 #if ENABLE_SCHEDULER
 	//# Scheduler Entry Point ################################################
@@ -640,6 +648,40 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 			}
 		}
 #endif//NEEDED_XPACK
+
+#if NEEDED_ELTWADD
+		if((eltwaddInUse == false) && tEltwaddLayers)
+		{
+#if ENABLE_CONSOLE_TEXT
+			std::cout << "[DEBUG] eltwaddInUse == false " << std::endl;
+#endif
+
+			for(ImgId = 0; ImgId < NUM_IMG; ++ImgId)
+			{
+				allEltwaddDone = (eltwaddCnt[ImgId] == tEltwaddLayers) ? true : false;
+				uint16_t whichEltwadd = eltwaddSeq[eltwaddCnt[ImgId]];
+				if(!allEltwaddDone && (chkDeps(layerDone[ImgId], hwQueue[ImgId][whichEltwadd].previous)))
+				{
+#if LAYERWISE_PERFORMANCE
+				hwQueue[ImgId][whichEltwadd].startclk = sds_clock_counter();
+#endif
+					//# Call Eltwadd wrapper
+#if PTHREAD
+					pthread_create(&eltwaddThread, NULL, eltwaddRoutine, (void *)&hwQueue[ImgId][whichEltwadd]);
+#else
+					eltwaddRoutine((void *)&hwQueue[ImgId][whichEltwadd]);
+#endif
+					eltwaddImgId = ImgId;
+					eltwaddInUse = true;
+#if ENABLE_CONSOLE_TEXT
+					std::cout << "[DEBUG] eltwaddForward : " << eltwaddImgId << ", " << allEltwaddDone << std::endl;
+#endif
+					break;
+				}
+			}
+		}
+#endif  //NEEDED_ELTWADD
+
 		//#######################################################################################//
 
 #if NEEDED_CONV
@@ -978,7 +1020,7 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 				softmaxInUse = false;
 			}
 		}
-#endif//NEEDED_NORM
+#endif//NEEDED_SOFTMAX
 
 #if NEEDED_NMS
 		if(nmsInUse == true)
@@ -1055,6 +1097,7 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 			}
 		}
 #endif//NEEDED_CROP
+
 #if NEEDED_XCUSTOM
 		if(xcustomInUse == true)
 		{
@@ -1085,6 +1128,7 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 			}
 		}
 #endif//NEEDED_XCUSTOM
+
 #if NEEDED_XPACK
 		if(xpackInUse == true)
 		{
@@ -1115,6 +1159,50 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 			}
 		}
 #endif//NEEDED_XPACK
+
+#if NEEDED_ELTWADD
+		if(eltwaddInUse == true)
+		{
+			uint16_t whichEltwadd = eltwaddSeq[eltwaddCnt[eltwaddImgId]];
+			eltwaddThreadDone = hwQueue[eltwaddImgId][whichEltwadd].layer_done[0];
+
+			//# Check for thread completion
+			if(eltwaddThreadDone)
+			{
+#if PTHREAD
+				int eltwaddRet = pthread_join(eltwaddThread, NULL);
+#else
+				int eltwaddRet = 0;
+#endif
+
+#if ENABLE_CONSOLE_TEXT
+				if(eltwaddRet != 0)
+				{ std::cerr << "\n[ERROR] eltwaddThread Fail ! " << "Image : " << eltwaddImgId << ", Layer ID : " << eltwaddSeq[eltwaddCnt[eltwaddImgId]] << std::endl; }
+				else
+				{ std::cout << "** eltwaddForward : Done" << std::endl; }
+#endif
+				hwQueue[eltwaddImgId][whichEltwadd].layer_done[0] = 0;
+				eltwaddThreadDone = 0;
+
+#if ENABLE_ERROR_CHECKS
+				if(eltwaddImgId == 0){
+					int eltwaddErr = errorCheck(hwQueue[eltwaddImgId][whichEltwadd]);
+					if(eltwaddErr)
+						std::cout << "\n[ERROR] Eltwadd Layer : " << whichEltwadd << " Image : " << eltwaddImgId << " Fail !" << std::endl;
+					else
+						std::cout << "\n[ERROR] Eltwadd Layer : " << whichEltwadd << " Image : " << eltwaddImgId << " Pass !" << std::endl;
+				}
+#endif
+#if LAYERWISE_PERFORMANCE
+			hwQueue[eltwaddImgId][whichEltwadd].endclk = sds_clock_counter();
+#endif
+				layerDone[eltwaddImgId][eltwaddSeq[eltwaddCnt[eltwaddImgId]]] = true;
+				eltwaddCnt[eltwaddImgId]++;
+				eltwaddInUse = false;
+			}
+		}
+#endif//NEEDED_ELTWADD
+
 #if RESET_DONE_FLAGS
 		//# Check Last Layer : Done ?
 		if(layerDone[0][lastLayerIdx] == true)
@@ -1129,7 +1217,8 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 				layerDone[0][idx] = false;
 			}
 			poolCnt[0] = 0; fcCnt[0] = 0; softmaxCnt[0] = 0; 
-			deconvCnt[0] = 0; normCnt[0] = 0; nmsCnt[0] = 0; permuteCnt[0] = 0; cropCnt[0] = 0;
+			deconvCnt[0] = 0; normCnt[0] = 0; nmsCnt[0] = 0;
+			permuteCnt[0] = 0; cropCnt[0] = 0; eltwaddCnt[0] = 0;
 
 			if(ImageDoneCount >= totalImages-1)
 				convCnt[0] = tConvLayers;
@@ -1152,7 +1241,8 @@ void xiExec(void *handle, vector<void *> input, vector<void *> output)
 				layerDone[1][idx] = false;
 			}
 			poolCnt[1] = 0; fcCnt[1] = 0; softmaxCnt[1] = 0; 
-			deconvCnt[1] = 0; normCnt[1] = 0; nmsCnt[1] = 0; permuteCnt[1] = 0; cropCnt[1] = 0;
+			deconvCnt[1] = 0; normCnt[1] = 0; nmsCnt[1] = 0;
+			permuteCnt[1] = 0; cropCnt[1] = 0; eltwaddCnt[1] = 0;
 			CanReadImage[1] = true;
 			if(ImageDoneCount >= totalImages-1)
 				convCnt[1] = tConvLayers;
