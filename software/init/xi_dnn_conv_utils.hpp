@@ -384,15 +384,16 @@ void stgRowCount(int *scalar_conv_args)
 
 	if( (scalar_conv_args[34] != OPCODE_POOL2CONV) && (scalar_conv_args[34] != OPCODE_AVRPOOL2CONV) )  //otherthan pool split
 	{
-	if(stgcount < fsz)
-	{
-			fprintf(stderr, "\n[INFOx] Design will not fit for input dimension  %dx%dx%d with filter dimension %dx%d\n", inputplanes, ih, iw, fsz, fsz);
+	//if(stgcount < fsz)
+	//{
+			//fprintf(stderr, "\n[INFOx] Design will not fit for input dimension  %dx%dx%d with filter dimension %dx%d\n", inputplanes, ih, iw, fsz, fsz);
 		if(ostgcount < 1)
 		{
-				fprintf(stderr, "\n[INFOx] Design will not fit for output dimension %dx%dx%d\n", outputplanes, oh, ow);
-		}
+			fprintf(stderr, "\n[INFOx] Design will not fit for output dimension %dx%dx%d\n", outputplanes, oh, ow);
 			exit(-1);
 		}
+			
+		//}
 	}
 
 	if((scalar_conv_args[34] == OPCODE_3D_CONV) || (scalar_conv_args[34] == OPCODE_POOL_CONV2CONV))//if(opcode == 23 || opcode == 19)
