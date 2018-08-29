@@ -284,18 +284,19 @@ void stgRowCount(int *scalar_conv_args)
 
 	int possible_output_rows = (XI_OSTAGEBUFF_DEPTH)/((op_eff)*ow);
 
+#if 0	
 	if( (scalar_conv_args[34] != OPCODE_POOL2CONV) && (scalar_conv_args[34] != OPCODE_AVRPOOL2CONV) )  //otherthan pool split
 	{
 		if(possible_output_rows == 0)
 		{
 			//fprintf(stderr, "\n***** ostageBuf bram depth is not sufficient");
 
-			fprintf(stderr, "\n[INFOx] Design will not fit for output dimension %dx%dx%d\n", outputplanes, oh, ow);
-
+			fprintf(stderr, "\n[ERRORx] Design will not fit for output dimension %dx%dx%d\n", outputplanes, oh, ow);
+			fprintf(stderr, "\n[INFOx] Increase XI_OSTAGEBUFF_DEPTH in software/include/hw_settings.h\n");
 			exit(-1);
 		}
 	}
-
+#endif
 	int possible_input_rows = ((possible_output_rows-1)*fst) + fsz_dilated;
 
 	int conv3d_possible_input_rows = ((possible_input_rows-1)*conv3d_fst) + conv3d_fsz;
@@ -381,19 +382,31 @@ void stgRowCount(int *scalar_conv_args)
 
 	//*ostgRowCount = ostgcount;
 	scalar_conv_args[15] = ostgcount;
-
+	
 	if( (scalar_conv_args[34] != OPCODE_POOL2CONV) && (scalar_conv_args[34] != OPCODE_AVRPOOL2CONV) )  //otherthan pool split
 	{
-	//if(stgcount < fsz)
-	//{
-			//fprintf(stderr, "\n[INFOx] Design will not fit for input dimension  %dx%dx%d with filter dimension %dx%d\n", inputplanes, ih, iw, fsz, fsz);
+		if(stgcount < 1)
+		{
+			fprintf(stderr, "\n\n[ERRORx] Design will not fit for input dimension  %dx%dx%d with filter dimension %dx%d.\n", inputplanes, ih, iw, fsz, fsz);
+			fprintf(stderr, "         Increase XI_ISTAGEBUFF_DEPTH in software/include/hw_settings.h.\n");
+			fprintf(stderr, "         Increase XI_OSTAGEBUFF_DEPTH in design/conv/include/xi_conv_config.h.\n");
+			fprintf(stderr, "         Rebuild both software and hardware after this change.\n");
+		}
+
 		if(ostgcount < 1)
 		{
-			fprintf(stderr, "\n[INFOx] Design will not fit for output dimension %dx%dx%d\n", outputplanes, oh, ow);
+			fprintf(stderr, "\n\n[ERRORx] Design will not fit for output dimension %dx%dx%d. \n", outputplanes, oh, ow);
+			fprintf(stderr, "         Increase XI_ISTAGEBUFF_DEPTH in software/include/hw_settings.h.\n");
+			fprintf(stderr, "         Increase XI_OSTAGEBUFF_DEPTH in design/conv/include/xi_conv_config.h.\n");
+			fprintf(stderr, "         Rebuild both software and hardware after this change.\n");
+		}
+
+		if((stgcount < 1) || (ostgcount < 1))
+		{
+			fprintf(stderr, "\n[INFOx] Exiting the application\n");
 			exit(-1);
 		}
-			
-		//}
+
 	}
 
 	if((scalar_conv_args[34] == OPCODE_3D_CONV) || (scalar_conv_args[34] == OPCODE_POOL_CONV2CONV))//if(opcode == 23 || opcode == 19)
