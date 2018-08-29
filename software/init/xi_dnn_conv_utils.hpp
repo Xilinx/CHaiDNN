@@ -387,18 +387,18 @@ void stgRowCount(int *scalar_conv_args)
 	{
 		if(stgcount < 1)
 		{
-			fprintf(stderr, "\n\n[ERRORx] Design will not fit for input dimension  %dx%dx%d with filter dimension %dx%d.\n", inputplanes, ih, iw, fsz, fsz);
-			fprintf(stderr, "         Increase XI_ISTAGEBUFF_DEPTH in software/include/hw_settings.h.\n");
-			fprintf(stderr, "         Increase XI_OSTAGEBUFF_DEPTH in design/conv/include/xi_conv_config.h.\n");
-			fprintf(stderr, "         Rebuild both software and hardware after this change.\n");
+			fprintf(stderr, "\n\n[ERROR] Design will not fit for input dimension  %dx%dx%d with filter dimension %dx%d.\n", inputplanes, ih, iw, fsz, fsz);
+			fprintf(stderr, "        Increase XI_ISTAGEBUFF_DEPTH in software/include/hw_settings.h.\n");
+			fprintf(stderr, "        Increase XI_OSTAGEBUFF_DEPTH in design/conv/include/xi_conv_config.h.\n");
+			fprintf(stderr, "        Rebuild both software and hardware after this change.\n");
 		}
 
 		if(ostgcount < 1)
 		{
-			fprintf(stderr, "\n\n[ERRORx] Design will not fit for output dimension %dx%dx%d. \n", outputplanes, oh, ow);
-			fprintf(stderr, "         Increase XI_ISTAGEBUFF_DEPTH in software/include/hw_settings.h.\n");
-			fprintf(stderr, "         Increase XI_OSTAGEBUFF_DEPTH in design/conv/include/xi_conv_config.h.\n");
-			fprintf(stderr, "         Rebuild both software and hardware after this change.\n");
+			fprintf(stderr, "\n\n[ERROR] Design will not fit for output dimension %dx%dx%d. \n", outputplanes, oh, ow);
+			fprintf(stderr, "        Increase XI_ISTAGEBUFF_DEPTH in software/include/hw_settings.h.\n");
+			fprintf(stderr, "        Increase XI_OSTAGEBUFF_DEPTH in design/conv/include/xi_conv_config.h.\n");
+			fprintf(stderr, "        Rebuild both software and hardware after this change.\n");
 		}
 
 		if((stgcount < 1) || (ostgcount < 1))
