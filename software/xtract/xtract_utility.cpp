@@ -1986,7 +1986,7 @@ void find_mem_type_io_buffers(XGraph *xgraph,vector < BDegree > &Bdepth,map<stri
 				if(c_hw_type==1 && c_sw_type==1){
 
 					tmp_m_d_type.io_mem_type ="non_cacheable";
-#if XI_DIET_CHAI_Z
+#if (XI_DIET_CHAI_Z || XI_DIET_CHAI_ZUPLUS)
 					tmp_m_d_type.io_mem_type ="cacheable";
 #endif
 					tmp_m_d_type.io_data_type = tmp_data_type;
@@ -2003,7 +2003,7 @@ void find_mem_type_io_buffers(XGraph *xgraph,vector < BDegree > &Bdepth,map<stri
 				{
 					if(c_hw_type==1 && c_sw_type==0){
 						tmp_m_d_type.io_mem_type ="non_cacheable";
-#if XI_DIET_CHAI_Z
+#if (XI_DIET_CHAI_Z || XI_DIET_CHAI_ZUPLUS)
 					tmp_m_d_type.io_mem_type ="cacheable";
 #endif
 						tmp_m_d_type.io_data_type = tmp_data_type;
@@ -2025,7 +2025,7 @@ void find_mem_type_io_buffers(XGraph *xgraph,vector < BDegree > &Bdepth,map<stri
 				{
 					//mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="non_cacheable";
 					tmp_m_d_type.io_mem_type ="non_cacheable";
-#if XI_DIET_CHAI_Z
+#if (XI_DIET_CHAI_Z || XI_DIET_CHAI_ZUPLUS)
 					tmp_m_d_type.io_mem_type ="cacheable";
 #endif
 					tmp_m_d_type.io_data_type = tmp_data_type;
@@ -2042,7 +2042,7 @@ void find_mem_type_io_buffers(XGraph *xgraph,vector < BDegree > &Bdepth,map<stri
 					if(c_hw_type==1 && c_sw_type==0){
 						//mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="non_cacheable";
 						tmp_m_d_type.io_mem_type ="non_cacheable";
-#if XI_DIET_CHAI_Z
+#if (XI_DIET_CHAI_Z || XI_DIET_CHAI_ZUPLUS)
 					tmp_m_d_type.io_mem_type ="cacheable";
 #endif
 						tmp_m_d_type.io_data_type = tmp_data_type;
@@ -2075,7 +2075,7 @@ void find_mem_type_io_buffers(XGraph *xgraph,vector < BDegree > &Bdepth,map<stri
 					{
 						//mem_type_table[Bdepth[iter_d].blobs_name[iter_db]]="non_cacheable";
 						tmp_m_d_type.io_mem_type ="non_cacheable";
-#if XI_DIET_CHAI_Z
+#if (XI_DIET_CHAI_Z || XI_DIET_CHAI_ZUPLUS)
 					tmp_m_d_type.io_mem_type ="cacheable";
 #endif
 						tmp_m_d_type.io_data_type = tmp_data_type;

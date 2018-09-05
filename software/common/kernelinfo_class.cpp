@@ -1988,7 +1988,7 @@ kernelInfo::kernelInfo()
 
 	Opcode_info permute_xunpack;
 	update_permute_xunpack_module_opcode_table(permute_xunpack,opcode_info_map,batch_size);
-#if XI_DIET_CHAI_Z
+#if (XI_DIET_CHAI_Z || XI_DIET_CHAI_ZUPLUS)
 	Opcode_info opcde_sw_eltwise;
 	update_opcde_sw_eltwise_module_opcode_table(opcde_sw_eltwise,opcode_info_map,batch_size);
 #endif
@@ -2076,7 +2076,7 @@ kernelInfo::kernelInfo(string &quant_schem)
 
 	Opcode_info permute_xunpack;
 	update_permute_xunpack_module_opcode_table(permute_xunpack,opcode_info_map,batch_size);
-#if XI_DIET_CHAI_Z
+#if (XI_DIET_CHAI_Z || XI_DIET_CHAI_ZUPLUS)
 	Opcode_info opcde_sw_eltwise;
 	update_opcde_sw_eltwise_module_opcode_table(opcde_sw_eltwise,opcode_info_map,batch_size);
 #endif

@@ -110,6 +110,9 @@ void CropForward(int *input, int *output, int *scalars);
 
 void XpackForward(void *input1, void *input2, void *output1, void *output2, string quant, int *params, float *float_params);
 
+#if SINGLE_IO_PORT
+void EltwiseaddForward(void *input1, void *input2, void *output1, int *params);
+#else
 void EltwiseaddForward(void *input1, void *input2, void *input3, void *input4, void *output1, void *output2, int *params);
-
+#endif
 #endif//_XI_KERNELS_H_

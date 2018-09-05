@@ -821,6 +821,8 @@ void xiIOBuffCreate(
 							}
 							else
 							{
+								//TODO : Generalize across multiple bottoms for sw layer plugin and SW eltwise case
+								//lay_obj[img_id][iter].in_ptrs[j+(l_ib*HCONV_OUT_PORTS)] = addOffset<BUF_ADDR_TYPE>(io_map[cur_handle].ptr[j], in_offset); //io_map[cur_handle].ptr[j];
 								lay_obj[img_id][iter].in_ptrs[j+(l_ib*2)] = addOffset<BUF_ADDR_TYPE>(io_map[cur_handle].ptr[j], in_offset); //io_map[cur_handle].ptr[j];
 							}
 						}

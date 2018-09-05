@@ -3785,7 +3785,7 @@ void find_in_out_thresold(XGraph *xgraph){
 			map < string, XLayer*>::iterator c_layer_it = xgraph->layers.find(it->second->consumers[iter_b_c]);
 			if(c_layer_it->second->quantization_scheme.compare("Xilinx")==0){
 
-				if((c_layer_it->second->opcode==OPCODE_AVRPOOL2CONV)||(c_layer_it->second->opcode==OPCODE_POOL2CONV)){
+				if((c_layer_it->second->opcode==OPCODE_AVRPOOL2CONV)||(c_layer_it->second->opcode==OPCODE_POOL2CONV)||(c_layer_it->second->opcode==OPCODE_3D_CONV)){
 					cons_in_th.push_back(c_layer_it->second->conv_params->th_layer_in_3d);
 				}else{
 					cons_in_th.push_back(c_layer_it->second->th_layer_in);
@@ -3801,7 +3801,11 @@ void find_in_out_thresold(XGraph *xgraph){
 				if((p_layer_it->second->opcode==OPCODE_AVRPOOL2CONV)||(p_layer_it->second->opcode==OPCODE_POOL2CONV)){
 
 					prod_out_th.push_back(p_layer_it->second->conv_params->th_layer_out_3d);
-				}else{
+				}else if(p_layer_it->second->opcode==OPCODE_3D_CONV){
+					prod_out_th.push_back(p_layer_it->second->th_layer_out);
+				}
+				else
+				{
 					prod_out_th.push_back(p_layer_it->second->th_layer_out);
 				}
 				prod_layer_name.push_back(it->second->producers[iter_b_p]);
@@ -3907,7 +3911,7 @@ void xlayer_sequence_generator(vector < XlayerData > & xlayer_seq,XGraph *xgraph
 	//	xgraphopt.opt_fc2conv(xgraph);
 	//#endif
 
-#if XI_DIET_CHAI_Z
+#if (XI_DIET_CHAI_Z || XI_DIET_CHAI_ZUPLUS)
 	xgraphopt.opt_sw_eltwise(xgraph);
 #else
 	xgraphopt.opt_eltwise(xgraph);

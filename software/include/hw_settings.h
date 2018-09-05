@@ -23,7 +23,7 @@ limitations under the License.
 #if 0//ndef __SDSOC
 #define XI_DIET_CHAI_Z 		0
 #define XI_DIET_CHAI_ZUPLUS	0
-#define __POOL_ENABLE__		1
+#define __POOL_ENABLE__		0
 #define __DECONV_ENABLE__	0
 #define __CONV_ENABLE__     	1
 #endif
@@ -91,10 +91,10 @@ limitations under the License.
 #endif
 
 #define XI_INPUTPACKCOUNT_LOG2		2
-#if XI_IO_64bit_PORT_EN
-#define XI_INPUTPACKCOUNT2_LOG2		3 - LOG2_NUM_PORT_IO
+#if (XI_IO_64bit_PORT_EN && !XI_SINGLE_IO_PORT_EN) || (!XI_IO_64bit_PORT_EN && XI_SINGLE_IO_PORT_EN)
+#define XI_INPUTPACKCOUNT2_LOG2		3
 #else
-#define XI_INPUTPACKCOUNT2_LOG2		4 - LOG2_NUM_PORT_IO
+#define XI_INPUTPACKCOUNT2_LOG2		4
 #endif
 
 #if XI_KER_PROC==8
@@ -104,10 +104,10 @@ limitations under the License.
 #endif//KP
 
 #define XI_BIASPACKCOUNT_LOG2		2
-#if XI_IO_64bit_PORT_EN
-#define XI_OUTPUTPACKCOUNT_LOG2		3 - LOG2_NUM_PORT_IO
+#if (XI_IO_64bit_PORT_EN && !XI_SINGLE_IO_PORT_EN) || (!XI_IO_64bit_PORT_EN && XI_SINGLE_IO_PORT_EN)
+#define XI_OUTPUTPACKCOUNT_LOG2		3
 #else
-#define XI_OUTPUTPACKCOUNT_LOG2		4 - LOG2_NUM_PORT_IO
+#define XI_OUTPUTPACKCOUNT_LOG2		4
 #endif
 #else
 #define XI_INPUTPACKCOUNT_LOG2		2
@@ -200,6 +200,7 @@ limitations under the License.
 //#define WEIGHT_PACK_ELEMS 16
 #define CONV3D_WEIGHT_PACK_ELEMS 8
 #define CONV_IO_PACK_ELEMS       16
+#define CONV3D_BIAS_PACK_ELEMS   4
 
 #define HPARAM_TYPE 	int
 

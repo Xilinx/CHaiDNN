@@ -476,6 +476,15 @@ void * eltwaddRoutine(void *arguments)
 	xChangeLayer *layerArgs = (xChangeLayer *)arguments;
 	layerArgs->layer_done[0] = 0;
 
+#if XI_SINGLE_IO_PORT_EN
+	//# Call Eltwiseadd wrapper
+	EltwiseaddForward(
+			(void*)layerArgs->in_ptrs[0],
+			(void*)layerArgs->in_ptrs[2],   //TODO:Buffmgmt passes second input in in_ptrs[2]
+			(void*)layerArgs->out_ptrs[0],
+			(int*)layerArgs->params
+			);
+#else
 	//# Call Eltwiseadd wrapper
 	EltwiseaddForward(
 			(void*)layerArgs->in_ptrs[0],
@@ -486,7 +495,7 @@ void * eltwaddRoutine(void *arguments)
 			(void*)layerArgs->out_ptrs[1],
 			(int*)layerArgs->params
 			);
-
+#endif  //#if XI_SINGLE_IO_PORT_EN
 	layerArgs->layer_done[0] = 1;
 #if PTHREAD
 	pthread_exit(NULL);

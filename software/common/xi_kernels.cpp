@@ -507,12 +507,21 @@ void XpackForward(void *input1, void *input2, void *output1, void *output2, stri
 	XpackWrapper(input1, input2, output1, output2, quant, params, float_params);
 }
 
+#if XI_SINGLE_IO_PORT_EN
+void EltwiseaddWrapper(IO_DATA_TYPE *input1, IO_DATA_TYPE *input3, IO_DATA_TYPE *output1, int *params);
+
+void EltwiseaddForward(void *input1, void *input3, void *output1, int *params)
+{
+	EltwiseaddWrapper((IO_DATA_TYPE *)input1, (IO_DATA_TYPE *)input3, (IO_DATA_TYPE *)output1, params);
+}
+#else
+
 void EltwiseaddWrapper(IO_DATA_TYPE *input1, IO_DATA_TYPE *input2, IO_DATA_TYPE *input3, IO_DATA_TYPE *input4, IO_DATA_TYPE *output1, IO_DATA_TYPE *output2, int *params);
 
 void EltwiseaddForward(void *input1, void *input2, void *input3, void *input4, void *output1, void *output2, int *params)
 {
 	EltwiseaddWrapper((IO_DATA_TYPE *)input1, (IO_DATA_TYPE *)input2, (IO_DATA_TYPE *)input3, (IO_DATA_TYPE *)input4, (IO_DATA_TYPE *)output1, (IO_DATA_TYPE *)output2, params);
 }
-
+#endif  //#if XI_SINGLE_IO_PORT_EN
 
 #endif//_XI_KERNELS_HPP_

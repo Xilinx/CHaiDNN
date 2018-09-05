@@ -47,8 +47,8 @@ void mem_offset_group(int in_h, int  in_w, int in_p,
 	else
 	{
 		*input_group_offset_1st_fa0 = (I_hwp_ffb0)>>XI_INPUTPACKCOUNT_LOG2;
-		*input_group_offset_other_fa0 = (I_hwp_ffb0)>>(XI_INPUTPACKCOUNT2_LOG2+1);
-		*output_group_offset_fa0 = (O_hwp_ffb0)>>(XI_OUTPUTPACKCOUNT_LOG2+1);
+		*input_group_offset_other_fa0 = (I_hwp_ffb0)>>(XI_INPUTPACKCOUNT2_LOG2);
+		*output_group_offset_fa0 = (O_hwp_ffb0)>>(XI_OUTPUTPACKCOUNT_LOG2);
 		*weights_group_offset_fa0 = (K_nkpfsz2_ffb0)>>(XI_WEIGHTPACKCOUNT_LOG2);
 		*bias_group_offset_fa0 = (out_p)>>XI_BIASPACKCOUNT_LOG2;
 	}
@@ -284,7 +284,7 @@ void stgRowCount(int *scalar_conv_args)
 
 	int possible_output_rows = (XI_OSTAGEBUFF_DEPTH)/((op_eff)*ow);
 
-#if 0	
+#if 0
 	if( (scalar_conv_args[34] != OPCODE_POOL2CONV) && (scalar_conv_args[34] != OPCODE_AVRPOOL2CONV) )  //otherthan pool split
 	{
 		if(possible_output_rows == 0)
@@ -628,6 +628,11 @@ void nkpfCount(int *scalar_conv_args)
 	while(rem!=0){
 		max_nkpf--;
 
+		if(max_nkpf==0){
+			fprintf(stderr, "Not able to set nkpf parameter.Check layer configuration");
+			break;
+		}
+
 #if KER_PROC==16
 		rem = op%(max_nkpf*16);
 #elif KER_PROC==8
@@ -636,10 +641,6 @@ void nkpfCount(int *scalar_conv_args)
 		rem = op%(max_nkpf*4);
 #endif
 
-		if(max_nkpf==0){
-			fprintf(stderr, "Not able to set nkpf parameter.Check layer configuration");
-			break;
-		}
 	}
 
 	//*nkpf = max_nkpf;
