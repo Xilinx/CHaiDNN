@@ -167,7 +167,7 @@ To increase the throughput, compute DSPs are double-pumped i.e., DSPs are clocke
 
 1. Replace the `.dsa` file present in the `<custom_platform_path>/zcu102/hw` folder with the generated `.dsa` file (with above flow).
 
-1. To build the design with this custom platform, set platform variable to `<custom_platform_path>/zcu102` (this path needs to be an absolute path) and set `clk_id/dm_clk_id` variables to `1` in <CHaiDNN local path>/design/build/Makefile.
+1. To build the design with this custom platform, set platform variable to `<custom_platform_path>/zcu102` (this path needs to be an absolute path) and set `CLOCK_ID/DM_CLOCK_ID` variables to `1` in <CHaiDNN local path>/design/build/Makefile.
 </details>
 
 
