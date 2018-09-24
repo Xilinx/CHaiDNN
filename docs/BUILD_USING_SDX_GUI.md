@@ -88,7 +88,7 @@ To build `CHaiDNN` using the Xilinx&reg; SDx Development Environment, perform th
 
 15. In `SDS++ Compiler` add the following in the `command`
     ```
-    sds++ -sds-hw XiConvolutionTop  <path to design>/src/design/conv/src/xi_convolution_top.cpp -clkid 1 -hls-tcl  <path to design>/src/conv/scripts/config_core.tcl -sds-end
+    sds++ -sds-hw XiConvolutionTop  <path to design>/src/design/conv/src/xi_convolution_top.cpp -clkid 1 -hls-tcl  <path to design>/src/design/conv/scripts/config_core.tcl -sds-end
 
     ```
     >**:pushpin: NOTE:**   `<path to design>` is the path to the project's `src/design` folder.
@@ -117,7 +117,7 @@ To build `CHaiDNN` using the Xilinx&reg; SDx Development Environment, perform th
 
 19. In `SDS++ Linker` add the following in the `command`
     ```
-    sds++ -xp param:compiler.skipTimingCheckAndFrequencyScaling=1 -xp "vivado_prop:run.impl_1.{STEPS.OPT_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}"  -xp "vivado_prop:run.impl_1.{STEPS.PLACE_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.impl_1.STEPS.PHYS_OPT_DESIGN.IS_ENABLED=1" -xp "vivado_prop:run.impl_1.{STEPS.PHYS_OPT_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.impl_1.{STEPS.ROUTE_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.synth_1.{STEPS.SYNTH_DESIGN.TCL.PRE}={<path to design>/src/conv/scripts/mcps.tcl}" -xp "vivado_prop:run.impl_1.{STEPS.PLACE_DESIGN.TCL.PRE}={<path to design>/src/conv/scripts/mcps.tcl}" -Wno-unused-label
+    sds++ -xp param:compiler.skipTimingCheckAndFrequencyScaling=1 -xp "vivado_prop:run.impl_1.{STEPS.OPT_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}"  -xp "vivado_prop:run.impl_1.{STEPS.PLACE_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.impl_1.STEPS.PHYS_OPT_DESIGN.IS_ENABLED=1" -xp "vivado_prop:run.impl_1.{STEPS.PHYS_OPT_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.impl_1.{STEPS.ROUTE_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.synth_1.{STEPS.SYNTH_DESIGN.TCL.PRE}={<path to design>/src/design/conv/scripts/mcps.tcl}" -xp "vivado_prop:run.impl_1.{STEPS.PLACE_DESIGN.TCL.PRE}={<path to design>/src/design/conv/scripts/mcps.tcl}" -Wno-unused-label
     ```
  20. In `SDS++ Linker`, Select `Libraries` and add the following libs
      ```
