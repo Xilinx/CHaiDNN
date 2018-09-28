@@ -225,7 +225,8 @@ int outputWrite( char *dirpath,
 		char *img_path,
 		std::vector<void *> unpack_output,
 		int numImg_to_process,
-		io_layer_info io_layer_info_ptr
+		io_layer_info io_layer_info_ptr,
+		int ping_pong_idx
 		);
 ```
 **Parameters**
@@ -238,6 +239,8 @@ int outputWrite( char *dirpath,
 - `numImg_to_process` : Specifies the number of images to process. This version of CHaiDNN only supports a value of 2 for this parameter
 
 - `io_layer_info_ptr` : Provides information about number of I/O buffers and their sizes and is initiated by the xiInit API
+
+- `ping_pong_idx` : Specifies index for ping pong buffers. 
 
 - `return value` : Returns zero value upon successful execution
 </details>
