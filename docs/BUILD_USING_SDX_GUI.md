@@ -88,7 +88,7 @@ To build `CHaiDNN` using the Xilinx&reg; SDx Development Environment, perform th
 
 15. In `SDS++ Compiler` add the following in the `command`
     ```
-    sds++ -sds-hw XiConvolutionTop  <path to design>/src/design/conv/src/xi_convolution_top.cpp -clkid 1 -hls-tcl  <path to design>/src/conv/scripts/config_core.tcl -sds-end
+    sds++ -sds-hw XiConvolutionTop  <path to design>/conv/src/xi_convolution_top.cpp -clkid 1 -hls-tcl  <path to design>/conv/scripts/config_core.tcl -sds-end
 
     ```
     >**:pushpin: NOTE:**   `<path to design>` is the path to the project's `src/design` folder.
