@@ -213,7 +213,7 @@ XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile
         // #. If the layer is an user-defined layer, but layer type is already
         // a supported layer type, EXIT.
         ELOG(   (user_defined_layer && (it != CaffeLayerMap.end())), EP067,
-                "User-defined layer type: " << cLayer.type() << " is already a registered layer in xfDNN. "
+                "User-defined layer type: " << cLayer.type() << " is already a registered layer in CHaiDNN. "
                 << "Please change the type of the layer : " << cLayer.name() )
 
         // #. Check if any other layer with same name already present in the XGraph
@@ -291,7 +291,7 @@ XGraph* ParseCaffeNetwork(const string& deployFile, const string& caffemodelFile
     {
         cerr    << endl;
         cerr    << "[WARNING] Precision Parameters are not specified correctly for some of the layers." << '\n'
-                << "So xfDNN assumes default values for those parameters. It might affect the accuracy of result." << '\n'
+                << "So CHaiDNN assumes default values for those parameters. It might affect the accuracy of result." << '\n'
                 << "For accurate results, please provide the correct parameters for following layers: " << '\n';
 
         for(int i=0; i<graph->precMissLayers.size(); ++i)
@@ -2837,17 +2837,17 @@ void ExtractPowerParameters(const caffe::LayerParameter& src, XGraph& graph)
     // Get power [default: 1.0]
     // TODO : Ark : Currently only power=1.0 is allowed
     dst->power_params->power = src_parameter.has_power() ? src_parameter.power() : 1.0;
-    ASSERT(dst->power_params->power == 1.0, EP072, "Current version of xfDNN supports only power = 1.0 in Power Layer")
+    ASSERT(dst->power_params->power == 1.0, EP072, "Current version of CHaiDNN supports only power = 1.0 in Power Layer")
 
     // Get scale [default: 1]
     // TODO : Ark : Currently only scale=1 is allowed
     dst->power_params->scale = src_parameter.has_scale() ? src_parameter.scale() : 1.0;
-    ASSERT(dst->power_params->scale == -1.0, EP073, "Current version of xfDNN supports only scale = -1.0 in Power Layer")
+    ASSERT(dst->power_params->scale == -1.0, EP073, "Current version of CHaiDNN supports only scale = -1.0 in Power Layer")
 
     // Get shift [default: 1]
     // TODO : Ark : Currently only shift = 0.0 is allowed
     dst->power_params->shift = src_parameter.has_shift() ? src_parameter.shift() : 0.0;
-    ASSERT(dst->power_params->shift == 0.0, EP074, "Current version of xfDNN supports only shift = 0.0 in Power Layer")
+    ASSERT(dst->power_params->shift == 0.0, EP074, "Current version of CHaiDNN supports only shift = 0.0 in Power Layer")
 
     // Extract Precision Parameters
     // ExtractPrecisionParameters(src, *dst, false);
