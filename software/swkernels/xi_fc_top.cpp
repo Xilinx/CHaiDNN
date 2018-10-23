@@ -70,51 +70,6 @@ void matrix_multiply(float* X, float* Y, float* Z, int M, int N, int O);
 void matrix_multiply2(float* X, float* Y, float* Z, int M, int N, int O);
 void matrix_multiplyT(float* X, float* Y, float* B, float* Z, int M, int N, int O);
 
-int main1()
-{
-	// const string xfile = "/home/auviz23/Repos/py-faster-rcnn/models/pascal_voc/ZF/faster_rcnn_end2end/ref_224/fc7.txt";
-	// const string yfile = "/home/auviz23/Repos/py-faster-rcnn/models/pascal_voc/ZF/faster_rcnn_end2end/wts/bbox_pred_wts.txt";
-	// const string bfile = "/home/auviz23/Repos/py-faster-rcnn/models/pascal_voc/ZF/faster_rcnn_end2end/wts/bbox_pred_bias.txt";
-	// vector<float> vX = readtxt(xfile);
-	// vector<float> vY = readtxt(yfile);
-	// vector<float> vB = readtxt(bfile);
-	// const int M = 300;
-	// const int N = 4096;
-	// const int O = 84;
-
-	const string xfile = "/home/auviz23/Projects/anonymoX/proj1/backup/fca.txt";
-	const string yfile = "/home/auviz23/Projects/anonymoX/proj1/backup/fcw.txt";
-	const string bfile = "/home/auviz23/Projects/anonymoX/proj1/backup/fcb.txt";
-	vector<float> vX = readtxt1(xfile);
-	vector<float> vY = readtxt1(yfile);
-	vector<float> vB = readtxt1(bfile);
-	const int M = 3;
-	const int N = 5;
-	const int O = 2;
-
-	const string zfile = "out.txt";
-	// vector<float> vX = getArray(M, N, 10);
-	// vector<float> vY = getArray(N, O, 10);
-
-	vector<float> vZ(M*O);
-
-	cout << M << " " << N  << " " << O << endl;
-	cout << "starting : " << endl;
-	clock_t begin = clock();
-	//matrix_multiplyT(&(vX[0]), &(vY[0]), &(vB[0]), &(vZ[0]), M, N, O);
-	clock_t end = clock();
-	double time_spent = (double)(end - begin)*1000.0 / CLOCKS_PER_SEC;
-
-	cout << "Time spent: " << time_spent << " ms" << endl;
-
-	// std::copy(vX.begin(), vX.begin()+10, ostream_iterator<float>(cout, " ")); cout << endl;
-	// std::copy(vY.begin(), vY.begin()+10, ostream_iterator<float>(cout, " ")); cout << endl;
-	// std::copy(vZ.begin(), vZ.begin()+10, ostream_iterator<float>(cout, " ")); cout << endl;
-	savetxt1(vZ, zfile);
-
-}
-
-
 void matrix_multiply(float* X, float* Y, float* Z, int M, int N, int O)
 {
 	for(int m=0; m < M; ++m) {
