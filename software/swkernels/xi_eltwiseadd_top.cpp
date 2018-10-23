@@ -35,7 +35,7 @@ limitations under the License.
 
 #include "../include/hw_settings.h"
 
-#ifdef __SDSOC
+#ifndef __SDSOC
 #include <arm_neon.h>
 void eltwise_add_i8_8bit(IO_DATA_TYPE *pi8_a1, IO_DATA_TYPE *pi8_a2, IO_DATA_TYPE *pi8_b1, IO_DATA_TYPE *pi8_b2, IO_DATA_TYPE *pi8_s1, IO_DATA_TYPE *pi8_s2, int i4_n, int relu_en)
 {
