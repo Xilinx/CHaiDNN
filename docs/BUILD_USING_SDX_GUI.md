@@ -140,7 +140,7 @@ To build `CHaiDNN` using the Xilinx&reg; SDx Development Environment, perform th
 
 24. Apply changes and close the window.
 
-25. Open `<project name>/src/design/scripts/mcps.tcl` file and modify the path of `xdc` file as shown below.
+25. Open `<project name>/src/design/conv/scripts/mcps.tcl` file and modify the path of `xdc` file as shown below.
 ```
     read_xdc <path to project>/src/design/conv/scripts/mcp_const.xdc
 ```
