@@ -117,7 +117,7 @@ To build `CHaiDNN` using the Xilinx&reg; SDx Development Environment, perform th
 
 19. In `SDS++ Linker` add the following in the `command`
     ```
-    sds++ -xp param:compiler.skipTimingCheckAndFrequencyScaling=1 -xp "vivado_prop:run.impl_1.{STEPS.OPT_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}"  -xp "vivado_prop:run.impl_1.{STEPS.PLACE_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.impl_1.STEPS.PHYS_OPT_DESIGN.IS_ENABLED=1" -xp "vivado_prop:run.impl_1.{STEPS.PHYS_OPT_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.impl_1.{STEPS.ROUTE_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.synth_1.{STEPS.SYNTH_DESIGN.TCL.PRE}={<path to design>/src/conv/scripts/mcps.tcl}" -xp "vivado_prop:run.impl_1.{STEPS.PLACE_DESIGN.TCL.PRE}={<path to design>/src/conv/scripts/mcps.tcl}" -Wno-unused-label
+    sds++ -xp param:compiler.skipTimingCheckAndFrequencyScaling=1 -xp "vivado_prop:run.impl_1.{STEPS.OPT_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}"  -xp "vivado_prop:run.impl_1.{STEPS.PLACE_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.impl_1.STEPS.PHYS_OPT_DESIGN.IS_ENABLED=1" -xp "vivado_prop:run.impl_1.{STEPS.PHYS_OPT_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.impl_1.{STEPS.ROUTE_DESIGN.ARGS.MORE OPTIONS}={-directive Explore}" -xp "vivado_prop:run.synth_1.{STEPS.SYNTH_DESIGN.TCL.PRE}={<path to design>/conv/scripts/mcps.tcl}" -xp "vivado_prop:run.impl_1.{STEPS.PLACE_DESIGN.TCL.PRE}={<path to design>/conv/scripts/mcps.tcl}" -Wno-unused-label
     ```
  20. In `SDS++ Linker`, Select `Libraries` and add the following libs
      ```
@@ -140,7 +140,7 @@ To build `CHaiDNN` using the Xilinx&reg; SDx Development Environment, perform th
 
 24. Apply changes and close the window.
 
-25. Open `<project name>/src/design/scripts/mcps.tcl` file and modify the path of `xdc` file as shown below.
+25. Open `<project name>/src/design/conv/scripts/mcps.tcl` file and modify the path of `xdc` file as shown below.
 ```
     read_xdc <path to project>/src/design/conv/scripts/mcp_const.xdc
 ```
@@ -148,9 +148,9 @@ To build `CHaiDNN` using the Xilinx&reg; SDx Development Environment, perform th
 
 26.	Select the Hardware functions.
 
-    - Navigate to `src/design/src/pool/src/pooling_layer_dp_2xio_top.cpp` file using SDx explorer, right click on `PoolTop` and select Toggle HW/SW.
+    - Navigate to `src/design/pool/src/pooling_layer_dp_2xio_top.cpp` file using SDx explorer, right click on `PoolTop` and select Toggle HW/SW.
 
-    - Navigate to `src/design/src/deconv/src/xi_deconv_top.cpp` file using SDx explorer, right click on `XiDeconvTop` and select Toggle HW/SW.
+    - Navigate to `src/design/deconv/src/xi_deconv_top.cpp` file using SDx explorer, right click on `XiDeconvTop` and select Toggle HW/SW.
 
      >**:pushpin: NOTE:**  When building `DietChai` don't map any function to HW. `XiConvolutionTop` will be mapped to HW by default.
 
